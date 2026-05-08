@@ -1,0 +1,19 @@
+{
+  "name": "battle-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser-first combat system prototype for auto attacks, arts, startup/recovery cancel rules, and visual tuning.",
+  "scripts": {
+    "start": "python3 tools/serve.py",
+    "serve": "python3 tools/serve.py"
+  },
+  "keywords": [
+    "combat-system",
+    "prototype",
+    "canvas",
+    "state-machine",
+    "rpg"
+  ],
+  "license": "MIT"
+}
