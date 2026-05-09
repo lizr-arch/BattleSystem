@@ -6,7 +6,8 @@
   "description": "Browser-first combat system prototype for auto attacks, arts, startup/recovery cancel rules, and visual tuning.",
   "scripts": {
     "start": "python3 tools/serve.py",
-    "serve": "python3 tools/serve.py"
+    "serve": "python3 tools/serve.py",
+    "test": "node tests/combat-timing-smoke.test.mjs"
   },
   "keywords": [
     "combat-system",
