@@ -1,0 +1,77 @@
+export class DebugPanel {
+  constructor({ documentObject = document, actor }) {
+    this.document = documentObject;
+    this.actor = actor;
+    this.refs = {
+      frame: this.byId('frame'),
+      state: this.byId('state'),
+      action: this.byId('action'),
+      phase: this.byId('phase'),
+      actionBar: this.byId('actionBar'),
+      chargeBar: this.byId('chargeBar'),
+      cancelBar: this.byId('cancelBar'),
+      bufferBar: this.byId('bufferBar'),
+      log: this.byId('log'),
+      buffer: this.byId('buffer'),
+      cancel: this.byId('cancel'),
+      maxCharge: this.byId('maxCharge'),
+      bufferV: this.byId('bufferV'),
+      cancelV: this.byId('cancelV'),
+      chargeV: this.byId('chargeV'),
+      pause: this.byId('pause'),
+      step: this.byId('step'),
+      reset: this.byId('reset'),
+      clear: this.byId('clear'),
+    };
+  }
+
+  byId(id) {
+    const element = this.document.getElementById(id);
+    if (!element) throw new Error(`Missing debug panel element #${id}`);
+    return element;
+  }
+
+  bindControls({ onPause, onStep, onReset, onClear }) {
+    this.refs.pause.addEventListener('click', onPause);
+    this.refs.step.addEventListener('click', onStep);
+    this.refs.reset.addEventListener('click', onReset);
+    this.refs.clear.addEventListener('click', onClear);
+
+    const sync = () => this.applyTuning();
+    this.refs.buffer.addEventListener('input', sync);
+    this.refs.cancel.addEventListener('input', sync);
+    this.refs.maxCharge.addEventListener('input', sync);
+    this.applyTuning();
+  }
+
+  applyTuning() {
+    const inputBufferFrames = Number(this.refs.buffer.value);
+    const cancelBonusFrames = Number(this.refs.cancel.value);
+    const maxCharge = Number(this.refs.maxCharge.value);
+
+    this.actor.setInputBufferFrames(inputBufferFrames);
+    this.actor.setCancelBonusFrames(cancelBonusFrames);
+    this.actor.arts[0]?.setMaxCharge(maxCharge);
+
+    this.refs.bufferV.textContent = String(inputBufferFrames);
+    this.refs.cancelV.textContent = String(cancelBonusFrames);
+    this.refs.chargeV.textContent = String(maxCharge);
+  }
+
+  render() {
+    const actor = this.actor;
+    const action = actor.action;
+    const art = actor.arts[0];
+
+    this.refs.frame.textContent = String(actor.frame);
+    this.refs.state.textContent = actor.state;
+    this.refs.action.textContent = action ? action.spec.id : 'None';
+    this.refs.phase.textContent = action ? action.phase : 'None';
+
+    this.refs.actionBar.style.width = `${Math.round((action ? action.progress01 : 0) * 100)}%`;
+    this.refs.chargeBar.style.width = `${Math.round((art ? art.charge / art.maxCharge : 0) * 100)}%`;
+    this.refs.cancelBar.style.width = `${Math.round((actor.cancelBonusFrames ? actor.cancelBonusLeft / actor.cancelBonusFrames : 0) * 100)}%`;
+    this.refs.bufferBar.style.width = `${Math.round(actor.commandBuffer.ratio() * 100)}%`;
+    this.refs.log.textContent = actor.eventLog.toText();
+  }
+}
