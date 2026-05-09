@@ -1,0 +1,84 @@
+import { CombatInputFrame } from '../core/combat-input.js';
+
+export class BrowserInput {
+  constructor(windowObject = window) {
+    this.window = windowObject;
+    this.keys = new Set();
+    this.oneShot = {
+      art1: false,
+      pause: false,
+      reset: false,
+      step: false,
+    };
+
+    this.onKeyDown = this.onKeyDown.bind(this);
+    this.onKeyUp = this.onKeyUp.bind(this);
+  }
+
+  attach() {
+    this.window.addEventListener('keydown', this.onKeyDown);
+    this.window.addEventListener('keyup', this.onKeyUp);
+  }
+
+  detach() {
+    this.window.removeEventListener('keydown', this.onKeyDown);
+    this.window.removeEventListener('keyup', this.onKeyUp);
+  }
+
+  onKeyDown(event) {
+    const key = event.key.toLowerCase();
+
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', '1', '.'].includes(key)) {
+      event.preventDefault();
+    }
+
+    if (!this.keys.has(key)) {
+      if (key === '1') this.oneShot.art1 = true;
+      if (key === ' ') this.oneShot.pause = true;
+      if (key === 'r') this.oneShot.reset = true;
+      if (key === '.') this.oneShot.step = true;
+    }
+
+    this.keys.add(key);
+  }
+
+  onKeyUp(event) {
+    this.keys.delete(event.key.toLowerCase());
+  }
+
+  consumeControlShots() {
+    const result = {
+      pause: this.oneShot.pause,
+      reset: this.oneShot.reset,
+      step: this.oneShot.step,
+    };
+
+    this.oneShot.pause = false;
+    this.oneShot.reset = false;
+    this.oneShot.step = false;
+
+    return result;
+  }
+
+  readCombatFrame() {
+    let moveX = 0;
+    let moveY = 0;
+
+    if (this.keys.has('a') || this.keys.has('arrowleft')) moveX -= 1;
+    if (this.keys.has('d') || this.keys.has('arrowright')) moveX += 1;
+    if (this.keys.has('w') || this.keys.has('arrowup')) moveY -= 1;
+    if (this.keys.has('s') || this.keys.has('arrowdown')) moveY += 1;
+
+    const len = Math.hypot(moveX, moveY);
+    if (len > 1) {
+      moveX /= len;
+      moveY /= len;
+    }
+
+    const artSlotsPressed = [];
+    if (this.oneShot.art1) artSlotsPressed.push(0);
+    this.oneShot.art1 = false;
+
+    return new CombatInputFrame({ moveX, moveY, artSlotsPressed });
+  }
+}
