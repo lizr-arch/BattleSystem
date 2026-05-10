@@ -24,7 +24,7 @@ Startup / Active / Recovery
 武技消费
 ```
 
-当前阶段：V2 Driver Combo 原型已落地（在 V1 基础闭环上叠加验证）。
+当前阶段：V2/V2.1 原型已落地；建议先完成一轮 V2.1.1 小修（UI polish）再进入 V3。
 
 主要目标：
 
@@ -352,15 +352,10 @@ Fix input buffer expiry event
 - `src/ui` 浏览器验证壳。
 - Node 测试。
 
-### V1.1：建议下一步
+### V1.1：完成（质量补强）
 
-只做质量补强，不加大玩法：
-
-- 增加 `CombatActor.snapshot()`，让 UI 少读内部字段。
-- 增加 typed event helper，减少字符串日志依赖。
-- 增加浏览器 smoke test 或轻量页面加载检查。
-- 把调参 UI 改成 config patch，而不是直接改 actor 内部值。
-- 补充 docs 中的 V1.1 验收标准。
+- 以 `CombatActor.getSnapshot()` 作为 UI 主要读取入口，减少 UI 读取内部字段。
+- 调参 UI 通过 `applyConfigPatch` 修改配置，而不是直接改内部值。
 
 ### V2：Driver Combo 原型（完成）
 
@@ -387,6 +382,12 @@ V2 交付物：
 - Debug UI 提供一键 Run 按钮与 Debug Input（不依赖键盘焦点）。
 - Node 测试将 scenarios 纳入 `npm test` 主链路。
 
+### V2.1.1：UI polish（待合入）
+
+- 修复 Driver Combo Stage/Timer 面板绑定与实时更新。
+- Scenario Run 后保持 paused，便于观察画布状态。
+- 更新本文件路线图状态，避免误导后续任务。
+
 ### V3：未来
 
 Special / Blade Combo 原型。
@@ -394,6 +395,15 @@ Special / Blade Combo 原型。
 ### V4：未来
 
 Chain Attack / token cash-out 原型。
+
+### 制作人验收结论（截至 V2.1）
+
+- V2 core：通过
+- V2 tests：通过结构检查
+- V2 UI 基础：基本通过
+- V2.1 scenario harness：通过
+- V2.1 trace/proof：通过
+- main 合并状态：通过
 
 ## 9. 新机制接入规则
 
