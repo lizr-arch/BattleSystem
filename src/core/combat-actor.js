@@ -2,6 +2,7 @@ import { CombatActionInstance } from './action.js';
 import { CombatCommandBuffer, CombatInputFrame } from './combat-input.js';
 import { CombatEventLog } from './combat-event-log.js';
 import { emitCombatEvent } from './combat-events.js';
+import { DriverComboState, getDriverComboDurationFrames } from './driver-combo.js';
 import { ActorState, CombatEventType } from './enums.js';
 import { clamp, distance, normalize2 } from './math.js';
 
@@ -30,6 +31,8 @@ export class CombatActor {
     this.x = position.x;
     this.y = position.y;
     this.radius = radius;
+    this.spawnX = this.x;
+    this.spawnY = this.y;
 
     this.target = target;
     this.autoAttackRange = autoAttackRange;
@@ -51,6 +54,7 @@ export class CombatActor {
     this.cancelBonusFrames = cancelBonusFrames;
     this.cancelBonusLeft = 0;
     this.cancelBonusDamageMultiplier = cancelBonusDamageMultiplier;
+    this.driverCombo = new DriverComboState();
 
     this.eventLog = eventLog;
     this.commandBuffer = new CombatCommandBuffer({
@@ -116,8 +120,18 @@ export class CombatActor {
 
   getSnapshot() {
     const action = this.action;
-    const art = this.arts[0] ?? null;
+    const arts = this.arts;
+    const art1 = arts[0] ?? null;
+    const art2 = arts[1] ?? null;
+    const art3 = arts[2] ?? null;
+    const art4 = arts[3] ?? null;
     const cancelRatio = this.cancelBonusFrames ? this.cancelBonusLeft / this.cancelBonusFrames : 0;
+    const mapArt = (art) => (art ? ({
+      id: art.id,
+      charge: art.charge,
+      maxCharge: art.maxCharge,
+      ready: art.ready,
+    }) : null);
 
     return {
       id: this.id,
@@ -141,12 +155,10 @@ export class CombatActor {
         activeFrames: action.spec.activeFrames,
         recoveryFrames: action.spec.recoveryFrames,
       } : null,
-      art1: art ? {
-        id: art.id,
-        charge: art.charge,
-        maxCharge: art.maxCharge,
-        ready: art.ready,
-      } : null,
+      art1: mapArt(art1),
+      art2: mapArt(art2),
+      art3: mapArt(art3),
+      art4: mapArt(art4),
       cancelBonus: {
         frames: this.cancelBonusFrames,
         left: this.cancelBonusLeft,
@@ -158,6 +170,11 @@ export class CombatActor {
         slot: this.commandBuffer.peekArtSlot(),
         hasArt: this.commandBuffer.hasArt(),
         ratio: this.commandBuffer.ratio()
+      },
+      driverCombo: {
+        stage: this.driverCombo.stage,
+        framesLeft: this.driverCombo.framesLeft,
+        duration: getDriverComboDurationFrames(this.driverCombo.stage),
       },
       vfx: this.vfx.map((fx) => ({ ...fx })),
       paused: this.paused,
@@ -200,8 +217,8 @@ export class CombatActor {
   }
 
   resetRuntime({ keepLog = false } = {}) {
-    this.x = 310;
-    this.y = 400;
+    this.x = this.spawnX;
+    this.y = this.spawnY;
     this.state = ActorState.Locomotion;
     this.action = null;
     this.currentArt = null;
@@ -211,6 +228,7 @@ export class CombatActor {
     this.cancelBonusLeft = 0;
     this.commandBuffer.clear();
     this.arts.forEach((art) => { art.charge = 0; });
+    this.driverCombo = new DriverComboState();
     this.vfx = [];
     this.paused = false;
 
@@ -224,6 +242,10 @@ export class CombatActor {
       : new CombatInputFrame(rawInput);
 
     this.frame += 1;
+    const driverComboEvent = this.driverCombo.tick(1);
+    if (driverComboEvent) {
+      this.emit(driverComboEvent.type, driverComboEvent.data);
+    }
     this.commandBuffer.tick();
 
     if (this.cancelBonusLeft > 0) {
@@ -429,6 +451,16 @@ export class CombatActor {
     const damage = Math.round(art.actionSpec.damage * (canceled ? this.cancelBonusDamageMultiplier : 1));
     this.emit(CombatEventType.ActionHit, { artId: art.id, damage, canceled });
     this.spawnDamageNumber(damage, canceled ? 'cancel-art' : 'art');
+
+    if (art.effect !== null && art.effect !== undefined) {
+      const driverComboEvent = this.driverCombo.apply(art.effect);
+      if (driverComboEvent) {
+        this.emit(driverComboEvent.type, driverComboEvent.data);
+        if (driverComboEvent.type === CombatEventType.DriverComboFinished && driverComboEvent.data?.effect === 'Smash') {
+          this.spawnDamageNumber('SMASH!', 'smash');
+        }
+      }
+    }
   }
 
   resetAutoAttackChain() {
@@ -445,10 +477,12 @@ export class CombatActor {
   }
 
   spawnDamageNumber(text, kind) {
+    const life = kind === 'hit' ? 16 : kind === 'smash' ? 34 : 22;
+    const yOffset = kind === 'hit' ? 0 : kind === 'smash' ? -44 : -18;
     this.vfx.push({
       x: this.target.x,
-      y: this.target.y + (kind === 'hit' ? 0 : -18),
-      life: kind === 'hit' ? 16 : 22,
+      y: this.target.y + yOffset,
+      life,
       text: String(text),
       kind
     });

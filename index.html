@@ -55,7 +55,7 @@
       background: #1c2028;
       border-left: 1px solid #343b4a;
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto auto 1fr;
       min-height: 0;
     }
     .section { padding: 14px 16px; border-bottom: 1px solid #343b4a; }
@@ -92,7 +92,7 @@
   <main>
     <header>
       <h1>BattleSystem：普攻 / 武技 / 前后摇 / 后摇取消</h1>
-      <div class="hint"><kbd>WASD</kbd>/<kbd>方向键</kbd> 移动，<kbd>1</kbd> 武技，<kbd>Space</kbd> 暂停，<kbd>R</kbd> 重置，<kbd>.</kbd> 单帧</div>
+      <div class="hint"><kbd>WASD</kbd>/<kbd>方向键</kbd> 移动，<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd>/<kbd>4</kbd> 武技，<kbd>Space</kbd> 暂停，<kbd>R</kbd> 重置，<kbd>.</kbd> 单帧</div>
     </header>
     <section id="stage">
       <canvas id="c"></canvas>
@@ -108,15 +108,25 @@
       <div class="row"><span>Phase</span><span id="phase" class="pill">None</span></div>
       <div class="row"><span>Action</span><span class="bar"><i id="actionBar"></i></span></div>
       <div class="row"><span>Art1 Charge</span><span class="bar charge"><i id="chargeBar"></i></span></div>
+      <div class="row"><span>Art1</span><span id="art1Info" class="pill">-</span></div>
+      <div class="row"><span>Art2</span><span id="art2Info" class="pill">-</span></div>
+      <div class="row"><span>Art3</span><span id="art3Info" class="pill">-</span></div>
+      <div class="row"><span>Art4</span><span id="art4Info" class="pill">-</span></div>
       <div class="row"><span>Cancel Bonus</span><span class="bar cancel"><i id="cancelBar"></i></span></div>
       <div class="row"><span>Input Buffer</span><span class="bar buffer"><i id="bufferBar"></i></span></div>
       <div class="buttons"><button id="pause">Pause</button><button id="step">Step</button><button id="reset">Reset</button><button id="clear">Clear</button></div>
     </div>
     <div class="section">
+      <h2>Driver Combo</h2>
+      <div class="row"><span>Stage</span><span id="dcStage" class="pill">None</span></div>
+      <div class="row"><span>Timer</span><span class="bar buffer"><i id="dcBar"></i></span></div>
+      <div class="row"><span>Frames</span><span><b id="dcFramesLeft">0</b> / <b id="dcDuration">0</b></span></div>
+    </div>
+    <div class="section">
       <h2>调参</h2>
       <div class="row"><span>Input Buffer</span><div><input id="buffer" type="range" min="0" max="24" value="10"><div class="small"><b id="bufferV">10</b> frames</div></div></div>
       <div class="row"><span>Cancel Bonus</span><div><input id="cancel" type="range" min="0" max="30" value="15"><div class="small"><b id="cancelV">15</b> frames</div></div></div>
-      <div class="row"><span>Art Max Charge</span><div><input id="maxCharge" type="range" min="1" max="8" value="3"><div class="small"><b id="chargeV">3</b> hit charge</div></div></div>
+      <div class="row"><span>Art1 Max Charge</span><div><input id="maxCharge" type="range" min="1" max="8" value="2"><div class="small"><b id="chargeV">2</b> hit charge</div></div></div>
       <p class="small">推荐测试：站定、一直移动、Startup 中移动、Hit 后移动、Hit 前提前按 1。</p>
     </div>
     <pre id="log"></pre>

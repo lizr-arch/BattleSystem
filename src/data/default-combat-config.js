@@ -1,7 +1,7 @@
 import { AutoAttackChainSpec, CombatActionSpec } from '../core/action.js';
 import { Art } from '../core/art.js';
 import { CombatActor } from '../core/combat-actor.js';
-import { ActionKind } from '../core/enums.js';
+import { ActionKind, DriverComboEffect } from '../core/enums.js';
 
 export function createDefaultActionSpecs() {
   const aa1 = new CombatActionSpec({
@@ -46,13 +46,49 @@ export function createDefaultActionSpecs() {
     startupFrames: 15,
     activeFrames: 4,
     recoveryFrames: 28,
-    damage: 70,
+    damage: 40,
     artChargeGain: 0,
     cancelRecoveryToMovement: false,
     cancelRecoveryToArt: false
   });
 
-  return { aa1, aa2, aa3, art1Action };
+  const art2Action = new CombatActionSpec({
+    id: 'Art2_Action',
+    kind: ActionKind.Art,
+    startupFrames: 15,
+    activeFrames: 4,
+    recoveryFrames: 28,
+    damage: 50,
+    artChargeGain: 0,
+    cancelRecoveryToMovement: false,
+    cancelRecoveryToArt: false
+  });
+
+  const art3Action = new CombatActionSpec({
+    id: 'Art3_Action',
+    kind: ActionKind.Art,
+    startupFrames: 15,
+    activeFrames: 4,
+    recoveryFrames: 28,
+    damage: 60,
+    artChargeGain: 0,
+    cancelRecoveryToMovement: false,
+    cancelRecoveryToArt: false
+  });
+
+  const art4Action = new CombatActionSpec({
+    id: 'Art4_Action',
+    kind: ActionKind.Art,
+    startupFrames: 15,
+    activeFrames: 4,
+    recoveryFrames: 28,
+    damage: 80,
+    artChargeGain: 0,
+    cancelRecoveryToMovement: false,
+    cancelRecoveryToArt: false
+  });
+
+  return { aa1, aa2, aa3, art1Action, art2Action, art3Action, art4Action };
 }
 
 export function createDefaultCombatActor() {
@@ -62,14 +98,36 @@ export function createDefaultCombatActor() {
     new Art({
       id: 'Art1',
       actionSpec: specs.art1Action,
-      maxCharge: 3
+      maxCharge: 2,
+      effect: DriverComboEffect.Break
+    }),
+    new Art({
+      id: 'Art2',
+      actionSpec: specs.art2Action,
+      maxCharge: 3,
+      effect: DriverComboEffect.Topple
+    }),
+    new Art({
+      id: 'Art3',
+      actionSpec: specs.art3Action,
+      maxCharge: 4,
+      effect: DriverComboEffect.Launch
+    }),
+    new Art({
+      id: 'Art4',
+      actionSpec: specs.art4Action,
+      maxCharge: 4,
+      effect: DriverComboEffect.Smash
     })
   ];
 
+  const target = { id: 'Dummy', x: 660, y: 400, radius: 38, hp: 999999 };
+  const position = { x: target.x - 100, y: target.y };
+
   return new CombatActor({
     id: 'Player',
-    position: { x: 310, y: 400 },
-    target: { id: 'Dummy', x: 660, y: 400, radius: 38, hp: 999999 },
+    position,
+    target,
     radius: 24,
     autoAttackRange: 165,
     artRange: 190,

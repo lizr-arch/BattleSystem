@@ -42,6 +42,18 @@ export function formatCombatEvent(type, data = {}) {
       return `AutoAttackChainAdvanced -> ${data.nextActionId ?? 'Unknown'}`;
     case CombatEventType.AutoAttackChainReset:
       return 'AutoAttackChainReset';
+    case CombatEventType.DriverComboApplied:
+      return `DriverComboApplied ${data.stage ?? 'None'} ${data.framesLeft ?? 0}f`;
+    case CombatEventType.DriverComboAdvanced:
+      return `DriverComboAdvanced ${data.fromStage ?? 'None'}->${data.toStage ?? 'None'} ${data.framesLeft ?? 0}f`;
+    case CombatEventType.DriverComboRefreshed:
+      return `DriverComboRefreshed ${data.stage ?? 'None'} ${data.beforeFramesLeft ?? 0}f->${data.framesLeft ?? 0}f`;
+    case CombatEventType.DriverComboFailed:
+      return `DriverComboFailed stage=${data.stage ?? 'None'} effect=${data.effect ?? '?'} requires=${data.requires ?? '?'}`;
+    case CombatEventType.DriverComboExpired:
+      return `DriverComboExpired ${data.stage ?? 'None'}`;
+    case CombatEventType.DriverComboFinished:
+      return `DriverComboFinished ${data.effect ?? 'Smash'}`;
     default:
       return String(type);
   }

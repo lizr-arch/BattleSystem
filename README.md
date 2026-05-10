@@ -9,7 +9,9 @@ Art charge
   ↓
 Recovery cancel
   ↓
-Use art
+Use art (hit)
+  ↓
+Driver Combo (optional)
 ```
 
 ## V1 目标与边界
@@ -28,6 +30,25 @@ Implemented / planned in the first browser prototype:
 - Short art input buffer.
 - Cancel bonus window after hit.
 - Browser HTML visual validation loop + Node tests.
+
+## V2 Driver Combo（已实现）
+
+在不扩玩法的前提下，增加一层“控制链”验证（通过武技命中推进）：
+
+```text
+Break -> Topple -> Launch -> Smash
+```
+
+默认键位与 effect 绑定：
+
+```text
+1: Art1 (Break)
+2: Art2 (Topple)
+3: Art3 (Launch)
+4: Art4 (Smash)
+```
+
+所有推进/失败/过期/完成都可通过事件日志与右侧面板观察（详见 `docs/validation-plan.md`）。
 
 ## V1 目录结构
 
@@ -56,7 +77,7 @@ Controls:
 
 ```text
 WASD / Arrow Keys : move
-1                 : use Art1
+1/2/3/4           : use Art1/Art2/Art3/Art4
 Space             : pause / resume
 R                 : reset
 .                 : step one frame

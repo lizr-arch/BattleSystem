@@ -1,86 +1,92 @@
-# Roadmap
+# 路线图（Roadmap）
 
-BattleSystem will grow from a browser validation sandbox into a reusable combat-system core.
+BattleSystem 会从“浏览器验证沙盒”逐步长成可复用的战斗核心。每个阶段都优先保证：可解释、可验证、可测试。
 
-## V0: Auto attack and art loop
+## V0：普攻 + 武技闭环（完成）
 
-Status: done (baseline loop validated).
+状态：完成（基础闭环已验证）
 
-Scope:
+范围：
 
-- Browser single-file sandbox.
-- Fixed-frame simulation.
-- Movement intent.
-- Auto-attack chain.
-- Startup / Active / Recovery action phases.
-- Art charge.
-- Input buffer.
-- Recovery cancel.
-- Cancel bonus.
-- Event log and debug UI.
+- 浏览器单页验证沙盒。
+- 固定帧模拟（60 FPS）。
+- 移动意图输入。
+- 普攻链：`AA1 -> AA2 -> AA3`。
+- 统一动作阶段：`Startup / Active / Recovery / Finished`。
+- 武技充能与消费。
+- 输入缓冲。
+- 后摇取消（到移动 / 到武技）。
+- Cancel Bonus 窗口。
+- 事件日志 + Debug UI。
 
-Success criteria:
+验收：
 
-- `index.html` can run directly in a browser.
-- A player can validate the base loop against a target dummy.
-- Key transitions are visible through the event log.
+- `index.html` 可直接在浏览器运行（无构建步骤）。
+- 玩家可对着木桩复现闭环节奏。
+- 关键转移能通过事件日志被证明。
 
-## V1: Modular combat core
+## V1：模块化战斗核心（完成）
 
-Status: done (module split landed on main).
+状态：完成（模块拆分已落地）
 
-Split the browser prototype into modules:
+范围：
 
 ```text
-src/core/
-src/data/
-src/ui/
-tests/
+src/core/   纯逻辑核心（不依赖 DOM/Canvas）
+src/data/   默认数值与装配
+src/ui/     浏览器输入/渲染/调试 UI
+tests/      Node 可重复测试
 ```
 
-Goals:
+目标：
 
-- Keep combat logic independent from DOM and Canvas.
-- Add deterministic input-script replay tests.
-- Add config-driven action data.
+- 保持战斗规则与浏览器壳解耦。
+- 增加可重复回放/时序边界相关测试。
+- 让数值与动作参数由配置驱动。
 
-## V2: Driver combo prototype
+## V2：Driver Combo 原型（完成）
 
-Add the first control-chain layer:
+状态：完成（状态模型 + 事件 + 最小 UI/测试已落地）
+
+新增控制链层（通过武技命中推进）：
 
 ```text
 Break -> Topple -> Launch -> Smash
 ```
 
-Goals:
+范围：
 
-- Art effects can apply combat statuses.
-- Status duration can be extended or consumed.
-- Combat log can prove every transition.
+- core 层实现 Driver Combo 状态机（stage + 剩余帧数）。
+- Art 命中时挂载 effect（`Break/Topple/Launch/Smash`）推进状态。
+- 每次推进/失败/超时/完成均产生日志事件，便于验证。
+- 浏览器 Debug 面板展示当前 stage 与剩余时间；Smash 成功有显式提示。
 
-## V3: Special / blade combo prototype
+验收：
 
-Add special gauge and elemental route validation.
+- 通过 `1/2/3/4` 的顺序输入可稳定推进并完成 Smash。
+- 错序输入产出 `DriverComboFailed`，且不改变 stage（可通过日志证明）。
+- 超时产出 `DriverComboExpired`，stage 回到 None（可通过日志证明）。
+- `npm test` 覆盖并通过 Driver Combo 的关键不变量。
 
-Goals:
+## V3：Special / Blade Combo 原型（未来）
 
-- Arts charge specials.
-- Specials advance a route.
-- Successful route produces a delayed reward token.
+范围（仅计划）：
 
-## V4: Chain attack prototype
+- Arts 充能 Special。
+- Specials 推进元素路线。
+- 路线成功产出延迟奖励 token（用于后续 cash-out 验证）。
 
-Add delayed reward cash-out.
+## V4：Chain Attack / token cash-out（未来）
 
-Goals:
+范围（仅计划）：
 
-- Tokens can be broken during a chain attack.
-- Breaking tokens extends the attack sequence.
-- Full-burst style payoff can be tuned.
+- Chain Attack 中消耗/打碎 token 完成现金化（payoff）。
+- token 破碎可延长攻击序列。
+- Full-burst 风格回报可调参验证。
 
-## Engineering principles
+## 工程原则
 
-- No opaque magic in combat rules.
-- Every major state transition must be inspectable.
-- Data should drive action timing and cancel permissions.
-- Browser validation comes before production animation.
+- 战斗规则不允许“黑盒魔法”，必须可解释。
+- 任何重要状态变化必须可被观察（日志/快照/可视化）。
+- 动作时序与取消权限由数据驱动，而不是 UI 特判。
+- 先做浏览器验证，再做生产级动画与表现扩展。

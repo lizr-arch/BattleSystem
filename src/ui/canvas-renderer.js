@@ -1,4 +1,4 @@
-import { ActorState, ActionPhase } from '../core/enums.js';
+import { ActorState, ActionPhase, DriverComboStage } from '../core/enums.js';
 
 function point(canvas, worldX, worldY) {
   const rect = canvas.getBoundingClientRect();
@@ -39,6 +39,16 @@ export class CanvasRenderer {
 
     this.circle(target.x, target.y, target.radius, '#30242a', '#ff7b7b', 3);
     this.text('DUMMY', target.x, target.y, '#ffd5d5', 13);
+    const driverStage = actor.driverCombo?.stage ?? DriverComboStage.None;
+    if (driverStage !== DriverComboStage.None) {
+      const stageLabel = String(driverStage).toUpperCase();
+      const stageColor = driverStage === DriverComboStage.Break
+        ? '#79b7ff'
+        : driverStage === DriverComboStage.Topple
+          ? '#ffd166'
+          : '#c59cff';
+      this.text(stageLabel, target.x, target.y - target.radius - 42, stageColor, 18);
+    }
 
     let fill = '#273244';
     let stroke = actor.inAutoRange ? '#7fd88d' : '#98a2b3';
@@ -74,8 +84,13 @@ export class CanvasRenderer {
     this.text(actionLabel, actor.position.x, actor.position.y + 42, '#cfd6e4', 12);
 
     for (const fx of actor.vfx) {
-      const color = fx.kind === 'hit' ? '#ffd166' : '#ff9dff';
-      this.text(fx.text, fx.x, fx.y, color, 22);
+      const color = fx.kind === 'hit'
+        ? '#ffd166'
+        : fx.kind === 'smash'
+          ? '#ff4d6d'
+          : '#ff9dff';
+      const size = fx.kind === 'smash' ? 28 : 22;
+      this.text(fx.text, fx.x, fx.y, color, size);
     }
 
     if (actor.paused) {
