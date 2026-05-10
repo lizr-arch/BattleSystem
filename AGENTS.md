@@ -24,7 +24,7 @@ Startup / Active / Recovery
 武技消费
 ```
 
-当前阶段：V2/V2.1 原型已落地；建议先完成一轮 V2.1.1 小修（UI polish）再进入 V3。
+当前阶段：V2.2 机制地图 + 系统资产盘点；进入 V3 前应先完成一轮文档审计与可验证接入点梳理。
 
 主要目标：
 
@@ -391,7 +391,7 @@ V2 交付物：
 - Debug UI 提供一键 Run 按钮与 Debug Input（不依赖键盘焦点）。
 - Node 测试将 scenarios 纳入 `npm test` 主链路。
 
-### V2.1.1：UI polish（待合入）
+### V2.1.1：UI polish（完成）
 
 - 修复 Driver Combo Stage/Timer 面板绑定与实时更新。
 - Scenario Run 后保持 paused，便于观察画布状态。
