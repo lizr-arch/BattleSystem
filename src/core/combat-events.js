@@ -22,7 +22,7 @@ export function formatCombatEvent(type, data = {}) {
       return `DebugGrantArtsReady ${parts.join(' ')}`.trimEnd();
     }
     case CombatEventType.DebugGrantSpecialReady:
-      return `DebugGrantSpecialReady charge=${data.charge ?? 0}`;
+      return `DebugGrantSpecialReady charge=${data.charge ?? 0}${data.level ? ` L${data.level}` : ''}`;
     case CombatEventType.ActionStarted:
       return `ActionStarted ${data.actionId ?? data.artId ?? 'Unknown'}`;
     case CombatEventType.ActionPhaseChanged:

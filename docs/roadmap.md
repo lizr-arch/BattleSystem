@@ -120,21 +120,31 @@ Break -> Topple -> Launch -> Smash
 - `docs/test-coverage-map.md`
 - `docs/v3-readiness-review.md`
 
-## V3：Special / Blade Combo 原型（未来）
+## V3：Special / Blade Combo / Token 原型（完成）
 
-范围（仅计划）：
+状态：完成（core + events + scenarios/tests + 最小 UI 可观察性）
 
-- Arts 充能 Special。
-- Specials 推进元素路线。
-- 路线成功产出延迟奖励 token（用于后续 cash-out 验证）。
+范围：
 
-## V4：Chain Attack / token cash-out（未来）
+- Special Gauge（资源条）：
+  - Arts 命中会按配置为 gauge 充能（示例默认：Art1~4 分别 +25/+25/+30/+40）。
+  - 阈值：100/200/300，对应 readyLevel：L1/L2/L3。
+- Special（必杀）：
+  - 释放时检查等级是否足够；不足会失败并记录原因；足够会消耗并进入动作时序。
+  - 命中会产出 `SpecialHit`，并作为 Blade Combo 的推进输入。
+- Blade Combo（路线链）：
+  - Specials 命中推进路线（示例默认路线：`Fire(L1) -> Water(L2) -> Fire(L3)`）。
+  - 错元素/等级不足会失败但不推进；倒计时归零会过期回 None。
+- Token（延迟奖励输入）：
+  - 路线完成会产出一个 Token 并记录 `TokenCreated`（当前仅“产出与可观察性验证”，不含兑现机制）。
+- 验收入口：
+  - Node：`npm test`（包含 Special/Blade/Token 相关 tests 与 scenarios）。
+  - Browser：右侧 Debug 面板展示 gauge/route/tokens，并提供一键 Run scenarios 与 debug buttons（不依赖键盘焦点）。
 
-范围（仅计划）：
+## 明确不做（仓库边界）
 
-- Chain Attack 中消耗/打碎 token 完成现金化（payoff）。
-- token 破碎可延长攻击序列。
-- Full-burst 风格回报可调参验证。
+- Chain Attack（明确排除，不纳入路线图）。
+- Token cash-out（本仓库只验证 token 的产出与可观察性，不实现兑现/破碎/Full Burst 等 payoff 机制）。
 
 ## 工程原则
 

@@ -188,8 +188,12 @@ export function runScenario({
     if (kind === 'grantSpecialReady') {
       const max = actor.specialGauge?.threshold3 ?? 300;
       const charge = Math.max(0, Math.min(max | 0, clampInt(step.charge)));
-      actor.specialGauge.charge = charge;
-      actor.emit(CombatEventType.DebugGrantSpecialReady, { charge });
+      if (typeof actor.debugGrantSpecialReady === 'function') {
+        actor.debugGrantSpecialReady({ charge });
+      } else {
+        actor.specialGauge.charge = charge;
+        actor.emit(CombatEventType.DebugGrantSpecialReady, { charge });
+      }
       recorder.record(actor, { note: label });
       passStep(label, { charge });
       continue;

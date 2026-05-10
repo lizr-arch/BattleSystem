@@ -9,6 +9,9 @@ export class BrowserInput {
       art2: false,
       art3: false,
       art4: false,
+      sp1: false,
+      sp2: false,
+      sp3: false,
       pause: false,
       reset: false,
       step: false,
@@ -40,6 +43,9 @@ export class BrowserInput {
       if (key === '2') this.oneShot.art2 = true;
       if (key === '3') this.oneShot.art3 = true;
       if (key === '4') this.oneShot.art4 = true;
+      if ((event.ctrlKey || event.metaKey) && key === 'q') this.oneShot.sp1 = true;
+      if ((event.ctrlKey || event.metaKey) && key === 'w') this.oneShot.sp2 = true;
+      if ((event.ctrlKey || event.metaKey) && key === 'e') this.oneShot.sp3 = true;
       if (key === ' ') this.oneShot.pause = true;
       if (key === 'r') this.oneShot.reset = true;
       if (key === '.') this.oneShot.step = true;
@@ -57,11 +63,17 @@ export class BrowserInput {
       pause: this.oneShot.pause,
       reset: this.oneShot.reset,
       step: this.oneShot.step,
+      sp1: this.oneShot.sp1,
+      sp2: this.oneShot.sp2,
+      sp3: this.oneShot.sp3,
     };
 
     this.oneShot.pause = false;
     this.oneShot.reset = false;
     this.oneShot.step = false;
+    this.oneShot.sp1 = false;
+    this.oneShot.sp2 = false;
+    this.oneShot.sp3 = false;
 
     return result;
   }

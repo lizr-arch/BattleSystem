@@ -1,6 +1,6 @@
-# V2.2 Mechanics Map
+# V3 Mechanics Map
 
-本文档列出 BattleSystem 当前机制地图（Mechanic Inventory），用于后续 V3 前的系统审计与接入点识别。机制本身以代码与测试为准；本文档提供“机制→文件→输入/输出/事件/不变量/测试”的可追溯索引。
+本文档列出 BattleSystem 当前机制地图（Mechanic Inventory）。机制本身以代码与测试为准；本文档提供“机制→文件→输入/输出/事件/不变量/测试”的可追溯索引。
 
 ## Input Intent
 
@@ -16,7 +16,7 @@
   - 输入只表达意图，不直接改战斗状态。
   - 移动是持续意图；武技是瞬时输入，交给输入缓冲处理。
 - 测试覆盖：`tests/combat-core.test.mjs`（移动阻止普攻、startup 不软取消）、`tests/ui-module-load.test.mjs`（入口装配）
-- 未来扩展点：V3 可在保持“意图层不变”的前提下新增 `specialPressed`、`bladeSwitchPressed` 等字段。
+- 未来扩展点：如要把 Special 也做成“输入意图”，可新增 `specialPressed` 字段；当前实现选择由 Debug 面板/工具直接调用 `actor.castSpecial(...)`，避免键盘焦点与 one-shot 误差。
 - 不应该做的事：在输入层实现“能否取消/能否命中/能否推进 combo”的规则判断。
 
 ## Input Buffer
@@ -33,7 +33,7 @@
   - 缓冲只存“最后一次 art slot + 剩余帧数”（不是队列）。
   - 过期必须产出 `InputExpired`，消费必须产出 `InputConsumed`。
 - 测试覆盖：间接覆盖于 `tests/combat-core.test.mjs`（startup 输入不触发取消到 art）；`tests/driver-combo*.mjs`、scenarios（castArt 依赖缓冲）
-- 未来扩展点：V3 可能需要“多键队列”或“多类指令缓冲”（special/blade），建议先在 dev scenario 覆盖确定性再升级结构。
+- 未来扩展点：若未来把 Special 也做成输入（而不是直接 API 调用），再考虑扩展为“多类指令缓冲”；在引入前应先用 scenarios 覆盖确定性行为。
 - 不应该做的事：把“buffer 是否可消费”的规则写在 UI 里；UI 只负责产生输入帧。
 
 ## Action Timeline
@@ -68,7 +68,7 @@
   - 普攻命中收益（充能、cancel window）发生后，移动取消不能回滚收益。
   - 移动取消后链重置到 AA1。
 - 测试覆盖：`tests/combat-core.test.mjs`
-- 未来扩展点：V3 可复用“普攻命中事件”作为 Special Gauge 充能入口候选点之一。
+- 未来扩展点：如需调整节奏，可把 Special Gauge 的充能入口扩展到普攻命中；当前实现选择只由 Arts 命中充能，避免与普攻资源生产耦合过早。
 - 不应该做的事：在 UI 中实现“站定判断/范围判断/普攻链推进”。
 
 ## Art Charge / Ready / Consume
@@ -85,7 +85,7 @@
   - 只有普攻命中才充能；whiff 不充能。
   - `ready => charge >= maxCharge`；消耗将 charge 归零（只能在 ready 时）。
 - 测试覆盖：`tests/combat-core.test.mjs`（普攻命中充能、ready 事件、消费后释放）
-- 未来扩展点：V3 的 Special Gauge 可复用“普攻命中充能逻辑”的结构（addCharge + becameReady + 事件）。
+- 未来扩展点：Special Gauge 复用同类结构（addCharge + becameReady + 事件），保持资源条行为可审计。
 - 不应该做的事：把 charge/ready 判断写在 UI；UI 只显示 snapshot。
 
 ## Recovery Cancel
@@ -119,7 +119,7 @@
   - 只有普攻命中才开启窗口；窗口按帧衰减。
   - Cancel Bonus 只在“从普攻 Recovery 取消到 Art”这一条路径上判定并生效。
 - 测试覆盖：`tests/combat-core.test.mjs`（bonus 触发、伤害倍率、事件）
-- 未来扩展点：V3 可把 Cancel Bonus 作为 Special Gauge 的“额外充能候选点”之一（设计上可选）。
+- 未来扩展点：如要引入“节奏奖励”，可在 `CancelBonusApplied` 后追加可配置充能；当前实现未引入额外加成，避免概念混淆。
 - 不应该做的事：把 bonus 计算或窗口逻辑放到 UI 或 dev harness。
 
 ## Driver Combo
@@ -137,8 +137,62 @@
   - 顺序固定：Break -> Topple -> Launch -> Smash；错序只产出 Failed，不改变 stage。
   - Break 阶段再次 Break 会刷新倒计时；倒计时归零产出 Expired 并回 None；Smash 立即完成并回 None。
 - 测试覆盖：`tests/driver-combo.test.mjs`、`tests/driver-combo-scenario.test.mjs`
-- 未来扩展点：V3 Blade Combo 应与 Driver Combo 并行存在（类似一个独立状态机 + 事件 + snapshot 字段）。
+- 未来扩展点：Blade Combo 与 Driver Combo 并行存在（各自独立状态机 + 事件 + snapshot 字段），避免“互相读取条件”导致耦合。
 - 不应该做的事：把路线规则写进 UI；或让 Blade Combo 覆盖/替代 Driver Combo。
+
+## Special Gauge
+
+- 目的：提供可充能、可 ready、可消费的资源条，用于驱动 Specials。
+- 所属层：`src/core`
+- 主要文件：`src/core/special-gauge.js`、`src/core/combat-actor.js`
+- 输入：Art 命中时的 `art.specialChargeGain`（当前实现）；以及 debug 注入（Grant Special）。
+- 输出：`charge/readyLevel/ratio`（进入 snapshot）；消费结果（ok/failed reason）。
+- 拥有状态：`CombatActor.specialGauge`（`SpecialGaugeState`）
+- 发出事件：`SpecialChargeChanged`、`SpecialBecameReady`、`SpecialConsumed`、`SpecialCastFailed`、`DebugGrantSpecialReady`
+- 消费事件：无（Special 释放通过 `castSpecial` API 触发）
+- 关键不变量：
+  - 充能只发生在命中结算路径；whiff 不充能。
+  - 消费必须检查等级/charge，失败必须产出可审计事件（包含 reason）。
+- 测试覆盖：`tests/special-gauge.test.mjs`、`tests/special-actor.test.mjs`
+- 不应该做的事：在 UI 中写“是否能放 Special”的规则判断。
+
+## Special Cast
+
+- 目的：把 Special 作为一种复用动作时间轴的“动作类型”，并提供可验证的释放入口。
+- 所属层：`src/core`
+- 主要文件：`src/core/special.js`、`src/core/combat-actor.js`
+- 输入：`actor.castSpecial(specialId)`（当前由 Debug 面板按钮与 scenarios 使用）
+- 输出：进入动作时序（ActionStarted/PhaseChanged/Hit/Finished），以及 `SpecialHit` 事件作为 Blade Combo 输入。
+- 发出事件：`SpecialConsumed`、`SpecialCastFailed`、`SpecialHit`（以及常规 Action* 事件）
+- 测试覆盖：`tests/special-actor.test.mjs`
+- 不应该做的事：把 Special “当成 Art 输入缓冲的一部分”硬塞进 `CombatInputFrame`，除非先补齐 scenarios 与边界规则。
+
+## Blade Combo
+
+- 目的：验证一条元素路线链（route），由 Special 命中推进，支持失败与超时分支，并在完成时产出 Token。
+- 所属层：`src/core`
+- 主要文件：`src/core/blade-combo.js`、`src/core/combat-actor.js`
+- 输入：Special 命中时的 `{ element, level }`；每帧 tick 衰减倒计时。
+- 输出：`bladeCombo.stage/framesLeft/routeId/expectedNext...`（进入 snapshot）；事件（Started/Advanced/Failed/Expired/Finished）。
+- 拥有状态：`CombatActor.bladeCombo`（`BladeComboState`）
+- 发出事件：`BladeComboStarted`、`BladeComboAdvanced`、`BladeComboFailed`、`BladeComboExpired`、`BladeComboFinished`
+- 关键不变量：
+  - 仅在 Special 命中时 apply；whiff 不推进（可由事件日志观察）。
+  - 错元素/等级不足只产出 Failed，不推进阶段；倒计时归零产出 Expired 并回 None。
+- 测试覆盖：`tests/blade-combo.test.mjs`、`tests/blade-combo-scenario.test.mjs`
+- 不应该做的事：让 Blade Combo 读取 Driver Combo stage 作为推进条件（两条链保持并行）。
+
+## Tokens
+
+- 目的：把“路线完成的产物”显式建模为可观察状态，供未来（非本仓库范围）兑现机制使用。
+- 所属层：`src/core`
+- 主要文件：`src/core/token.js`、`src/core/combat-actor.js`
+- 输入：Blade Combo 完成时创建 token spec
+- 输出：`tokens[]`（进入 snapshot）；`TokenCreated` 事件
+- 关键不变量：
+  - token 只由 core 创建并持有；UI 不应直接增删 tokens。
+  - 本仓库只验证“产出与可观察性”，明确不实现 cash-out/Chain Attack。
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`（TokenCreated 与 snapshot tokens）
 
 ## Event Log
 
@@ -163,14 +217,14 @@
 - 所属层：`src/core`
 - 主要文件：`src/core/combat-actor.js`（`getSnapshot()`）
 - 输入：actor runtime 状态
-- 输出：包含 frame/state/position/ranges/action/arts/cancelBonus/inputBuffer/driverCombo/eventLogText/config/vfx/paused 的快照对象
+- 输出：包含 frame/state/position/ranges/action/arts/cancelBonus/inputBuffer/driverCombo/bladeCombo/specialGauge/tokens/eventLogText/config/vfx/paused 的快照对象
 - 拥有状态：无（快照是派生数据）
 - 发出事件：无
 - 消费事件：无
 - 关键不变量：
   - UI 只读 snapshot；不应读取 actor 内部字段实现规则。
   - 快照字段应足以支撑验证（trace/proof/UI）与后续机制可视化。
-- 测试覆盖：`tests/scenario-runner.test.mjs`（assertSnapshot 使用）、`tests/driver-combo-scenario.test.mjs`（finalSnapshot）
+- 测试覆盖：`tests/scenario-runner.test.mjs`（assertSnapshot 使用）、`tests/driver-combo-scenario.test.mjs`、`tests/blade-combo-scenario.test.mjs`
 - 未来扩展点：V3 新机制优先把可视化/断言所需数据加入 snapshot，而不是让 UI 走“内部字段”。
 - 不应该做的事：让 snapshot 变成“可写接口”或从 UI 回写影响规则。
 
@@ -214,9 +268,9 @@
 - 所属层：`src/ui`
 - 主要文件：`src/ui/sandbox-app.js`、`src/ui/debug-panel.js`、`src/ui/browser-input.js`、`src/ui/canvas-renderer.js`
 - 输入：浏览器键盘事件、按钮点击、slider 调参、scenario 名称
-- 输出：`actor.tick()` 调用、Debug 事件 `DebugGrantArtsReady`、UI 渲染与 PASS/FAIL proof 输出
+- 输出：`actor.tick()` 调用、Debug 事件 `DebugGrantArtsReady/DebugGrantSpecialReady`、UI 渲染与 PASS/FAIL proof 输出
 - 拥有状态：UI 组件状态（keys/oneShot、DOM refs）
-- 发出事件：`DebugGrantArtsReady`（由 debug panel / dev scenarios 直接发出，用于验证准备）
+- 发出事件：`DebugGrantArtsReady`、`DebugGrantSpecialReady`（由 debug panel / dev scenarios 直接发出，用于验证准备）
 - 消费事件：读取 `actor.getSnapshot()` 与 `actor.eventLog`（渲染）
 - 关键不变量：
   - UI 不决定战斗规则，只驱动 tick 并展示可观察结果。

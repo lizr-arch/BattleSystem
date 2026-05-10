@@ -1,4 +1,4 @@
-# V2.2 Event Catalog
+# V3 Event Catalog
 
 本文档列出当前所有 `CombatEventType`，并给出其定义位置、发出位置、触发条件、`data` 字段与日志格式。事件名与字段以代码为准（见 `src/core/enums.js` 与 `src/core/combat-events.js`）。
 
@@ -369,4 +369,202 @@
 - 相关机制：Driver Combo
 - 测试覆盖：`tests/driver-combo.test.mjs`、`tests/driver-combo-scenario.test.mjs`
 - 备注：完成后状态立即回到 `stage=None`；core 还会产生一个 VFX（SMASH!）但不额外发事件。
+
+## DebugGrantSpecialReady
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - `src/core/combat-actor.js`（`debugGrantSpecialReady`）
+  - `src/ui/debug-panel.js`（Grant Special 按钮）
+  - `src/dev/scenario-runner.js`（Grant Special step）
+- 触发条件：调试/场景准备阶段强制设置 special gauge charge（通常按等级阈值设置），并记录一次事件。
+- data 字段：
+  - `charge: number`（0..300）
+  - `level: number|null`（若通过等级注入则为 1..3；否则可为 null）
+- 日志格式：`DebugGrantSpecialReady charge=<charge> L<level>`
+- 相关机制：Special Gauge、Scenario Runner、Browser Debug UI
+- 测试覆盖：间接（blade combo scenarios 使用 Grant Special 来稳定准备）
+- 备注：这是“调试注入”事件，不属于正常玩法。
+
+## SpecialChargeChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit`）
+- 触发条件：Art 命中后 `art.specialChargeGain > 0` 且 charge 发生变化时。
+- data 字段：
+  - `beforeCharge: number`
+  - `afterCharge: number`
+  - `beforeReadyLevel: number`（0..3）
+  - `afterReadyLevel: number`（0..3）
+  - `artId?: string`（充能来源 Art）
+- 日志格式：`SpecialChargeChanged <beforeCharge>-><afterCharge> L<beforeReadyLevel>->L<afterReadyLevel> from=<artId>`
+- 相关机制：Special Gauge
+- 测试覆盖：`tests/special-actor.test.mjs`（断言 afterCharge 变化）
+- 备注：当前实现只由 Art 命中充能；whiff 不会产生该事件。
+
+## SpecialBecameReady
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit`）
+- 触发条件：`SpecialGaugeState.addCharge()` 返回 `becameReady:true`（跨过阈值进入更高 readyLevel）。
+- data 字段：
+  - `readyLevel: number`（1..3）
+  - `charge: number`
+  - `artId?: string`（充能来源 Art）
+- 日志格式：`SpecialBecameReady L<readyLevel> charge=<charge>`
+- 相关机制：Special Gauge
+- 测试覆盖：`tests/special-actor.test.mjs`（断言 readyLevel=1/2/3）
+- 备注：只在 readyLevel 上升时触发；同一等级内追加 charge 不触发。
+
+## SpecialConsumed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`castSpecial`）
+- 触发条件：释放 Special 成功，且 gauge 消耗成功后。
+- data 字段：
+  - `specialId: string`
+  - `level: number`（1..3）
+  - `cost: number`（level * 100）
+  - `beforeCharge: number`
+  - `afterCharge: number`
+- 日志格式：`SpecialConsumed <specialId> L<level> cost=<cost> <beforeCharge>-><afterCharge>`
+- 相关机制：Special Gauge、Special Cast
+- 测试覆盖：`tests/special-actor.test.mjs`（断言存在该事件）
+- 备注：消费成功后会启动对应 action（随后产生 `ActionStarted/ActionPhaseChanged/...`）。
+
+## SpecialCastFailed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`castSpecial`）
+- 触发条件：尝试释放 Special，但因为条件不满足而失败。
+- data 字段：
+  - `specialId: string`
+  - `reason: 'unknown_special' | 'busy' | 'out_of_range' | 'insufficient_level' | string`
+- 日志格式：`SpecialCastFailed <specialId> reason=<reason>`
+- 相关机制：Special Cast
+- 测试覆盖：`tests/special-actor.test.mjs`（insufficient_level）
+- 备注：失败不会启动动作。
+
+## SpecialHit
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onSpecialHit`）
+- 触发条件：Special 命中结算（目标在 artRange 内）。
+- data 字段：
+  - `specialId: string`
+  - `element: string|null`（当前默认元素：Fire/Water）
+  - `level: number`
+  - `damage: number`
+- 日志格式：`SpecialHit <specialId> element=<element> L<level> damage=<damage>`
+- 相关机制：Special Cast、Blade Combo（以 element+level 作为推进输入）
+- 测试覆盖：`tests/special-actor.test.mjs`（断言 SpecialHit 字段）
+- 备注：同一帧还会产生一条 `ActionHit <actionId>`（actionId 为 `FireLv1_Action` 等）。
+
+## BladeComboStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - 事件对象产出：`src/core/blade-combo.js`（`BladeComboState.apply`）
+  - 实际 emit：`src/core/combat-actor.js`（`onSpecialHit` 转发）
+- 触发条件：在 `stage=None` 时，Special 命中且匹配某条路线的第一步。
+- data 字段（核心字段）：
+  - `routeId: string`
+  - `stage: string`（Stage1）
+  - `element: string`
+  - `level: number`
+  - `framesLeft: number`
+  - `expectedNextElement: string|null`
+  - `expectedNextMinLevel: number`
+- 日志格式：`BladeComboStarted route=<routeId> <stage> element=<element> next=<expectedNextElement> minL=<expectedNextMinLevel> <framesLeft>f`
+- 相关机制：Blade Combo
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`
+
+## BladeComboAdvanced
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - 事件对象产出：`src/core/blade-combo.js`（`BladeComboState.apply`）
+  - 实际 emit：`src/core/combat-actor.js`（`onSpecialHit` 转发）
+- 触发条件：在正确顺序下，Special 命中推进 stage（Stage1->Stage2）。
+- data 字段（核心字段）：
+  - `routeId: string`
+  - `fromStage: string`
+  - `toStage: string`
+  - `element: string`
+  - `level: number`
+  - `framesLeft: number`
+  - `expectedNextElement: string|null`
+  - `expectedNextMinLevel: number`
+- 日志格式：`BladeComboAdvanced route=<routeId> <fromStage>-><toStage> element=<element> next=<expectedNextElement> minL=<expectedNextMinLevel> <framesLeft>f`
+- 相关机制：Blade Combo
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`
+
+## BladeComboFailed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - 事件对象产出：`src/core/blade-combo.js`（`BladeComboState.apply`）
+  - 实际 emit：`src/core/combat-actor.js`（`onSpecialHit` 转发）
+- 触发条件：Special 命中但无法开始/推进路线（无路线、错元素、等级不足、内部 route 缺失等）。
+- data 字段（常见字段）：
+  - `stage: string`
+  - `routeId?: string`
+  - `element: string`
+  - `level: number`
+  - `requiresElement?: string`
+  - `requiresMinLevel?: number`
+  - `reason: 'invalid_element' | 'no_route' | 'missing_route' | 'no_expected_next' | 'wrong_element' | 'insufficient_level' | string`
+- 日志格式：`BladeComboFailed stage=<stage> element=<element> requires=<requiresElement> minL=<requiresMinLevel> reason=<reason>`
+- 相关机制：Blade Combo
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`（wrong_element / insufficient_level / no_route）
+- 备注：失败不推进 stage；用于“错序/不满足条件不推进”的可审计证据。
+
+## BladeComboExpired
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - 事件对象产出：`src/core/blade-combo.js`（`BladeComboState.tick/expire`）
+  - 实际 emit：`src/core/combat-actor.js`（`tick` 每帧转发 `bladeCombo.tick(1)` 的返回事件）
+- 触发条件：Blade Combo 倒计时归零。
+- data 字段：
+  - `stage: string`（过期前阶段）
+  - `routeId: string|null`
+  - `stepIndex: number`
+  - `reason: 'timeout' | 'zero' | string`
+- 日志格式：`BladeComboExpired <stage> reason=<reason>`
+- 相关机制：Blade Combo
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`（expire-blade-combo）
+
+## BladeComboFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：
+  - 事件对象产出：`src/core/blade-combo.js`（`BladeComboState.apply`）
+  - 实际 emit：`src/core/combat-actor.js`（`onSpecialHit` 转发）
+- 触发条件：命中最后一步，完成路线。
+- data 字段：
+  - `routeId: string`
+  - `fromStage: string`
+  - `fromStepIndex: number`
+  - `element: string`
+  - `level: number`
+- 日志格式：`BladeComboFinished route=<routeId> element=<element>`
+- 相关机制：Blade Combo、Tokens
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`
+- 备注：完成后 core 会创建 token，并紧接着产生 `TokenCreated`。
+
+## TokenCreated
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onSpecialHit` 的 token 处理分支）
+- 触发条件：Blade Combo 完成后创建 token。
+- data 字段：
+  - `id: string`
+  - `element: string|null`
+  - `sourceRouteId: string|null`
+  - `createdFrame: number`
+- 日志格式：`TokenCreated <id> element=<element> route=<sourceRouteId>`
+- 相关机制：Tokens
+- 测试覆盖：`tests/blade-combo-scenario.test.mjs`（断言 TokenCreated 与 snapshot tokens）
+- 备注：本仓库只验证 token 的产出与可观察性；明确不实现 token 的消费/兑现（例如 Chain Attack 或其它 cash-out 机制）。
 

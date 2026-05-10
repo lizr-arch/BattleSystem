@@ -1,10 +1,12 @@
-# 验证计划（V1-V2）
+# 验证计划（V1-V3）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
 ## 目标
 
-在不引入完整角色动画、敌人 AI、队伍系统、异刃连击、连锁攻击之前，先把战斗闭环与第一层控制链（Driver Combo）验证清楚，并保证行为可解释、可复现。
+在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、以及 V3 的 Special/Blade/Token 原型验证清楚，并保证行为可解释、可复现。
+
+明确边界：本仓库不实现 Chain Attack，也不实现 token 的 cash-out/兑现机制。
 
 核心闭环（V1）：
 
@@ -22,6 +24,16 @@
 
 ```text
 Art 命中 effect 推进：Break -> Topple -> Launch -> Smash
+```
+
+路线链（V3）：
+
+```text
+Art 命中 => Special Gauge 充能
+  ↓
+Special 消费并命中 => 推进 Blade Combo route
+  ↓
+route 完成 => TokenCreated（仅产出，不兑现）
 ```
 
 ## 手动验证矩阵（V1：基础闭环）
@@ -48,6 +60,21 @@ Art 命中 effect 推进：Break -> Topple -> Launch -> Smash
 | 超时过期 | 进入 Break/Topple/Launch 后等待到倒计时归零 | `DriverComboExpired`；stage 回到 None |
 | Whiff 不推进 | 让 Art 打空（不在范围内） | `ActionWhiffed`；不产出 Driver Combo 推进事件 |
 
+## 手动验证矩阵（V3：Special / Blade Combo / Token）
+
+说明：V3 的手动验证建议优先用 Debug 面板按钮（Grant Special / Cast Special / Run Scenarios），避免键盘焦点与 one-shot 误差；键盘操作仍可用于移动/Arts 的补充手感验证。
+
+| Case | 玩家操作 | 期望结果 |
+| --- | --- | --- |
+| Special Gauge 充能 | 连续命中若干次 Arts（或用 Debug 面板准备后命中） | 产生 `SpecialChargeChanged`；跨过 100/200/300 时产生 `SpecialBecameReady` |
+| Special 不足等级失败 | 把 gauge 调到 L1 或 L2，然后尝试释放 L3 special | `SpecialCastFailed reason=insufficient_level`；不进入动作 |
+| Special 成功消费与命中 | 把 gauge 调到对应等级（或用 Grant Special），释放对应 special 并命中 | 产生 `SpecialConsumed`；在命中帧产生 `SpecialHit` |
+| Blade Combo 完整路线 | 依次命中 `Fire(L1) -> Water(L2) -> Fire(L3)` | 产生 `BladeComboStarted/Advanced/Finished`；并产生 `TokenCreated` |
+| Blade Combo 错元素失败 | 在 Stage1 期待 Water 时改用 Fire | 产生 `BladeComboFailed reason=wrong_element`；stage 不推进 |
+| Blade Combo 等级不足失败 | 在 Stage2 期待 Fire(L3) 时用 Fire(L1) | 产生 `BladeComboFailed reason=insufficient_level`；stage 不推进 |
+| Blade Combo 超时过期 | 进入 Stage1 后不继续输入，等待倒计时归零 | 产生 `BladeComboExpired`；stage 回到 None |
+| Driver + Blade 并行 | 先用 Arts 进入 Driver Combo，再用 Special 开启 Blade Combo | 两条状态机同时活跃，互不覆盖；事件链各自独立 |
+
 ## Debug 信号（浏览器侧）
 
 使用右侧 Debug 面板与事件日志检查：
@@ -56,6 +83,9 @@ Art 命中 effect 推进：Break -> Topple -> Launch -> Smash
 - Arts 的 charge / maxCharge / ready。
 - Input Buffer 与 Cancel Bonus 窗口。
 - Driver Combo：当前 stage、剩余帧数/进度。
+- Special Gauge：charge / readyLevel（L0~L3）。
+- Blade Combo：stage、routeId、expectedNext、剩余帧数/进度。
+- Tokens：当前 tokens 列表（id/element/route/createdFrame）。
 
 期望事件示例（非穷举）：
 
@@ -68,6 +98,15 @@ CancelBonusWindowOpened 15f
 RecoveryCanceledToArt AA3 -> Art1
 CancelBonusApplied Art1
 ActionHit Art1 damage=48 [bonus]
+SpecialChargeChanged 0->25 L0->L0 from=Art1
+SpecialBecameReady L1 charge=100
+DebugGrantSpecialReady charge=300 L3
+SpecialConsumed FireLv1 L1 cost=100 300->200
+SpecialHit FireLv1 element=Fire L1 damage=120
+BladeComboStarted route=FireWaterFire Stage1 element=Fire next=Water minL=2 240f
+BladeComboAdvanced route=FireWaterFire Stage1->Stage2 element=Water next=Fire minL=3 240f
+BladeComboFinished route=FireWaterFire element=Fire
+TokenCreated FireToken element=Fire route=FireWaterFire
 DriverComboApplied Break 180f
 DriverComboAdvanced Break->Topple 150f
 DriverComboAdvanced Topple->Launch 120f
@@ -77,7 +116,7 @@ DriverComboFailed stage=Break effect=Launch requires=Topple
 DriverComboRefreshed Break 12f->180f
 ```
 
-## 验收标准（V1-V2）
+## 验收标准（V1-V3）
 
 - core deterministic tests（Node）：主验收证据，验证不变量与规则边界。
 - scenario runner（Node/UI）：机制链路验收证据，验证完整流程与失败原因（不依赖键盘焦点）。
@@ -87,8 +126,8 @@ DriverComboRefreshed Break 12f->180f
 - `index.html` 可直接打开运行（无构建步骤）。
 - `src/core` 保持纯逻辑，不依赖 DOM / Canvas。
 - `npm test` 在 Node 下通过。
-- 上述 V1/V2 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
-- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo 推进/失败/过期/完成）。
+- 上述 V1~V3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
+- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出）。
 
 ## 自动化测试（Node）
 
@@ -103,12 +142,15 @@ DriverComboRefreshed Break 12f->180f
 - ready Art 可在 Recovery 被消费并启动。
 - Cancel Bonus 在窗口内生效。
 - Driver Combo：顺序推进、错序失败、超时过期、Break 刷新、Smash 完成回到 None。
+- Special Gauge：充能、readyLevel 阈值、消费与失败原因。
+- Blade Combo：开始/推进/失败/过期/完成，以及 TokenCreated。
 
 ## 非目标（当前阶段不做）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI / 攻击行为。
 - 队友 AI。
-- Blade Combo / 属性球。
-- Chain Attack。
+- 属性球。
+- Token cash-out（兑现/破碎/消费）。
+- Chain Attack（明确排除）。
 - 完整伤害公式与数值平衡。

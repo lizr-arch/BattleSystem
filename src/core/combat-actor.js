@@ -269,6 +269,21 @@ export class CombatActor {
     this.emit(CombatEventType.Reset);
   }
 
+  debugGrantSpecialReady({ level = null, charge = null } = {}) {
+    const lv = level === null || level === undefined ? null : Math.max(0, Math.min(3, level | 0));
+    const max = this.specialGauge?.threshold3 ?? 300;
+    const nextCharge = charge === null || charge === undefined
+      ? (lv === 3 ? (this.specialGauge?.threshold3 ?? 300)
+        : lv === 2 ? (this.specialGauge?.threshold2 ?? 200)
+          : lv === 1 ? (this.specialGauge?.threshold1 ?? 100)
+            : 0)
+      : (charge | 0);
+    const clamped = Math.max(0, Math.min(max | 0, nextCharge | 0));
+    this.specialGauge.charge = clamped;
+    this.emit(CombatEventType.DebugGrantSpecialReady, { charge: clamped, level: lv });
+    return { charge: clamped, level: lv };
+  }
+
   tick(rawInput = new CombatInputFrame()) {
     const input = rawInput instanceof CombatInputFrame
       ? rawInput
