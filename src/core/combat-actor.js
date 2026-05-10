@@ -2,10 +2,12 @@ import { CombatActionInstance } from './action.js';
 import { CombatCommandBuffer, CombatInputFrame } from './combat-input.js';
 import { CombatEventLog } from './combat-event-log.js';
 import { emitCombatEvent } from './combat-events.js';
+import { BladeComboState } from './blade-combo.js';
 import { DriverComboState, getDriverComboDurationFrames } from './driver-combo.js';
 import { ActorState, CombatEventType } from './enums.js';
 import { clamp, distance, normalize2 } from './math.js';
 import { SpecialGaugeState } from './special-gauge.js';
+import { createToken } from './token.js';
 
 export class CombatActor {
   constructor({
@@ -22,6 +24,7 @@ export class CombatActor {
     arts,
     specials = [],
     specialGaugeInitialCharge = 0,
+    bladeComboRoutes = [],
     inputBufferFrames = 10,
     cancelBonusFrames = 15,
     cancelBonusDamageMultiplier = 1.2,
@@ -64,6 +67,8 @@ export class CombatActor {
     this.cancelBonusLeft = 0;
     this.cancelBonusDamageMultiplier = cancelBonusDamageMultiplier;
     this.driverCombo = new DriverComboState();
+    this.bladeCombo = new BladeComboState({ routes: bladeComboRoutes });
+    this.tokens = [];
 
     this.eventLog = eventLog;
     this.commandBuffer = new CombatCommandBuffer({
@@ -185,11 +190,21 @@ export class CombatActor {
         framesLeft: this.driverCombo.framesLeft,
         duration: getDriverComboDurationFrames(this.driverCombo.stage),
       },
+      bladeCombo: {
+        stage: this.bladeCombo.stage,
+        framesLeft: this.bladeCombo.framesLeft,
+        duration: this.bladeCombo.durationFrames,
+        routeId: this.bladeCombo.routeId,
+        stepIndex: this.bladeCombo.stepIndex,
+        expectedNextElement: this.bladeCombo.expectedNext?.element ?? null,
+        expectedNextMinLevel: this.bladeCombo.expectedNext?.minLevel ?? null,
+      },
       specialGauge: {
         charge: this.specialGauge.charge,
         readyLevel: this.specialGauge.readyLevel,
         ratio: this.specialGauge.ratio,
       },
+      tokens: this.tokens.map((t) => ({ ...t })),
       vfx: this.vfx.map((fx) => ({ ...fx })),
       paused: this.paused,
       eventLogText: this.eventLog.toText(),
@@ -245,6 +260,8 @@ export class CombatActor {
     this.arts.forEach((art) => { art.charge = 0; });
     this.specialGauge.reset();
     this.driverCombo = new DriverComboState();
+    this.bladeCombo = new BladeComboState({ routes: this.bladeCombo.routes });
+    this.tokens = [];
     this.vfx = [];
     this.paused = false;
 
@@ -261,6 +278,10 @@ export class CombatActor {
     const driverComboEvent = this.driverCombo.tick(1);
     if (driverComboEvent) {
       this.emit(driverComboEvent.type, driverComboEvent.data);
+    }
+    const bladeComboEvent = this.bladeCombo.tick(1);
+    if (bladeComboEvent) {
+      this.emit(bladeComboEvent.type, bladeComboEvent.data);
     }
     this.commandBuffer.tick();
 
@@ -559,10 +580,27 @@ export class CombatActor {
       return;
     }
 
-    const damage = special.actionSpec.damage;
-    this.emit(CombatEventType.SpecialHit, { specialId: special.id, level: special.level, damage });
+    const damage = special.damage ?? special.actionSpec.damage ?? 0;
+    this.emit(CombatEventType.SpecialHit, { specialId: special.id, element: special.element ?? null, level: special.level, damage });
     this.emit(CombatEventType.ActionHit, { actionId: special.actionSpec.id, damage });
     this.spawnDamageNumber(damage, 'special');
+
+    if (special.element) {
+      const result = this.bladeCombo.apply({ element: special.element, level: special.level });
+      for (const ev of result.events ?? []) {
+        this.emit(ev.type, ev.data);
+      }
+      if (result.token) {
+        const token = this.createTokenFromSpec(result.token);
+        this.emit(CombatEventType.TokenCreated, token);
+      }
+    }
+  }
+
+  createTokenFromSpec({ id, element = null, sourceRouteId = null } = {}) {
+    const token = createToken({ id, element, sourceRouteId, createdFrame: this.frame });
+    this.tokens.push(token);
+    return token;
   }
 
   resetAutoAttackChain() {

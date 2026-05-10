@@ -1,4 +1,5 @@
 import { CombatInputFrame } from '../core/combat-input.js';
+import { CombatEventType } from '../core/enums.js';
 import { TraceRecorder } from './trace-recorder.js';
 
 function clampInt(n) {
@@ -26,6 +27,20 @@ export function waitFrames(frames, label = '') {
 
 export function castArt(slot, label = '') {
   return { kind: 'castArt', slot: clampInt(slot), label: String(label || `castArt(${slot})`) };
+}
+
+export function castSpecial(slotOrId, label = '') {
+  const isId = typeof slotOrId === 'string';
+  return {
+    kind: 'castSpecial',
+    slot: isId ? null : clampInt(slotOrId),
+    specialId: isId ? String(slotOrId) : null,
+    label: String(label || `castSpecial(${String(slotOrId)})`)
+  };
+}
+
+export function grantSpecialReady(charge = 300, label = '') {
+  return { kind: 'grantSpecialReady', charge: clampInt(charge), label: String(label || `grantSpecialReady(${String(charge)})`) };
 }
 
 export function assertSnapshot(predicate, label) {
@@ -167,6 +182,27 @@ export function runScenario({
       framesElapsed += 1;
       recorder.record(actor, { note: label });
       passStep(label, { slot: clampInt(step.slot) });
+      continue;
+    }
+
+    if (kind === 'grantSpecialReady') {
+      const max = actor.specialGauge?.threshold3 ?? 300;
+      const charge = Math.max(0, Math.min(max | 0, clampInt(step.charge)));
+      actor.specialGauge.charge = charge;
+      actor.emit(CombatEventType.DebugGrantSpecialReady, { charge });
+      recorder.record(actor, { note: label });
+      passStep(label, { charge });
+      continue;
+    }
+
+    if (kind === 'castSpecial') {
+      const id = step.specialId ? String(step.specialId) : null;
+      const slot = step.slot === null || step.slot === undefined ? null : clampInt(step.slot);
+      const ok = actor.castSpecial(id ?? slot ?? 0);
+      actor.tick(new CombatInputFrame());
+      framesElapsed += 1;
+      recorder.record(actor, { note: label });
+      passStep(label, { ok, specialId: id, slot });
       continue;
     }
 

@@ -1,7 +1,7 @@
 import { AutoAttackChainSpec, CombatActionSpec } from '../core/action.js';
 import { Art } from '../core/art.js';
 import { CombatActor } from '../core/combat-actor.js';
-import { ActionKind, DriverComboEffect } from '../core/enums.js';
+import { ActionKind, BladeComboElement, DriverComboEffect } from '../core/enums.js';
 import { Special } from '../core/special.js';
 
 export function createDefaultActionSpecs() {
@@ -89,8 +89,8 @@ export function createDefaultActionSpecs() {
     cancelRecoveryToArt: false
   });
 
-  const special1Action = new CombatActionSpec({
-    id: 'Special1_Action',
+  const fireLv1Action = new CombatActionSpec({
+    id: 'FireLv1_Action',
     kind: ActionKind.Art,
     startupFrames: 20,
     activeFrames: 4,
@@ -101,8 +101,8 @@ export function createDefaultActionSpecs() {
     cancelRecoveryToArt: false
   });
 
-  const special2Action = new CombatActionSpec({
-    id: 'Special2_Action',
+  const waterLv2Action = new CombatActionSpec({
+    id: 'WaterLv2_Action',
     kind: ActionKind.Art,
     startupFrames: 22,
     activeFrames: 4,
@@ -113,8 +113,8 @@ export function createDefaultActionSpecs() {
     cancelRecoveryToArt: false
   });
 
-  const special3Action = new CombatActionSpec({
-    id: 'Special3_Action',
+  const fireLv3Action = new CombatActionSpec({
+    id: 'FireLv3_Action',
     kind: ActionKind.Art,
     startupFrames: 24,
     activeFrames: 5,
@@ -133,9 +133,9 @@ export function createDefaultActionSpecs() {
     art2Action,
     art3Action,
     art4Action,
-    special1Action,
-    special2Action,
-    special3Action
+    fireLv1Action,
+    waterLv2Action,
+    fireLv3Action
   };
 }
 
@@ -173,9 +173,21 @@ export function createDefaultCombatActor() {
     })
   ];
   const specials = [
-    new Special({ id: 'Special1', actionSpec: specs.special1Action, level: 1 }),
-    new Special({ id: 'Special2', actionSpec: specs.special2Action, level: 2 }),
-    new Special({ id: 'Special3', actionSpec: specs.special3Action, level: 3 })
+    new Special({ id: 'FireLv1', actionSpec: specs.fireLv1Action, level: 1, element: BladeComboElement.Fire, damage: 120 }),
+    new Special({ id: 'WaterLv2', actionSpec: specs.waterLv2Action, level: 2, element: BladeComboElement.Water, damage: 180 }),
+    new Special({ id: 'FireLv3', actionSpec: specs.fireLv3Action, level: 3, element: BladeComboElement.Fire, damage: 240 })
+  ];
+  const bladeComboRoutes = [
+    {
+      id: 'FireWaterFire',
+      durationFrames: 240,
+      tokenId: 'FireToken',
+      steps: [
+        { element: BladeComboElement.Fire, minLevel: 1 },
+        { element: BladeComboElement.Water, minLevel: 2 },
+        { element: BladeComboElement.Fire, minLevel: 3 },
+      ],
+    },
   ];
 
   const target = { id: 'Dummy', x: 660, y: 400, radius: 38, hp: 999999 };
@@ -193,6 +205,7 @@ export function createDefaultCombatActor() {
     autoAttackChain,
     arts,
     specials,
+    bladeComboRoutes,
     inputBufferFrames: 10,
     cancelBonusFrames: 15,
     cancelBonusDamageMultiplier: 1.2

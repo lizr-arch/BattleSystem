@@ -51,10 +51,10 @@ function findEvent(actor, predicate) {
   actor.specialGauge.charge = 100;
   assert.equal(actor.specialGauge.readyLevel, 1);
 
-  const ok = actor.castSpecial('Special3');
+  const ok = actor.castSpecial('FireLv3');
   assert.equal(ok, false);
   assert.equal(actor.state, ActorState.Locomotion);
-  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialCastFailed && e.data.specialId === 'Special3'));
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialCastFailed && e.data.specialId === 'FireLv3'));
 }
 
 {
@@ -64,18 +64,17 @@ function findEvent(actor, predicate) {
   actor.specialGauge.charge = 250;
   assert.equal(actor.specialGauge.readyLevel, 2);
 
-  const ok = actor.castSpecial('Special2');
+  const ok = actor.castSpecial('WaterLv2');
   assert.equal(ok, true);
   assert.equal(actor.state, ActorState.Art);
-  assert.equal(actor.currentSpecial?.id, 'Special2');
-  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialConsumed && e.data.specialId === 'Special2'));
+  assert.equal(actor.currentSpecial?.id, 'WaterLv2');
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialConsumed && e.data.specialId === 'WaterLv2'));
 
   const spec = actor.currentSpecial.actionSpec;
   tickN(actor, spec.startupFrames, new CombatInputFrame());
-  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialHit && e.data.specialId === 'Special2'));
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.SpecialHit && e.data.specialId === 'WaterLv2' && e.data.element === 'Water' && e.data.level === 2));
   assert.equal(actor.specialGauge.charge, 50);
   assert.equal(actor.specialGauge.readyLevel, 0);
 }
 
 console.log('special actor test passed');
-

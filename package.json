@@ -7,7 +7,7 @@
   "scripts": {
     "start": "python3 tools/serve.py",
     "serve": "python3 tools/serve.py",
-    "test": "node tests/combat-timing-smoke.test.mjs && node tests/combat-core.test.mjs && node tests/ui-module-load.test.mjs && node tests/driver-combo.test.mjs && node tests/special-gauge.test.mjs && node tests/special-actor.test.mjs && node tests/scenario-runner.test.mjs && node tests/driver-combo-scenario.test.mjs",
+    "test": "node tests/combat-timing-smoke.test.mjs && node tests/combat-core.test.mjs && node tests/ui-module-load.test.mjs && node tests/driver-combo.test.mjs && node tests/special-gauge.test.mjs && node tests/special-actor.test.mjs && node tests/scenario-runner.test.mjs && node tests/driver-combo-scenario.test.mjs && node tests/blade-combo.test.mjs && node tests/blade-combo-scenario.test.mjs",
     "audit:map": "node tools/audit-project-map.mjs"
   },
   "keywords": [

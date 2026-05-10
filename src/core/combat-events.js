@@ -21,6 +21,8 @@ export function formatCombatEvent(type, data = {}) {
       }
       return `DebugGrantArtsReady ${parts.join(' ')}`.trimEnd();
     }
+    case CombatEventType.DebugGrantSpecialReady:
+      return `DebugGrantSpecialReady charge=${data.charge ?? 0}`;
     case CombatEventType.ActionStarted:
       return `ActionStarted ${data.actionId ?? data.artId ?? 'Unknown'}`;
     case CombatEventType.ActionPhaseChanged:
@@ -54,7 +56,7 @@ export function formatCombatEvent(type, data = {}) {
     case CombatEventType.SpecialCastFailed:
       return `SpecialCastFailed ${data.specialId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
     case CombatEventType.SpecialHit:
-      return `SpecialHit ${data.specialId ?? 'Unknown'} L${data.level ?? 0} damage=${data.damage ?? 0}`;
+      return `SpecialHit ${data.specialId ?? 'Unknown'} element=${data.element ?? '?'} L${data.level ?? 0} damage=${data.damage ?? 0}`;
     case CombatEventType.CancelBonusWindowOpened:
       return `CancelBonusWindowOpened ${data.frames ?? 0}f`;
     case CombatEventType.CancelBonusApplied:
@@ -79,6 +81,18 @@ export function formatCombatEvent(type, data = {}) {
       return `DriverComboExpired ${data.stage ?? 'None'}`;
     case CombatEventType.DriverComboFinished:
       return `DriverComboFinished ${data.effect ?? 'Smash'}`;
+    case CombatEventType.BladeComboStarted:
+      return `BladeComboStarted route=${data.routeId ?? '?'} ${data.stage ?? 'None'} element=${data.element ?? '?'} next=${data.expectedNextElement ?? '?'} minL=${data.expectedNextMinLevel ?? 0} ${data.framesLeft ?? 0}f`;
+    case CombatEventType.BladeComboAdvanced:
+      return `BladeComboAdvanced route=${data.routeId ?? '?'} ${data.fromStage ?? 'None'}->${data.toStage ?? 'None'} element=${data.element ?? '?'} next=${data.expectedNextElement ?? '?'} minL=${data.expectedNextMinLevel ?? 0} ${data.framesLeft ?? 0}f`;
+    case CombatEventType.BladeComboFailed:
+      return `BladeComboFailed stage=${data.stage ?? 'None'} element=${data.element ?? '?'} requires=${data.requiresElement ?? '?'} minL=${data.requiresMinLevel ?? 0} reason=${data.reason ?? '?'}`;
+    case CombatEventType.BladeComboExpired:
+      return `BladeComboExpired ${data.stage ?? 'None'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.BladeComboFinished:
+      return `BladeComboFinished route=${data.routeId ?? '?'} element=${data.element ?? '?'}`;
+    case CombatEventType.TokenCreated:
+      return `TokenCreated ${data.id ?? '?'} element=${data.element ?? '?'} route=${data.sourceRouteId ?? '?'}`;
     default:
       return String(type);
   }
