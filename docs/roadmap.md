@@ -88,6 +88,38 @@ Break -> Topple -> Launch -> Smash
 - core deterministic tests 是主验收；scenario runner 是机制链路验收；browser smoke 是 UI/加载验收；键盘 playtest 仅补充。
 - 点击 Run Full Combo 可稳定 PASS，且 proof/日志能解释每一次推进/失败/过期/完成。
 
+## V2.1.1：UI polish（完成）
+
+状态：完成（Driver Combo 面板绑定与 Scenario 观察体验已补强）
+
+范围：
+
+- Driver Combo Stage/Timer 面板绑定与刷新保持稳定。
+- Scenario Run 后保持 paused，便于观察画布状态。
+- 文档路线图状态与实现保持同步。
+
+验收：
+
+- 浏览器中一键 Run scenarios 后，画布停留在可观察状态（paused）。
+- Driver Combo stage/timer 与事件日志保持一致（可通过面板与日志共同证明）。
+
+## V2.2：System Map and Mechanic Inventory（完成）
+
+状态：完成（系统地图/机制盘点/事件目录/测试覆盖图/Readiness Review 已落地）
+
+目标：
+
+- 在进入 V3 前完成架构审计与系统资产盘点。
+- 明确当前机制、事件、状态、测试覆盖与未来接入点，形成可审计文档。
+
+交付物：
+
+- `docs/system-map.md`
+- `docs/mechanics-map.md`
+- `docs/event-catalog.md`
+- `docs/test-coverage-map.md`
+- `docs/v3-readiness-review.md`
+
 ## V3：Special / Blade Combo 原型（未来）
 
 范围（仅计划）：
