@@ -39,6 +39,22 @@ export function formatCombatEvent(type, data = {}) {
       return `ArtBecameReady ${data.artId ?? 'Unknown'}`;
     case CombatEventType.ArtConsumed:
       return `ArtConsumed ${data.artId ?? 'Unknown'}`;
+    case CombatEventType.SpecialChargeChanged: {
+      const beforeCharge = data.beforeCharge ?? 0;
+      const afterCharge = data.afterCharge ?? 0;
+      const beforeLv = data.beforeReadyLevel ?? 0;
+      const afterLv = data.afterReadyLevel ?? 0;
+      const src = data.artId ? ` from=${data.artId}` : '';
+      return `SpecialChargeChanged ${beforeCharge}->${afterCharge} L${beforeLv}->L${afterLv}${src}`;
+    }
+    case CombatEventType.SpecialBecameReady:
+      return `SpecialBecameReady L${data.readyLevel ?? 0} charge=${data.charge ?? 0}`;
+    case CombatEventType.SpecialConsumed:
+      return `SpecialConsumed ${data.specialId ?? 'Unknown'} L${data.level ?? 0} cost=${data.cost ?? 0} ${data.beforeCharge ?? 0}->${data.afterCharge ?? 0}`;
+    case CombatEventType.SpecialCastFailed:
+      return `SpecialCastFailed ${data.specialId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.SpecialHit:
+      return `SpecialHit ${data.specialId ?? 'Unknown'} L${data.level ?? 0} damage=${data.damage ?? 0}`;
     case CombatEventType.CancelBonusWindowOpened:
       return `CancelBonusWindowOpened ${data.frames ?? 0}f`;
     case CombatEventType.CancelBonusApplied:

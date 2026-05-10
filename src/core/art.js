@@ -1,5 +1,5 @@
 export class Art {
-  constructor({ id, actionSpec, maxCharge, effect = null }) {
+  constructor({ id, actionSpec, maxCharge, effect = null, specialChargeGain = 0 }) {
     if (!id) throw new Error('Art requires id.');
     if (!actionSpec) throw new Error(`Art ${id} requires actionSpec.`);
 
@@ -8,6 +8,7 @@ export class Art {
     this.maxCharge = Math.max(1, maxCharge | 0);
     this.charge = 0;
     this.effect = effect;
+    this.specialChargeGain = Math.max(0, specialChargeGain | 0);
   }
 
   get ready() {

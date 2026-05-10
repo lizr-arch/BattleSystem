@@ -5,6 +5,7 @@ import { emitCombatEvent } from './combat-events.js';
 import { DriverComboState, getDriverComboDurationFrames } from './driver-combo.js';
 import { ActorState, CombatEventType } from './enums.js';
 import { clamp, distance, normalize2 } from './math.js';
+import { SpecialGaugeState } from './special-gauge.js';
 
 export class CombatActor {
   constructor({
@@ -19,6 +20,8 @@ export class CombatActor {
     worldBounds = { minX: 40, maxX: 1160, minY: 70, maxY: 730 },
     autoAttackChain,
     arts,
+    specials = [],
+    specialGaugeInitialCharge = 0,
     inputBufferFrames = 10,
     cancelBonusFrames = 15,
     cancelBonusDamageMultiplier = 1.2,
@@ -26,6 +29,7 @@ export class CombatActor {
   }) {
     if (!autoAttackChain) throw new Error('CombatActor requires autoAttackChain.');
     if (!Array.isArray(arts)) throw new Error('CombatActor requires arts array.');
+    if (!Array.isArray(specials)) throw new Error('CombatActor requires specials array.');
 
     this.id = id;
     this.x = position.x;
@@ -43,11 +47,16 @@ export class CombatActor {
 
     this.autoAttackChain = autoAttackChain;
     this.arts = arts;
+    this.specials = specials;
+    this.specialGauge = new SpecialGaugeState({
+      charge: specialGaugeInitialCharge
+    });
 
     this.state = ActorState.Locomotion;
     this.action = null;
     this.currentArt = null;
     this.currentArtCanceled = false;
+    this.currentSpecial = null;
     this.autoAttackIndex = autoAttackChain.firstIndex;
 
     this.frame = 0;
@@ -176,6 +185,11 @@ export class CombatActor {
         framesLeft: this.driverCombo.framesLeft,
         duration: getDriverComboDurationFrames(this.driverCombo.stage),
       },
+      specialGauge: {
+        charge: this.specialGauge.charge,
+        readyLevel: this.specialGauge.readyLevel,
+        ratio: this.specialGauge.ratio,
+      },
       vfx: this.vfx.map((fx) => ({ ...fx })),
       paused: this.paused,
       eventLogText: this.eventLog.toText(),
@@ -223,11 +237,13 @@ export class CombatActor {
     this.action = null;
     this.currentArt = null;
     this.currentArtCanceled = false;
+    this.currentSpecial = null;
     this.autoAttackIndex = this.autoAttackChain.firstIndex;
     this.frame = 0;
     this.cancelBonusLeft = 0;
     this.commandBuffer.clear();
     this.arts.forEach((art) => { art.charge = 0; });
+    this.specialGauge.reset();
     this.driverCombo = new DriverComboState();
     this.vfx = [];
     this.paused = false;
@@ -328,15 +344,24 @@ export class CombatActor {
     this.tickCurrentAction();
 
     if (this.action?.shouldFireHit()) {
-      this.onArtHit(this.currentArt, this.currentArtCanceled);
+      if (this.currentArt) {
+        this.onArtHit(this.currentArt, this.currentArtCanceled);
+      } else if (this.currentSpecial) {
+        this.onSpecialHit(this.currentSpecial);
+      }
     }
 
     if (this.action?.isFinished()) {
-      this.emit(CombatEventType.ActionFinished, { artId: this.currentArt.id });
+      if (this.currentArt) {
+        this.emit(CombatEventType.ActionFinished, { artId: this.currentArt.id });
+      } else if (this.currentSpecial) {
+        this.emit(CombatEventType.ActionFinished, { actionId: this.action.spec.id });
+      }
 
       this.action = null;
       this.currentArt = null;
       this.currentArtCanceled = false;
+      this.currentSpecial = null;
       this.resetAutoAttackChain();
 
       if (this.canStartAutoAttack(moveIntent)) {
@@ -385,6 +410,50 @@ export class CombatActor {
 
     this.emit(CombatEventType.ArtConsumed, { artId: art.id });
     this.emit(CombatEventType.ActionStarted, { artId: art.id, canceled });
+  }
+
+  castSpecial(slotOrId = 0) {
+    const special = typeof slotOrId === 'string'
+      ? (this.specials.find((s) => s?.id === slotOrId) ?? null)
+      : (this.specials[slotOrId] ?? null);
+    if (!special) {
+      const specialId = typeof slotOrId === 'string' ? slotOrId : `Special${(slotOrId | 0) + 1}`;
+      this.emit(CombatEventType.SpecialCastFailed, { specialId, reason: 'unknown_special' });
+      return false;
+    }
+
+    if (this.state !== ActorState.Locomotion) {
+      this.emit(CombatEventType.SpecialCastFailed, { specialId: special.id, reason: 'busy' });
+      return false;
+    }
+
+    if (!this.inArtRange()) {
+      this.emit(CombatEventType.SpecialCastFailed, { specialId: special.id, reason: 'out_of_range' });
+      return false;
+    }
+
+    const consumed = this.specialGauge.tryConsumeLevel(special.level);
+    if (!consumed.ok) {
+      this.emit(CombatEventType.SpecialCastFailed, { specialId: special.id, reason: 'insufficient_level' });
+      return false;
+    }
+
+    this.emit(CombatEventType.SpecialConsumed, {
+      specialId: special.id,
+      level: consumed.level,
+      cost: consumed.cost,
+      beforeCharge: consumed.beforeCharge,
+      afterCharge: consumed.afterCharge
+    });
+
+    this.action = new CombatActionInstance(special.actionSpec);
+    this.state = ActorState.Art;
+    this.currentArt = null;
+    this.currentArtCanceled = false;
+    this.currentSpecial = special;
+    this.resetAutoAttackChain();
+    this.emit(CombatEventType.ActionStarted, { actionId: special.actionSpec.id });
+    return true;
   }
 
   tryUseBufferedReadyArt({ requireAutoRecoveryCancel }) {
@@ -452,6 +521,27 @@ export class CombatActor {
     this.emit(CombatEventType.ActionHit, { artId: art.id, damage, canceled });
     this.spawnDamageNumber(damage, canceled ? 'cancel-art' : 'art');
 
+    const specialGain = art.specialChargeGain ?? 0;
+    if (specialGain > 0) {
+      const result = this.specialGauge.addCharge(specialGain);
+      if (result.beforeCharge !== result.afterCharge) {
+        this.emit(CombatEventType.SpecialChargeChanged, {
+          beforeCharge: result.beforeCharge,
+          afterCharge: result.afterCharge,
+          beforeReadyLevel: result.beforeReadyLevel,
+          afterReadyLevel: result.afterReadyLevel,
+          artId: art.id
+        });
+      }
+      if (result.becameReady) {
+        this.emit(CombatEventType.SpecialBecameReady, {
+          readyLevel: result.afterReadyLevel,
+          charge: result.afterCharge,
+          artId: art.id
+        });
+      }
+    }
+
     if (art.effect !== null && art.effect !== undefined) {
       const driverComboEvent = this.driverCombo.apply(art.effect);
       if (driverComboEvent) {
@@ -461,6 +551,18 @@ export class CombatActor {
         }
       }
     }
+  }
+
+  onSpecialHit(special) {
+    if (!this.inArtRange()) {
+      this.emit(CombatEventType.ActionWhiffed, { actionId: special.actionSpec.id });
+      return;
+    }
+
+    const damage = special.actionSpec.damage;
+    this.emit(CombatEventType.SpecialHit, { specialId: special.id, level: special.level, damage });
+    this.emit(CombatEventType.ActionHit, { actionId: special.actionSpec.id, damage });
+    this.spawnDamageNumber(damage, 'special');
   }
 
   resetAutoAttackChain() {
