@@ -79,10 +79,15 @@ DriverComboRefreshed Break 12f->180f
 
 ## 验收标准（V1-V2）
 
+- core deterministic tests（Node）：主验收证据，验证不变量与规则边界。
+- scenario runner（Node/UI）：机制链路验收证据，验证完整流程与失败原因（不依赖键盘焦点）。
+- browser smoke：UI/模块加载验收证据，确认 index.html 装配不报错。
+- manual keyboard playtest：仅补充（手感/直觉验证），不作为唯一验收证据。
+
 - `index.html` 可直接打开运行（无构建步骤）。
 - `src/core` 保持纯逻辑，不依赖 DOM / Canvas。
 - `npm test` 在 Node 下通过。
-- 上述 V1/V2 手动用例都能通过键盘复现。
+- 上述 V1/V2 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
 - 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo 推进/失败/过期/完成）。
 
 ## 自动化测试（Node）

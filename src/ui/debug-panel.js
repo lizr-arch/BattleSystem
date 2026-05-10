@@ -1,3 +1,8 @@
+import { CombatInputFrame } from '../core/combat-input.js';
+import { ActionPhase, ActorState, CombatEventType } from '../core/enums.js';
+import { runScenario as runScenarioCore } from '../dev/scenario-runner.js';
+import { getScenario } from '../dev/scenarios.js';
+
 export class DebugPanel {
   constructor({ documentObject = document, actor }) {
     this.document = documentObject;
@@ -26,6 +31,19 @@ export class DebugPanel {
       step: this.byId('step'),
       reset: this.byId('reset'),
       clear: this.byId('clear'),
+      dcLastEvent: this.byId('dcLastEvent'),
+      scFull: this.byId('scFull'),
+      scWrong: this.byId('scWrong'),
+      scExpireBreak: this.byId('scExpireBreak'),
+      scExpireTopple: this.byId('scExpireTopple'),
+      scResult: this.byId('scResult'),
+      scProof: this.byId('scProof'),
+      dbgGrantReady: this.byId('dbgGrantReady'),
+      dbgStepToRecovery: this.byId('dbgStepToRecovery'),
+      dbgCast1: this.byId('dbgCast1'),
+      dbgCast2: this.byId('dbgCast2'),
+      dbgCast3: this.byId('dbgCast3'),
+      dbgCast4: this.byId('dbgCast4'),
     };
   }
 
@@ -46,6 +64,18 @@ export class DebugPanel {
     this.refs.cancel.addEventListener('input', sync);
     this.refs.maxCharge.addEventListener('input', sync);
     this.applyTuning();
+
+    this.refs.scFull.addEventListener('click', () => this.runScenario('full-driver-combo'));
+    this.refs.scWrong.addEventListener('click', () => this.runScenario('wrong-order-smash'));
+    this.refs.scExpireBreak.addEventListener('click', () => this.runScenario('expire-break'));
+    this.refs.scExpireTopple.addEventListener('click', () => this.runScenario('expire-topple'));
+
+    this.refs.dbgGrantReady.addEventListener('click', () => this.grantAllArtsReady());
+    this.refs.dbgStepToRecovery.addEventListener('click', () => this.stepToRecovery());
+    this.refs.dbgCast1.addEventListener('click', () => this.castArt(0));
+    this.refs.dbgCast2.addEventListener('click', () => this.castArt(1));
+    this.refs.dbgCast3.addEventListener('click', () => this.castArt(2));
+    this.refs.dbgCast4.addEventListener('click', () => this.castArt(3));
   }
 
   applyTuning() {
@@ -62,6 +92,90 @@ export class DebugPanel {
     this.refs.bufferV.textContent = String(inputBufferFrames);
     this.refs.cancelV.textContent = String(cancelBonusFrames);
     this.refs.chargeV.textContent = String(maxCharge);
+  }
+
+  setScenarioResult(result) {
+    this.refs.scResult.textContent = result?.passed ? 'PASS' : 'FAIL';
+    this.refs.scProof.textContent = this.formatScenarioProof(result);
+  }
+
+  formatScenarioProof(result) {
+    if (!result) return '';
+    if (result.passed) {
+      return result.proof.map((p) => `[${p.frame}] ${p.label}`).join('\n');
+    }
+
+    const lines = [];
+    lines.push(`FAILED: ${result.failedStep?.label ?? 'Unknown'}`);
+    for (const p of result.proof) {
+      lines.push(`[${p.frame}] ${p.ok ? 'OK ' : 'ERR'} ${p.label}`);
+    }
+    lines.push('');
+    lines.push('TRACE TAIL:');
+    const tail = (result.trace ?? []).slice(Math.max(0, (result.trace ?? []).length - 30));
+    for (const r of tail) {
+      const action = r.action ? `${r.action.id}/${r.action.phase}` : 'None';
+      const dc = `${r.driverCombo?.stage ?? 'None'} ${r.driverCombo?.framesLeft ?? 0}/${r.driverCombo?.duration ?? 0}`;
+      const ev = (r.eventsThisFrame ?? []).map((e) => e.message || e.type).join(' | ');
+      lines.push(`${String(r.frame).padStart(5, ' ')} ${r.state} ${action} dc=${dc}${ev ? ` :: ${ev}` : ''}`);
+    }
+    return lines.join('\n');
+  }
+
+  findLastDriverEventMessage() {
+    const events = this.actor.eventLog?.events ?? [];
+    for (let i = 0; i < events.length; i += 1) {
+      const e = events[i];
+      if (String(e.type).startsWith('DriverCombo')) return String(e.message ?? e.type);
+    }
+    return '-';
+  }
+
+  runScenario(name) {
+    const scenario = getScenario(name);
+    const prevAutoAttackRange = this.actor.autoAttackRange;
+    this.actor.paused = true;
+
+    const result = runScenarioCore({
+      actor: this.actor,
+      name: scenario.name,
+      maxFrames: scenario.maxFrames,
+      steps: scenario.steps,
+      prepare: scenario.prepare,
+      logToConsole: false,
+    });
+
+    this.actor.autoAttackRange = prevAutoAttackRange;
+    this.setScenarioResult(result);
+    this.render(this.actor.getSnapshot());
+  }
+
+  grantAllArtsReady() {
+    this.actor.paused = true;
+    const data = {};
+    for (const art of this.actor.arts ?? []) {
+      art.charge = art.maxCharge;
+      data[art.id] = { charge: art.charge, maxCharge: art.maxCharge };
+    }
+    this.actor.emit(CombatEventType.DebugGrantArtsReady, data);
+    this.render(this.actor.getSnapshot());
+  }
+
+  castArt(slot) {
+    this.actor.paused = true;
+    this.actor.tick(new CombatInputFrame({ artSlotsPressed: [slot] }));
+    this.render(this.actor.getSnapshot());
+  }
+
+  stepToRecovery() {
+    this.actor.paused = true;
+    const max = 600;
+    for (let i = 0; i < max; i += 1) {
+      const s = this.actor.getSnapshot();
+      if (s.state === ActorState.AutoAttack && s.action?.phase === ActionPhase.Recovery) break;
+      this.actor.tick(new CombatInputFrame());
+    }
+    this.render(this.actor.getSnapshot());
   }
 
   render(snapshot) {
@@ -91,5 +205,6 @@ export class DebugPanel {
     this.refs.art3Info.textContent = fmtArt(art3);
     this.refs.art4Info.textContent = fmtArt(art4);
     this.refs.log.textContent = s.eventLogText;
+    this.refs.dcLastEvent.textContent = this.findLastDriverEventMessage();
   }
 }

@@ -37,6 +37,7 @@ export const CombatEventType = Object.freeze({
   InputBuffered: 'InputBuffered',
   InputConsumed: 'InputConsumed',
   InputExpired: 'InputExpired',
+  DebugGrantArtsReady: 'DebugGrantArtsReady',
   ActionStarted: 'ActionStarted',
   ActionPhaseChanged: 'ActionPhaseChanged',
   ActionHit: 'ActionHit',
