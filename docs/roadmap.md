@@ -4,7 +4,7 @@ BattleSystem will grow from a browser validation sandbox into a reusable combat-
 
 ## V0: Auto attack and art loop
 
-Status: current.
+Status: done (baseline loop validated).
 
 Scope:
 
@@ -27,7 +27,9 @@ Success criteria:
 
 ## V1: Modular combat core
 
-Split the current browser prototype into modules:
+Status: done (module split landed on main).
+
+Split the browser prototype into modules:
 
 ```text
 src/core/

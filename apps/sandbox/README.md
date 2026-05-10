@@ -6,7 +6,7 @@ The current browser sandbox is available at the repository root:
 index.html
 ```
 
-Open it directly in a browser to validate the V0 combat loop.
+Open it directly in a browser to validate the V1 combat loop (module-assembled, no build step).
 
 ## Purpose
 
@@ -21,14 +21,6 @@ This sandbox is not the final game client. It is a fast visual validation tool f
 - Cancel bonus timing.
 - Event-log based debugging.
 
-## Future layout
+## Notes
 
-The next modular version can move the root sandbox into:
-
-```text
-apps/sandbox/index.html
-apps/sandbox/main.js
-apps/sandbox/styles.css
-```
-
-For V0, the root `index.html` remains self-contained so it can run without a build step.
+The sandbox is intentionally lightweight: `src/core` holds the pure combat model, and `src/ui` provides browser input + Canvas rendering + debug panel.

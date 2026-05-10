@@ -1,6 +1,6 @@
 # BattleSystem
 
-Browser-first combat-system prototype for quickly validating a Xenoblade Chronicles 2-like bottom combat loop:
+浏览器优先的战斗系统验证沙盒，用来快速验证“异度之刃 2-like”的底层战斗闭环：
 
 ```text
 Auto attack hit
@@ -12,9 +12,9 @@ Recovery cancel
 Use art
 ```
 
-## Current scope
+## V1 目标与边界
 
-This repository starts as a lightweight architecture and validation sandbox, not a full game.
+这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒：
 
 Implemented / planned in the first browser prototype:
 
@@ -27,11 +27,30 @@ Implemented / planned in the first browser prototype:
 - `Recovery` can be canceled into movement or ready arts.
 - Short art input buffer.
 - Cancel bonus window after hit.
-- Browser HTML visual validation loop.
+- Browser HTML visual validation loop + Node tests.
+
+## V1 目录结构
+
+```text
+index.html              模块装配入口（不再塞战斗逻辑）
+src/core/               纯战斗核心：不依赖 DOM / Canvas
+src/data/               默认数值与配置装配
+src/ui/                 浏览器输入、Canvas 渲染、Debug 面板、沙盒 App
+tests/                  Node 可重复测试
+docs/                   架构与模型说明
+tools/serve.py          本地静态服务（可选）
+```
 
 ## Run
 
-Open `index.html` directly in a browser.
+推荐两种方式：
+
+1) 直接用浏览器打开 `index.html`。
+2) 起本地静态服务：
+
+```bash
+npm start
+```
 
 Controls:
 
@@ -40,22 +59,13 @@ WASD / Arrow Keys : move
 1                 : use Art1
 Space             : pause / resume
 R                 : reset
+.                 : step one frame
 ```
 
-## Architecture direction
+## Test
 
 ```text
-InputFrame
-  ↓
-InputBuffer
-  ↓
-CombatActor / State Machine
-  ↓
-Action Timeline
-  ↓
-Hit / Charge / Cancel / Art Events
-  ↓
-Browser Canvas Debug View
+npm test
 ```
 
 ## Design notes
