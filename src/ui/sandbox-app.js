@@ -11,23 +11,11 @@ export class SandboxApp {
     this.input = new BrowserInput(this.window);
     this.renderer = new CanvasRenderer(this.document.getElementById('c'));
     this.debugPanel = new DebugPanel({ documentObject: this.document, actor: this.actor });
-    this.driverComboRefs = {
-      stage: this.byId('dcStage'),
-      bar: this.byId('dcBar'),
-      framesLeft: this.byId('dcFramesLeft'),
-      duration: this.byId('dcDuration'),
-    };
     this.accumulator = 0;
     this.lastTimestamp = 0;
     this.fixedDeltaSeconds = 1 / 60;
 
     this.loop = this.loop.bind(this);
-  }
-
-  byId(id) {
-    const element = this.document.getElementById(id);
-    if (!element) throw new Error(`Missing sandbox element #${id}`);
-    return element;
   }
 
   start() {
@@ -46,18 +34,6 @@ export class SandboxApp {
   reset() {
     this.actor.resetRuntime();
     this.debugPanel.applyTuning();
-  }
-
-  renderDriverCombo(driverCombo) {
-    const stage = driverCombo?.stage ?? 'None';
-    const framesLeft = Math.max(0, Number(driverCombo?.framesLeft ?? 0));
-    const duration = Math.max(0, Number(driverCombo?.duration ?? 0));
-    const ratio = duration > 0 ? Math.max(0, Math.min(1, framesLeft / duration)) : 0;
-
-    this.driverComboRefs.stage.textContent = stage;
-    this.driverComboRefs.bar.style.width = `${Math.round(ratio * 100)}%`;
-    this.driverComboRefs.framesLeft.textContent = String(framesLeft | 0);
-    this.driverComboRefs.duration.textContent = String(duration | 0);
   }
 
   stepOneFrame() {
@@ -87,7 +63,6 @@ export class SandboxApp {
     const snapshot = this.actor.getSnapshot();
     this.renderer.draw(snapshot);
     this.debugPanel.render(snapshot);
-    this.renderDriverCombo(snapshot.driverCombo);
     this.window.requestAnimationFrame(this.loop);
   }
 }

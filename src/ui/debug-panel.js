@@ -31,6 +31,10 @@ export class DebugPanel {
       step: this.byId('step'),
       reset: this.byId('reset'),
       clear: this.byId('clear'),
+      dcStage: this.byId('dcStage'),
+      dcBar: this.byId('dcBar'),
+      dcFramesLeft: this.byId('dcFramesLeft'),
+      dcDuration: this.byId('dcDuration'),
       dcLastEvent: this.byId('dcLastEvent'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
@@ -124,11 +128,23 @@ export class DebugPanel {
 
   findLastDriverEventMessage() {
     const events = this.actor.eventLog?.events ?? [];
-    for (let i = 0; i < events.length; i += 1) {
+    for (let i = events.length - 1; i >= 0; i -= 1) {
       const e = events[i];
       if (String(e.type).startsWith('DriverCombo')) return String(e.message ?? e.type);
     }
     return '-';
+  }
+
+  renderDriverCombo(driverCombo) {
+    const stage = driverCombo?.stage ?? 'None';
+    const framesLeft = Math.max(0, Number(driverCombo?.framesLeft ?? 0));
+    const duration = Math.max(0, Number(driverCombo?.duration ?? 0));
+    const ratio = duration > 0 ? Math.max(0, Math.min(1, framesLeft / duration)) : 0;
+
+    this.refs.dcStage.textContent = stage;
+    this.refs.dcBar.style.width = `${Math.round(ratio * 100)}%`;
+    this.refs.dcFramesLeft.textContent = String(framesLeft | 0);
+    this.refs.dcDuration.textContent = String(duration | 0);
   }
 
   runScenario(name) {
@@ -145,6 +161,7 @@ export class DebugPanel {
       logToConsole: false,
     });
 
+    this.actor.paused = true;
     this.actor.autoAttackRange = prevAutoAttackRange;
     this.setScenarioResult(result);
     this.render(this.actor.getSnapshot());
@@ -205,6 +222,7 @@ export class DebugPanel {
     this.refs.art3Info.textContent = fmtArt(art3);
     this.refs.art4Info.textContent = fmtArt(art4);
     this.refs.log.textContent = s.eventLogText;
+    this.renderDriverCombo(s.driverCombo);
     this.refs.dcLastEvent.textContent = this.findLastDriverEventMessage();
   }
 }
