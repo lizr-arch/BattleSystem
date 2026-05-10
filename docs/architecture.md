@@ -22,20 +22,13 @@ Startup / Active / Recovery
 
 ## 第一版远端内容
 
-当前 main 分支优先保证可运行：
-
-- `index.html`：自包含浏览器验证页，直接打开即可运行。
-- `README.md`：项目说明与运行方式。
-- `package.json`：项目元信息。
-- `docs/*`：架构、模型、验证计划、路线图。
-
-后续可继续把本地模块化版本拆成：
-
 ```text
-src/core/        纯战斗核心
-src/data/        默认数值配置
-src/ui/          浏览器输入、Canvas、Debug 面板
-tests/           自动测试
+index.html        模块装配入口（页面结构 / CSS / 引入模块）
+src/core/         纯战斗核心（不依赖 DOM / Canvas）
+src/data/         默认数值与配置装配
+src/ui/           浏览器输入、Canvas 渲染、Debug UI、沙盒驱动
+tests/            Node 可重复测试
+docs/             架构、模型、验证计划、路线图
 ```
 
 ## 设计原则

@@ -1,6 +1,6 @@
-# Validation Plan
+# Validation Plan (V1)
 
-This document defines the first validation cases for the browser combat sandbox.
+This document defines the validation cases for the browser combat sandbox and the corresponding Node replay tests.
 
 ## Goal
 
@@ -54,15 +54,29 @@ CancelBonusApplied Art1
 ActionHit Art1 damage=84 [bonus]
 ```
 
-## Acceptance criteria for V0
+## Acceptance criteria for V1
 
-- The sandbox can be opened directly through `index.html`.
+- The sandbox can be opened directly through `index.html` (no build step).
+- `src/core` remains pure and independent from DOM / Canvas.
+- `npm test` passes on Node.
 - The user can reproduce each test case above through keyboard input.
 - Every important state transition is visible in the event log.
 - Movement, art input, startup lock, active hit, recovery cancel, and cancel bonus can be observed separately.
 
-## Non-goals for V0
+## Automated tests
 
+`tests/` covers the core invariants:
+
+- Timing boundaries for action phases.
+- Standing in range starts `AA1`.
+- Continuous movement blocks auto attack and charge gain.
+- Startup cannot be soft-canceled by movement.
+- Active hit produces art charge.
+- Recovery can be canceled into movement, keeping hit reward.
+- Ready Art can be consumed during recovery cancel.
+- Cancel bonus applies inside its window.
+
+## Non-goals for V1
 - Final animation.
 - Complex enemy AI.
 - Party member AI.

@@ -1,5 +1,11 @@
 # 战斗模型
 
+## 实现位置（V1）
+
+- 规则实现：`src/core/*`（纯逻辑，不依赖 DOM / Canvas）
+- 默认数值：`src/data/default-combat-config.js`
+- 浏览器沙盒：`src/ui/*` + 根目录 `index.html`
+
 ## 第一阶段闭环
 
 ```text
