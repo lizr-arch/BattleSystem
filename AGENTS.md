@@ -56,6 +56,7 @@ index.html              浏览器沙盒入口，只负责页面结构、CSS、�
 src/core/               纯战斗核心，不依赖 DOM / Canvas / window / document
 src/data/               默认战斗配置与 actor 装配
 src/ui/                 浏览器输入、Canvas 渲染、Debug 面板、Sandbox App
+src/dev/                纯逻辑验证工具：scenario runner、trace recorder、内置 scenarios
 tests/                  Node 可重复测试
 docs/                   架构、战斗模型、验证计划、路线图
 tools/serve.py          本地静态服务器
@@ -229,6 +230,14 @@ SPEC -> PLAN -> DO -> VERIFY -> REPORT
 - 成功标准。
 - 不能破坏的既有规则。
 
+进入新玩法版本前，必须先检查并补齐（作为 SPEC 的前置审计清单）：
+
+- docs/system-map.md
+- docs/mechanics-map.md
+- docs/event-catalog.md
+- docs/test-coverage-map.md
+- docs/v3-readiness-review.md
+
 ### 5.2 PLAN
 
 再列出：
@@ -387,6 +396,16 @@ V2 交付物：
 - 修复 Driver Combo Stage/Timer 面板绑定与实时更新。
 - Scenario Run 后保持 paused，便于观察画布状态。
 - 更新本文件路线图状态，避免误导后续任务。
+
+### V2.2：机制地图 + 系统资产盘点（完成）
+
+新增架构审计与资产盘点文档（不改玩法）：
+
+- system map（工程分层与依赖边界）
+- mechanics map（机制清单：输入/状态/事件/测试/扩展点）
+- event catalog（CombatEventType 全量目录与 data 字段）
+- test coverage map（tests 覆盖矩阵）
+- V3 readiness review（Special/Blade Combo 接入点与风险）
 
 ### V3：未来
 

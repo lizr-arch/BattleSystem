@@ -57,6 +57,7 @@ index.html              模块装配入口（不再塞战斗逻辑）
 src/core/               纯战斗核心：不依赖 DOM / Canvas
 src/data/               默认数值与配置装配
 src/ui/                 浏览器输入、Canvas 渲染、Debug 面板、沙盒 App
+src/dev/                纯逻辑验证工具：scenario runner、trace recorder、内置 scenarios
 tests/                  Node 可重复测试
 docs/                   架构与模型说明
 tools/serve.py          本地静态服务（可选）
@@ -104,3 +105,8 @@ See:
 - `docs/architecture.md`
 - `docs/validation-plan.md`
 - `docs/roadmap.md`
+- `docs/system-map.md`
+- `docs/mechanics-map.md`
+- `docs/event-catalog.md`
+- `docs/test-coverage-map.md`
+- `docs/v3-readiness-review.md`
