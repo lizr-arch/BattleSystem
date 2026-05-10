@@ -68,6 +68,26 @@ Break -> Topple -> Launch -> Smash
 - 超时产出 `DriverComboExpired`，stage 回到 None（可通过日志证明）。
 - `npm test` 覆盖并通过 Driver Combo 的关键不变量。
 
+## V2.1：Observability Validation Harness（完成）
+
+状态：完成（scenario runner + trace + Debug UI 按钮已落地）
+
+背景：
+
+- 浏览器里用键盘 `1/2/3/4` 验证 Driver Combo 在自动化/AI 环境下不稳定（焦点、one-shot、buffer 窗口、Recovery 消费窗口等）。
+
+范围：
+
+- 新增纯逻辑 `scenario runner`（不依赖 DOM/Canvas），用 `tick(CombatInputFrame)` 驱动并输出 proof + trace。
+- 内置 scenarios：full-driver-combo / wrong-order-smash / expire-break / expire-topple。
+- Debug UI 增加一键 Run 按钮与 PASS/FAIL + proof 摘要展示；提供 Debug Input（Grant Ready / Cast Art1~4 / Step To Recovery），不依赖键盘焦点。
+- Node 测试覆盖 scenario runner 与 Driver Combo scenarios（`npm test` 通过）。
+
+验收：
+
+- core deterministic tests 是主验收；scenario runner 是机制链路验收；browser smoke 是 UI/加载验收；键盘 playtest 仅补充。
+- 点击 Run Full Combo 可稳定 PASS，且 proof/日志能解释每一次推进/失败/过期/完成。
+
 ## V3：Special / Blade Combo 原型（未来）
 
 范围（仅计划）：

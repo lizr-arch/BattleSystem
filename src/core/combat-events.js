@@ -12,6 +12,15 @@ export function formatCombatEvent(type, data = {}) {
       return `InputConsumed UseArt${(data.slot ?? 0) + 1}`;
     case CombatEventType.InputExpired:
       return `InputExpired UseArt${(data.slot ?? 0) + 1}`;
+    case CombatEventType.DebugGrantArtsReady: {
+      const parts = [];
+      for (const [id, v] of Object.entries(data || {})) {
+        const charge = v?.charge ?? 0;
+        const maxCharge = v?.maxCharge ?? 0;
+        parts.push(`${id}=${charge}/${maxCharge}`);
+      }
+      return `DebugGrantArtsReady ${parts.join(' ')}`.trimEnd();
+    }
     case CombatEventType.ActionStarted:
       return `ActionStarted ${data.actionId ?? data.artId ?? 'Unknown'}`;
     case CombatEventType.ActionPhaseChanged:

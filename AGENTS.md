@@ -24,7 +24,7 @@ Startup / Active / Recovery
 武技消费
 ```
 
-当前阶段：V1 已完成模块化重构。
+当前阶段：V2 Driver Combo 原型已落地（在 V1 基础闭环上叠加验证）。
 
 主要目标：
 
@@ -104,7 +104,10 @@ tools/serve.py          本地静态服务器
 AA1: startup 18f, active 2f, recovery 24f, damage 10, charge +1
 AA2: startup 22f, active 2f, recovery 28f, damage 14, charge +1
 AA3: startup 30f, active 2f, recovery 36f, damage 24, charge +2
-Art1: startup 15f, active 4f, recovery 28f, damage 70, maxCharge 3
+Art1: startup 15f, active 4f, recovery 28f, damage 40, maxCharge 2, effect Break
+Art2: startup 15f, active 4f, recovery 28f, damage 50, maxCharge 3, effect Topple
+Art3: startup 15f, active 4f, recovery 28f, damage 60, maxCharge 4, effect Launch
+Art4: startup 15f, active 4f, recovery 28f, damage 80, maxCharge 4, effect Smash
 Input Buffer: 10f
 Cancel Bonus: 15f
 Cancel Bonus Multiplier: 1.2x
@@ -195,6 +198,19 @@ Startup -> Active -> Recovery -> Finished
 - 后摇取消到武技。
 - Cancel Bonus 生效。
 - 动作结束。
+- Driver Combo 推进/刷新/失败/过期/完成。
+
+### 4.6 Driver Combo 规则（V2）
+
+Driver Combo 是一层“控制链”验证机制，通过 Art 命中效果推进：
+
+- stage：`None / Break / Topple / Launch`，每个阶段有倒计时（framesLeft）。
+- 仅在 Art 命中时推进；whiff 不推进（必须能从事件日志观察）。
+- 推进顺序：`Break -> Topple -> Launch -> Smash`。
+- `Smash` 为完成效果：触发后立即结束并回到 `None`。
+- `Break` 阶段再次命中 `Break` 会刷新倒计时（容错验证）。
+- 错序输入产出 `DriverComboFailed`，且不推进 stage（可通过日志/面板证明）。
+- 倒计时归零产出 `DriverComboExpired`，stage 回到 `None`。
 
 ## 5. 开发流程
 
@@ -246,6 +262,12 @@ npm start
 # 打开 http://127.0.0.1:8000/index.html
 ```
 
+V2.1 起，优先使用“确定性日志验证”作为主验收证据：
+
+- Node：`npm test` 内包含 scenario runner 与 driver combo scenarios。
+- Browser：右侧面板 `Scenario` 区块提供一键 Run 按钮，返回 PASS/FAIL + proof 摘要（不依赖键盘焦点）。
+- manual keyboard playtest 仅补充（手感/直觉验证），不作为唯一验收证据。
+
 手动验证至少覆盖：
 
 - 站定进入普攻。
@@ -255,6 +277,11 @@ npm start
 - Recovery 移动取消。
 - Recovery ready Art 取消。
 - Cancel Bonus 窗口内生效。
+- Art1 命中进入 Break，并显示倒计时。
+- Break 阶段再次 Art1 命中会刷新倒计时。
+- 按 `1 -> 2 -> 3 -> 4` 顺序命中可完成 Smash，完成后 stage 回到 None。
+- 错序 effect 产出失败事件，stage 不推进。
+- 等待倒计时归零会过期回 None。
 
 ### 5.5 REPORT
 
@@ -335,20 +362,30 @@ Fix input buffer expiry event
 - 把调参 UI 改成 config patch，而不是直接改 actor 内部值。
 - 补充 docs 中的 V1.1 验收标准。
 
-### V2：未来玩法原型
+### V2：Driver Combo 原型（完成）
 
-实现 Driver Combo：
+实现 Driver Combo（通过 Art 命中推进）：
 
 ```text
 Break -> Topple -> Launch -> Smash
 ```
 
-V2 要求：
+V2 交付物：
 
-- 先设计状态模型。
-- 先写测试。
-- 再接 UI 可视化。
-- 不要同时做 Blade Combo / Chain Attack。
+- core 层状态模型（stage + framesLeft + tick/apply/advance/refresh/expire/finish）。
+- Art 配置 effect（`Break/Topple/Launch/Smash`），并挂载到 Art 命中链路（whiff 不推进）。
+- 事件日志覆盖推进/刷新/失败/过期/完成。
+- 最小 UI 面板显示 stage 与倒计时；Smash 有显式提示。
+- Node 测试覆盖关键不变量（`npm test` 通过）。
+
+### V2.1：Observability Validation Harness（完成）
+
+新增验证工具层（不改玩法，只提升可观察性与确定性）：
+
+- 纯逻辑 scenario runner + trace recorder（不依赖 DOM/Canvas）。
+- 内置 full/wrong-order/expire* scenarios，提供 proof + trace tail。
+- Debug UI 提供一键 Run 按钮与 Debug Input（不依赖键盘焦点）。
+- Node 测试将 scenarios 纳入 `npm test` 主链路。
 
 ### V3：未来
 
