@@ -68,6 +68,20 @@ function countEvents(actor, predicate) {
   const actor = createInRangeActor();
   tick(actor, new CombatInputFrame());
   tickN(actor, 18, new CombatInputFrame());
+  assert.equal(actor.arts.length, 4);
+  assert.equal(actor.arts[0].charge, 1);
+  assert.equal(actor.arts[1].charge, 1);
+  assert.equal(actor.arts[2].charge, 1);
+  assert.equal(actor.arts[3].charge, 1);
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.ArtChargeChanged && e.data.artId === 'Art2'));
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.ArtChargeChanged && e.data.artId === 'Art3'));
+  assert.ok(findEvent(actor, (e) => e.type === CombatEventType.ArtChargeChanged && e.data.artId === 'Art4'));
+}
+
+{
+  const actor = createInRangeActor();
+  tick(actor, new CombatInputFrame());
+  tickN(actor, 18, new CombatInputFrame());
   const chargeBefore = actor.arts[0].charge;
   tickN(actor, 2, new CombatInputFrame());
   assert.equal(actor.action?.phase, ActionPhase.Recovery);
@@ -128,7 +142,7 @@ function countEvents(actor, predicate) {
   tickN(actor, 15, new CombatInputFrame());
   const artHit = findEvent(actor, (e) => e.type === CombatEventType.ActionHit && e.data.artId === 'Art1');
   assert.ok(artHit);
-  assert.equal(artHit.data.damage, 84);
+  assert.equal(artHit.data.damage, 48);
   assert.equal(artHit.data.canceled, true);
 }
 

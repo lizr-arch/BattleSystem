@@ -6,6 +6,9 @@ export class BrowserInput {
     this.keys = new Set();
     this.oneShot = {
       art1: false,
+      art2: false,
+      art3: false,
+      art4: false,
       pause: false,
       reset: false,
       step: false,
@@ -28,12 +31,15 @@ export class BrowserInput {
   onKeyDown(event) {
     const key = event.key.toLowerCase();
 
-    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', '1', '.'].includes(key)) {
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', '1', '2', '3', '4', '.'].includes(key)) {
       event.preventDefault();
     }
 
     if (!this.keys.has(key)) {
       if (key === '1') this.oneShot.art1 = true;
+      if (key === '2') this.oneShot.art2 = true;
+      if (key === '3') this.oneShot.art3 = true;
+      if (key === '4') this.oneShot.art4 = true;
       if (key === ' ') this.oneShot.pause = true;
       if (key === 'r') this.oneShot.reset = true;
       if (key === '.') this.oneShot.step = true;
@@ -77,7 +83,13 @@ export class BrowserInput {
 
     const artSlotsPressed = [];
     if (this.oneShot.art1) artSlotsPressed.push(0);
+    if (this.oneShot.art2) artSlotsPressed.push(1);
+    if (this.oneShot.art3) artSlotsPressed.push(2);
+    if (this.oneShot.art4) artSlotsPressed.push(3);
     this.oneShot.art1 = false;
+    this.oneShot.art2 = false;
+    this.oneShot.art3 = false;
+    this.oneShot.art4 = false;
 
     return new CombatInputFrame({ moveX, moveY, artSlotsPressed });
   }

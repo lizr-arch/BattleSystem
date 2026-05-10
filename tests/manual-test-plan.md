@@ -6,7 +6,7 @@ Open `index.html` in a browser and use the right-side event log to validate the 
 
 ```text
 WASD / Arrow Keys : move
-1                 : use Art1
+1/2/3/4           : use Art1/Art2/Art3/Art4
 Space             : pause / resume
 R                 : reset
 .                 : step one frame
@@ -23,6 +23,9 @@ ActionStarted AA1
 ActionPhaseChanged AA1 Startup->Active
 ActionHit AA1 damage=10
 ArtChargeChanged Art1 0->1
+ArtChargeChanged Art2 0->1
+ArtChargeChanged Art3 0->1
+ArtChargeChanged Art4 0->1
 ActionFinished AA1
 AutoAttackChainAdvanced -> AA2
 ```

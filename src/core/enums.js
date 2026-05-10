@@ -17,6 +17,20 @@ export const ActionKind = Object.freeze({
   Art: 'Art',
 });
 
+export const DriverComboStage = Object.freeze({
+  None: 'None',
+  Break: 'Break',
+  Topple: 'Topple',
+  Launch: 'Launch',
+});
+
+export const DriverComboEffect = Object.freeze({
+  Break: 'Break',
+  Topple: 'Topple',
+  Launch: 'Launch',
+  Smash: 'Smash',
+});
+
 export const CombatEventType = Object.freeze({
   Init: 'Init',
   Reset: 'Reset',
@@ -37,4 +51,10 @@ export const CombatEventType = Object.freeze({
   RecoveryCanceledToArt: 'RecoveryCanceledToArt',
   AutoAttackChainAdvanced: 'AutoAttackChainAdvanced',
   AutoAttackChainReset: 'AutoAttackChainReset',
+  DriverComboApplied: 'DriverComboApplied',
+  DriverComboAdvanced: 'DriverComboAdvanced',
+  DriverComboRefreshed: 'DriverComboRefreshed',
+  DriverComboFailed: 'DriverComboFailed',
+  DriverComboExpired: 'DriverComboExpired',
+  DriverComboFinished: 'DriverComboFinished',
 });
