@@ -1,6 +1,7 @@
 import { CombatActionInstance } from './action.js';
 import { CombatCommandBuffer, CombatInputFrame } from './combat-input.js';
 import { CombatEventLog } from './combat-event-log.js';
+import { emitCombatEvent } from './combat-events.js';
 import { ActorState, CombatEventType } from './enums.js';
 import { clamp, distance, normalize2 } from './math.js';
 
@@ -19,6 +20,7 @@ export class CombatActor {
     arts,
     inputBufferFrames = 10,
     cancelBonusFrames = 15,
+    cancelBonusDamageMultiplier = 1.2,
     eventLog = new CombatEventLog()
   }) {
     if (!autoAttackChain) throw new Error('CombatActor requires autoAttackChain.');
@@ -48,6 +50,7 @@ export class CombatActor {
     this.frame = 0;
     this.cancelBonusFrames = cancelBonusFrames;
     this.cancelBonusLeft = 0;
+    this.cancelBonusDamageMultiplier = cancelBonusDamageMultiplier;
 
     this.eventLog = eventLog;
     this.commandBuffer = new CombatCommandBuffer({
@@ -56,18 +59,111 @@ export class CombatActor {
       getFrame: () => this.frame
     });
 
+    this.config = {
+      inputBufferFrames: this.commandBuffer.maxFrames,
+      cancelBonusFrames: this.cancelBonusFrames,
+      cancelBonusDamageMultiplier: this.cancelBonusDamageMultiplier,
+      artMaxCharge: this.arts[0]?.maxCharge ?? 0
+    };
+
     this.vfx = [];
     this.paused = false;
 
-    this.log(CombatEventType.Init, 'Init combat actor');
+    this.emit(CombatEventType.Init);
   }
 
   log(type, message, data = {}) {
     return this.eventLog.push(this.frame, type, message, data);
   }
 
+  emit(type, data = {}) {
+    return emitCombatEvent(this.eventLog, this.frame, type, data);
+  }
+
   consumeEvents() {
     return this.eventLog.consumeUnread();
+  }
+
+  getConfigSnapshot() {
+    return { ...this.config };
+  }
+
+  applyConfigPatch(patch = {}) {
+    if (patch.inputBufferFrames !== undefined) {
+      const frames = Number(patch.inputBufferFrames);
+      this.setInputBufferFrames(frames);
+      this.config.inputBufferFrames = this.commandBuffer.maxFrames;
+    }
+
+    if (patch.cancelBonusFrames !== undefined) {
+      const frames = Number(patch.cancelBonusFrames);
+      this.setCancelBonusFrames(frames);
+      this.config.cancelBonusFrames = this.cancelBonusFrames;
+    }
+
+    if (patch.artMaxCharge !== undefined) {
+      const maxCharge = Number(patch.artMaxCharge);
+      this.arts[0]?.setMaxCharge(maxCharge);
+      this.config.artMaxCharge = this.arts[0]?.maxCharge ?? 0;
+    }
+
+    if (patch.cancelBonusDamageMultiplier !== undefined) {
+      const mul = Number(patch.cancelBonusDamageMultiplier);
+      this.cancelBonusDamageMultiplier = Number.isFinite(mul) ? mul : this.cancelBonusDamageMultiplier;
+      this.config.cancelBonusDamageMultiplier = this.cancelBonusDamageMultiplier;
+    }
+  }
+
+  getSnapshot() {
+    const action = this.action;
+    const art = this.arts[0] ?? null;
+    const cancelRatio = this.cancelBonusFrames ? this.cancelBonusLeft / this.cancelBonusFrames : 0;
+
+    return {
+      id: this.id,
+      frame: this.frame,
+      state: this.state,
+      position: { x: this.x, y: this.y },
+      radius: this.radius,
+      target: { ...this.target },
+      autoAttackRange: this.autoAttackRange,
+      artRange: this.artRange,
+      inAutoRange: this.inAutoRange(),
+      inArtRange: this.inArtRange(),
+      action: action ? {
+        id: action.spec.id,
+        kind: action.spec.kind,
+        phase: action.phase,
+        elapsedFrames: action.elapsedFrames,
+        progress01: action.progress01,
+        totalFrames: action.spec.totalFrames,
+        startupFrames: action.spec.startupFrames,
+        activeFrames: action.spec.activeFrames,
+        recoveryFrames: action.spec.recoveryFrames,
+      } : null,
+      art1: art ? {
+        id: art.id,
+        charge: art.charge,
+        maxCharge: art.maxCharge,
+        ready: art.ready,
+      } : null,
+      cancelBonus: {
+        frames: this.cancelBonusFrames,
+        left: this.cancelBonusLeft,
+        ratio: Math.max(0, Math.min(1, cancelRatio)),
+        damageMultiplier: this.cancelBonusDamageMultiplier
+      },
+      inputBuffer: {
+        maxFrames: this.commandBuffer.maxFrames,
+        slot: this.commandBuffer.peekArtSlot(),
+        hasArt: this.commandBuffer.hasArt(),
+        ratio: this.commandBuffer.ratio()
+      },
+      vfx: this.vfx.map((fx) => ({ ...fx })),
+      paused: this.paused,
+      eventLogText: this.eventLog.toText(),
+      config: this.getConfigSnapshot()
+    };
   }
 
   get position() {
@@ -119,7 +215,7 @@ export class CombatActor {
     this.paused = false;
 
     if (!keepLog) this.eventLog.clear();
-    this.log(CombatEventType.Reset, 'Reset combat actor');
+    this.emit(CombatEventType.Reset);
   }
 
   tick(rawInput = new CombatInputFrame()) {
@@ -182,11 +278,7 @@ export class CombatActor {
     }
 
     if (this.action?.spec.canCancelToMovement(this.action.elapsedFrames) && moveIntent) {
-      this.log(
-        CombatEventType.RecoveryCanceledToMovement,
-        `RecoveryCanceledToMovement ${this.action.spec.id}`,
-        { actionId: this.action.spec.id }
-      );
+      this.emit(CombatEventType.RecoveryCanceledToMovement, { actionId: this.action.spec.id });
       this.action = null;
       this.cancelBonusLeft = 0;
       this.resetAutoAttackChain();
@@ -197,11 +289,7 @@ export class CombatActor {
 
     if (this.action?.isFinished()) {
       const finishedSpec = this.action.spec;
-      this.log(
-        CombatEventType.ActionFinished,
-        `ActionFinished ${finishedSpec.id}`,
-        { actionId: finishedSpec.id }
-      );
+      this.emit(CombatEventType.ActionFinished, { actionId: finishedSpec.id });
       this.action = null;
       this.advanceAutoAttackChain();
 
@@ -222,11 +310,7 @@ export class CombatActor {
     }
 
     if (this.action?.isFinished()) {
-      this.log(
-        CombatEventType.ActionFinished,
-        `ActionFinished ${this.currentArt.id}`,
-        { artId: this.currentArt.id }
-      );
+      this.emit(CombatEventType.ActionFinished, { artId: this.currentArt.id });
 
       this.action = null;
       this.currentArt = null;
@@ -249,11 +333,7 @@ export class CombatActor {
     const after = this.action.phase;
 
     if (before !== after) {
-      this.log(
-        CombatEventType.ActionPhaseChanged,
-        `ActionPhaseChanged ${this.action.spec.id} ${before}->${after}`,
-        { actionId: this.action.spec.id, before, after }
-      );
+      this.emit(CombatEventType.ActionPhaseChanged, { actionId: this.action.spec.id, before, after });
     }
   }
 
@@ -271,7 +351,7 @@ export class CombatActor {
     const spec = this.autoAttackChain.getStage(this.autoAttackIndex);
     this.action = new CombatActionInstance(spec);
     this.state = ActorState.AutoAttack;
-    this.log(CombatEventType.ActionStarted, `ActionStarted ${spec.id}`, { actionId: spec.id });
+    this.emit(CombatEventType.ActionStarted, { actionId: spec.id });
   }
 
   startArt(art, canceled) {
@@ -281,12 +361,8 @@ export class CombatActor {
     this.currentArtCanceled = canceled;
     art.consume();
 
-    this.log(CombatEventType.ArtConsumed, `ArtConsumed ${art.id}`, { artId: art.id });
-    this.log(
-      CombatEventType.ActionStarted,
-      `ActionStarted ${art.id}${canceled ? ' [CANCEL]' : ''}`,
-      { artId: art.id, canceled }
-    );
+    this.emit(CombatEventType.ArtConsumed, { artId: art.id });
+    this.emit(CombatEventType.ActionStarted, { artId: art.id, canceled });
   }
 
   tryUseBufferedReadyArt({ requireAutoRecoveryCancel }) {
@@ -305,11 +381,7 @@ export class CombatActor {
 
       canceled = this.cancelBonusLeft > 0;
 
-      this.log(
-        CombatEventType.RecoveryCanceledToArt,
-        `RecoveryCanceledToArt ${this.action.spec.id} -> ${art.id}`,
-        { fromActionId: this.action.spec.id, artId: art.id }
-      );
+      this.emit(CombatEventType.RecoveryCanceledToArt, { fromActionId: this.action.spec.id, artId: art.id });
     } else if (requireAutoRecoveryCancel) {
       return false;
     }
@@ -317,7 +389,7 @@ export class CombatActor {
     this.commandBuffer.consumeArt();
 
     if (canceled) {
-      this.log(CombatEventType.CancelBonusApplied, `CancelBonusApplied ${art.id}`, { artId: art.id });
+      this.emit(CombatEventType.CancelBonusApplied, { artId: art.id });
     }
 
     this.startArt(art, canceled);
@@ -326,58 +398,42 @@ export class CombatActor {
 
   onAutoAttackHit(spec) {
     if (!this.inAutoRange()) {
-      this.log(CombatEventType.ActionWhiffed, `ActionWhiffed ${spec.id}`, { actionId: spec.id });
+      this.emit(CombatEventType.ActionWhiffed, { actionId: spec.id });
       return;
     }
 
-    this.log(
-      CombatEventType.ActionHit,
-      `ActionHit ${spec.id} damage=${spec.damage}`,
-      { actionId: spec.id, damage: spec.damage }
-    );
+    this.emit(CombatEventType.ActionHit, { actionId: spec.id, damage: spec.damage });
     this.spawnDamageNumber(spec.damage, 'hit');
 
     for (const art of this.arts) {
       const result = art.addCharge(spec.artChargeGain);
       if (result.before !== result.after) {
-        this.log(
-          CombatEventType.ArtChargeChanged,
-          `ArtChargeChanged ${art.id} ${result.before}->${result.after}`,
-          { artId: art.id, before: result.before, after: result.after }
-        );
+        this.emit(CombatEventType.ArtChargeChanged, { artId: art.id, before: result.before, after: result.after });
       }
 
       if (result.becameReady) {
-        this.log(CombatEventType.ArtBecameReady, `ArtBecameReady ${art.id}`, { artId: art.id });
+        this.emit(CombatEventType.ArtBecameReady, { artId: art.id });
       }
     }
 
     this.cancelBonusLeft = this.cancelBonusFrames;
-    this.log(
-      CombatEventType.CancelBonusWindowOpened,
-      `CancelBonusWindowOpened ${this.cancelBonusFrames}f`,
-      { frames: this.cancelBonusFrames }
-    );
+    this.emit(CombatEventType.CancelBonusWindowOpened, { frames: this.cancelBonusFrames });
   }
 
   onArtHit(art, canceled) {
     if (!this.inArtRange()) {
-      this.log(CombatEventType.ActionWhiffed, `ActionWhiffed ${art.id}`, { artId: art.id });
+      this.emit(CombatEventType.ActionWhiffed, { artId: art.id });
       return;
     }
 
-    const damage = Math.round(art.actionSpec.damage * (canceled ? 1.2 : 1));
-    this.log(
-      CombatEventType.ActionHit,
-      `ActionHit ${art.id} damage=${damage}${canceled ? ' [bonus]' : ''}`,
-      { artId: art.id, damage, canceled }
-    );
+    const damage = Math.round(art.actionSpec.damage * (canceled ? this.cancelBonusDamageMultiplier : 1));
+    this.emit(CombatEventType.ActionHit, { artId: art.id, damage, canceled });
     this.spawnDamageNumber(damage, canceled ? 'cancel-art' : 'art');
   }
 
   resetAutoAttackChain() {
     if (this.autoAttackIndex !== this.autoAttackChain.firstIndex) {
-      this.log(CombatEventType.AutoAttackChainReset, 'AutoAttackChainReset');
+      this.emit(CombatEventType.AutoAttackChainReset);
     }
 
     this.autoAttackIndex = this.autoAttackChain.firstIndex;
@@ -385,11 +441,7 @@ export class CombatActor {
 
   advanceAutoAttackChain() {
     this.autoAttackIndex = this.autoAttackChain.getNextIndex(this.autoAttackIndex);
-    this.log(
-      CombatEventType.AutoAttackChainAdvanced,
-      `AutoAttackChainAdvanced -> ${this.autoAttackChain.getStage(this.autoAttackIndex).id}`,
-      { nextActionId: this.autoAttackChain.getStage(this.autoAttackIndex).id }
-    );
+    this.emit(CombatEventType.AutoAttackChainAdvanced, { nextActionId: this.autoAttackChain.getStage(this.autoAttackIndex).id });
   }
 
   spawnDamageNumber(text, kind) {

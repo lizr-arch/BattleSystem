@@ -7,7 +7,7 @@
   "scripts": {
     "start": "python3 tools/serve.py",
     "serve": "python3 tools/serve.py",
-    "test": "node tests/combat-timing-smoke.test.mjs && node tests/combat-core.test.mjs"
+    "test": "node tests/combat-timing-smoke.test.mjs && node tests/combat-core.test.mjs && node tests/ui-module-load.test.mjs"
   },
   "keywords": [
     "combat-system",

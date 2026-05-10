@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BattleSystem Module Smoke</title>
+  <style>
+    body { margin: 0; padding: 18px; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0d1017; color: #e8ecf3; }
+    pre { white-space: pre-wrap; background: rgba(255,255,255,.06); padding: 12px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Module Smoke</h1>
+  <pre id="out">Loading...</pre>
+  <script type="module">
+    const out = document.getElementById('out');
+    try {
+      const mod = await import('../../src/ui/sandbox-app.js');
+      out.textContent = `OK: sandbox-app.js loaded. exports: ${Object.keys(mod).join(', ')}`;
+    } catch (err) {
+      out.textContent = `ERROR: ${String(err && err.stack ? err.stack : err)}`;
+      throw err;
+    }
+  </script>
+</body>
+</html>
+

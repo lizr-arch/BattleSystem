@@ -49,29 +49,31 @@ export class DebugPanel {
     const cancelBonusFrames = Number(this.refs.cancel.value);
     const maxCharge = Number(this.refs.maxCharge.value);
 
-    this.actor.setInputBufferFrames(inputBufferFrames);
-    this.actor.setCancelBonusFrames(cancelBonusFrames);
-    this.actor.arts[0]?.setMaxCharge(maxCharge);
+    this.actor.applyConfigPatch({
+      inputBufferFrames,
+      cancelBonusFrames,
+      artMaxCharge: maxCharge
+    });
 
     this.refs.bufferV.textContent = String(inputBufferFrames);
     this.refs.cancelV.textContent = String(cancelBonusFrames);
     this.refs.chargeV.textContent = String(maxCharge);
   }
 
-  render() {
-    const actor = this.actor;
-    const action = actor.action;
-    const art = actor.arts[0];
+  render(snapshot) {
+    const s = snapshot ?? this.actor.getSnapshot();
+    const action = s.action;
+    const art = s.art1;
 
-    this.refs.frame.textContent = String(actor.frame);
-    this.refs.state.textContent = actor.state;
-    this.refs.action.textContent = action ? action.spec.id : 'None';
+    this.refs.frame.textContent = String(s.frame);
+    this.refs.state.textContent = s.state;
+    this.refs.action.textContent = action ? action.id : 'None';
     this.refs.phase.textContent = action ? action.phase : 'None';
 
     this.refs.actionBar.style.width = `${Math.round((action ? action.progress01 : 0) * 100)}%`;
     this.refs.chargeBar.style.width = `${Math.round((art ? art.charge / art.maxCharge : 0) * 100)}%`;
-    this.refs.cancelBar.style.width = `${Math.round((actor.cancelBonusFrames ? actor.cancelBonusLeft / actor.cancelBonusFrames : 0) * 100)}%`;
-    this.refs.bufferBar.style.width = `${Math.round(actor.commandBuffer.ratio() * 100)}%`;
-    this.refs.log.textContent = actor.eventLog.toText();
+    this.refs.cancelBar.style.width = `${Math.round(s.cancelBonus.ratio * 100)}%`;
+    this.refs.bufferBar.style.width = `${Math.round(s.inputBuffer.ratio * 100)}%`;
+    this.refs.log.textContent = s.eventLogText;
   }
 }

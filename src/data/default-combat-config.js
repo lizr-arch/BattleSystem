@@ -78,6 +78,7 @@ export function createDefaultCombatActor() {
     autoAttackChain,
     arts,
     inputBufferFrames: 10,
-    cancelBonusFrames: 15
+    cancelBonusFrames: 15,
+    cancelBonusDamageMultiplier: 1.2
   });
 }

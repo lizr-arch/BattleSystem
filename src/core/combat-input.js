@@ -1,4 +1,5 @@
 import { CombatEventType } from './enums.js';
+import { emitCombatEvent } from './combat-events.js';
 
 export class CombatInputFrame {
   constructor({ moveX = 0, moveY = 0, artSlotsPressed = [] } = {}) {
@@ -32,12 +33,9 @@ export class CombatCommandBuffer {
 
     this.artSlot = slot;
     this.framesLeft = this.maxFrames;
-    this.eventLog?.push(
-      this.getFrame(),
-      CombatEventType.InputBuffered,
-      `InputBuffered UseArt${slot + 1} ${this.maxFrames}f`,
-      { slot, frames: this.maxFrames }
-    );
+    if (this.eventLog) {
+      emitCombatEvent(this.eventLog, this.getFrame(), CombatEventType.InputBuffered, { slot, frames: this.maxFrames });
+    }
   }
 
   tick() {
@@ -49,12 +47,9 @@ export class CombatCommandBuffer {
       const expiredSlot = this.artSlot;
       this.artSlot = null;
       this.framesLeft = 0;
-      this.eventLog?.push(
-        this.getFrame(),
-        CombatEventType.InputExpired,
-        `InputExpired UseArt${expiredSlot + 1}`,
-        { slot: expiredSlot }
-      );
+      if (this.eventLog) {
+        emitCombatEvent(this.eventLog, this.getFrame(), CombatEventType.InputExpired, { slot: expiredSlot });
+      }
     }
   }
 
@@ -72,12 +67,9 @@ export class CombatCommandBuffer {
     this.framesLeft = 0;
 
     if (slot !== null) {
-      this.eventLog?.push(
-        this.getFrame(),
-        CombatEventType.InputConsumed,
-        `InputConsumed UseArt${slot + 1}`,
-        { slot }
-      );
+      if (this.eventLog) {
+        emitCombatEvent(this.eventLog, this.getFrame(), CombatEventType.InputConsumed, { slot });
+      }
     }
 
     return slot;

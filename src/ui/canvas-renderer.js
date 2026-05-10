@@ -25,20 +25,23 @@ export class CanvasRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  draw(actor) {
+  draw(snapshot) {
     const rect = this.canvas.getBoundingClientRect();
     const ctx = this.ctx;
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    this.circle(actor.target.x, actor.target.y, actor.autoAttackRange, 'rgba(121,183,255,.035)', 'rgba(121,183,255,.25)', 1);
-    this.circle(actor.target.x, actor.target.y, actor.artRange, 'rgba(127,216,141,.02)', 'rgba(127,216,141,.16)', 1);
-    this.line(actor.x, actor.y, actor.target.x, actor.target.y, actor.inAutoRange() ? 'rgba(121,183,255,.55)' : 'rgba(255,255,255,.12)', 2);
+    const actor = snapshot;
+    const target = actor.target;
 
-    this.circle(actor.target.x, actor.target.y, actor.target.radius, '#30242a', '#ff7b7b', 3);
-    this.text('DUMMY', actor.target.x, actor.target.y, '#ffd5d5', 13);
+    this.circle(target.x, target.y, actor.autoAttackRange, 'rgba(121,183,255,.035)', 'rgba(121,183,255,.25)', 1);
+    this.circle(target.x, target.y, actor.artRange, 'rgba(127,216,141,.02)', 'rgba(127,216,141,.16)', 1);
+    this.line(actor.position.x, actor.position.y, target.x, target.y, actor.inAutoRange ? 'rgba(121,183,255,.55)' : 'rgba(255,255,255,.12)', 2);
+
+    this.circle(target.x, target.y, target.radius, '#30242a', '#ff7b7b', 3);
+    this.text('DUMMY', target.x, target.y, '#ffd5d5', 13);
 
     let fill = '#273244';
-    let stroke = actor.inAutoRange() ? '#7fd88d' : '#98a2b3';
+    let stroke = actor.inAutoRange ? '#7fd88d' : '#98a2b3';
 
     if (actor.state === ActorState.AutoAttack && actor.action) {
       const phase = actor.action.phase;
@@ -52,16 +55,23 @@ export class CanvasRenderer {
       stroke = '#ff9dff';
     }
 
-    this.circle(actor.x, actor.y, actor.radius, fill, stroke, 3);
-    this.text('PLAYER', actor.x, actor.y - 38, '#e8ecf3', 13);
+    this.circle(actor.position.x, actor.position.y, actor.radius, fill, stroke, 3);
+    this.text('PLAYER', actor.position.x, actor.position.y - 38, '#e8ecf3', 13);
 
-    const dx = actor.target.x - actor.x;
-    const dy = actor.target.y - actor.y;
+    const dx = target.x - actor.position.x;
+    const dy = target.y - actor.position.y;
     const dist = Math.hypot(dx, dy) || 1;
-    this.line(actor.x, actor.y, actor.x + dx / dist * 42, actor.y + dy / dist * 42, stroke, 3);
+    this.line(
+      actor.position.x,
+      actor.position.y,
+      actor.position.x + dx / dist * 42,
+      actor.position.y + dy / dist * 42,
+      stroke,
+      3
+    );
 
-    const actionLabel = actor.action ? `${actor.action.spec.id} / ${actor.action.phase}` : actor.state;
-    this.text(actionLabel, actor.x, actor.y + 42, '#cfd6e4', 12);
+    const actionLabel = actor.action ? `${actor.action.id} / ${actor.action.phase}` : actor.state;
+    this.text(actionLabel, actor.position.x, actor.position.y + 42, '#cfd6e4', 12);
 
     for (const fx of actor.vfx) {
       const color = fx.kind === 'hit' ? '#ffd166' : '#ff9dff';
