@@ -60,8 +60,9 @@ export class SandboxApp {
       this.accumulator = 0;
     }
 
-    this.renderer.draw(this.actor);
-    this.debugPanel.render();
+    const snapshot = this.actor.getSnapshot();
+    this.renderer.draw(snapshot);
+    this.debugPanel.render(snapshot);
     this.window.requestAnimationFrame(this.loop);
   }
 }
