@@ -141,9 +141,9 @@ Break -> Topple -> Launch -> Smash
   - Node：`npm test`（包含 Special/Blade/Token 相关 tests 与 scenarios）。
   - Browser：右侧 Debug 面板展示 gauge/route/tokens，并提供一键 Run scenarios 与 debug buttons（不依赖键盘焦点）。
 
-## V3.1：文档同步 + 可观察性验收口径（当前/完成）
+## V3.1：文档同步 + 可观察性验收口径（完成）
 
-状态：当前（本任务完成后视为完成；不新增玩法实现）
+状态：完成（不新增玩法实现）
 
 范围：
 
@@ -156,17 +156,40 @@ Break -> Topple -> Launch -> Smash
 - 文档之间不互相矛盾（边界、非目标、路线阶段一致）。
 - `npm test` 仍通过；浏览器入口不受影响。
 
-## V4：Chain Attack / Orbs / Full Burst / Fusion（未来，必须拆分）
+## V4.0：Single Driver Routine-Orb MVP（完成）
 
-说明：V4 只在完成 Readiness Review 与拆分计划后才允许进入实现阶段；禁止一次性引入大玩法与工程扩张。
+说明：V4.0 以“单驾驶员·套路球（Routine Orb）”作为最小可玩闭环，目标是用最少规则验证：可击杀目标、破球结算、DoT tick、胜利判定与全链路可观察性。
 
-- V4.0（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险与拆分里程碑。
-- V4.1（最小原型）：最小闭环 + 可观察性（事件/快照/trace），不做数值平衡与复杂表现。
-- V4.2（工具与可视化）：补齐 Debug UI、场景按钮、proof/trace 体验与覆盖矩阵。
+范围：
 
-## 明确不做（当前版本边界：<= V3.1）
+- Battle / HP / Result：统一扣血通路与 `Victory` 结束判定（事件可审计）。
+- Routine（套路）：
+  - Art1/2/3 命中记录为 tiles（最多 3 张）。
+  - 3 张同 Routine 自动生成 orb（仅 1 个 active）。
+- Orb Break（破球）：
+  - `breakRoutineOrb()` 触发元素伤害 + Burn（灼烧）debuff。
+  - Burn tick 可击杀并结束战斗。
+- 验收入口：
+  - Node：`npm test`（包含 routine-orb 与 single-driver-mvp tests/scenarios）。
+  - Browser：Debug 面板提供 “Single Driver MVP” 展示与 scenarios 一键 Run。
 
-- Chain Attack / 属性球 / Full Burst / Fusion（当前不做；如未来进入 V4，必须按 Readiness Review 拆分里程碑推进）。
+明确不包含：
+
+- Chain Attack（连锁攻击）/ Full Burst / Fusion。
+- 复杂属性球系统（多球、堆叠、计数与 cash-out）。
+
+## V4.x：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
+
+说明：V4.x 只在完成 Readiness Review 与拆分计划后才允许进入实现阶段；禁止一次性引入大玩法与工程扩张。
+
+- V4.1（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险与拆分里程碑。
+- V4.2（最小原型）：最小闭环 + 可观察性（事件/快照/trace），不做数值平衡与复杂表现。
+- V4.3（工具与可视化）：补齐 Debug UI、场景按钮、proof/trace 体验与覆盖矩阵。
+
+## 明确不做（当前版本边界：<= V4.0）
+
+- Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
+- 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
 - Token cash-out（当前只验证 token 的产出与可观察性；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
 
 ## 工程原则

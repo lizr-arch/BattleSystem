@@ -6,7 +6,7 @@
 
 BattleSystem 当前不是完整游戏项目，而是一个用于快速验证“异度之刃 2-like”战斗系统底层循环的浏览器优先原型。
 
-当前核心闭环：
+当前核心闭环（V1~V3）：
 
 ```text
 输入意图
@@ -30,7 +30,30 @@ Special 消费与命中（推进 Blade Combo）
 Blade Combo 完成产出 Token（仅产出，不兑现）
 ```
 
-当前阶段：V3 Special/Blade/Token 原型已实现；V3.1 以“文档同步 + 可观察性验收口径对齐”为主（不新增玩法实现）。
+V4.0 额外闭环（Single Driver Routine-Orb MVP）：
+
+```text
+Arts 命中（映射为套路技能）
+  ↓
+生成 Routine Tiles（最多 3 张）
+  ↓
+3 张同 Routine => 生成 Routine Orb（套路球）
+  ↓
+破球（元素伤害 + Burn）
+  ↓
+Burn tick 可击杀 => BattleEnded(Victory)
+```
+
+术语（中英对照，后续文档与事件命名统一口径）：
+
+- Routine：套路
+- Tile：套路牌
+- Orb：套路球
+- Orb Break：破球
+- Burn：灼烧
+- Chain Attack：连锁攻击（V4.0 延后）
+
+当前阶段：V4.0 Single Driver Routine-Orb MVP 已实现；当前里程碑以“文档同步 + 可观察性验收口径 + audit:map 门禁”为主（不新增玩法实现，除非用户明确要求）。
 
 主要目标：
 
@@ -122,6 +145,12 @@ Specials:
   FireLv3: startup 24f, active 5f, recovery 40f, damage 240, element Fire, level 3
 Blade Combo Route:
   FireWaterFire: duration 240f, steps Fire(L1)->Water(L2)->Fire(L3), token FireToken
+Routine（套路球 MVP）:
+  FireRoutine: Art1->FireSkill1(L1), Art2->FireSkill2(L2), Art3->FireSkill3(L3)
+  Tiles: max 3
+  Orb: created when last 3 tiles share routineId; totalLayer = sum(layers)
+  Orb Break: element Fire, damage = totalLayer*20, apply Burn
+  Burn: 300f duration, 60f tick, 5 damage/tick
 Input Buffer: 10f
 Cancel Bonus: 15f
 Cancel Bonus Multiplier: 1.2x
@@ -249,10 +278,15 @@ SPEC -> PLAN -> DO -> VERIFY -> REPORT
 进入新玩法版本前，必须先检查并补齐（作为 SPEC 的前置审计清单）：
 
 - docs/system-map.md
+- docs/combat-model.md
 - docs/mechanics-map.md
 - docs/event-catalog.md
 - docs/test-coverage-map.md
+- docs/validation-plan.md
+- docs/roadmap.md
+- docs/routine-orb-system.md
 - docs/v3-readiness-review.md
+- docs/v4-readiness-review.md
 
 进入 V4 前额外要求：
 
@@ -438,21 +472,28 @@ V2 交付物：
 - Blade Combo（Special 命中推进路线，完成产出 TokenCreated）。
 - scenarios/tests/UI 最小可观察性入口（`npm test` + 浏览器 Debug 面板）。
 
-### V3.1：文档同步 + 验收口径对齐（当前/完成）
+### V3.1：文档同步 + 验收口径对齐（完成）
 
 - README / AGENTS / docs 的路线图、机制图、测试覆盖图、验证计划保持同步。
 - 明确 V4 仅允许以 Readiness Review + 拆分计划进入仓库（先文档与可观察性资产，后最小原型）。
 - 新增 `docs/v4-readiness-review.md` 作为 V4 预研唯一入口。
 
-### V4：Chain Attack / Orbs / Full Burst / Fusion（未来，必须拆分）
+### V4.0：Single Driver Routine-Orb MVP（完成）
 
-- V4.0（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险清单与拆分里程碑。
-- V4.1（最小原型）：只做最小闭环与可观察性，不做数值平衡与复杂表现。
-- V4.2（工具与可视化）：补齐 Debug UI 与 trace/proof 体验，避免黑盒。
+- Battle / HP / Result：统一扣血通路，支持击杀与 Victory 结束判定（事件可审计）。
+- Routine Orb（套路球）最小闭环：tiles/orb/破球/Burn/tick/击杀。
+- tests/scenarios/UI：Node 侧 `npm test` 纳入 MVP；浏览器 Debug 面板提供一键 Run 与可视化展示。
+- 明确不包含：Chain Attack / Full Burst / Fusion / 复杂 Orbs cash-out。
 
-### 明确不做（当前版本边界：<= V3.1）
+### V4.x：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
 
-- Chain Attack / 属性球 / Full Burst / Fusion（当前不做；如未来进入 V4，必须按 Readiness Review 拆分里程碑推进）。
+- 只允许在 Readiness Review + 拆分计划通过后进入实现（见 `docs/v4-readiness-review.md`）。
+- 必须先落 “文档与验收资产”，再落 “最小原型”，再补 “工具与可视化”。
+
+### 明确不做（当前版本边界：<= V4.0）
+
+- Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
+- 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
 - Token cash-out（当前仅产出 token，用于延迟奖励输入验证；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
 
 ### 制作人验收结论（截至 V2.1）
@@ -484,6 +525,7 @@ V2 交付物：
 修改完成后，至少满足：
 
 - `npm test` 通过。
+- `npm run audit:map` PASS。
 - `index.html` 可运行。
 - `src/core` 不依赖 DOM / Canvas。
 - 关键行为可通过事件日志观察。

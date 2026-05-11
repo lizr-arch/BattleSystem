@@ -1,11 +1,11 @@
-# V3.1 Mechanics Map
+# V4.0 Mechanics Map
 
 本文档列出 BattleSystem 当前机制地图（Mechanic Inventory）。机制本身以代码与测试为准；本文档提供“机制→文件→输入/输出/事件/不变量/测试”的可追溯索引。
-V3.1 不新增玩法实现，只要求本文档与 README/验证计划/测试覆盖图口径一致。
+V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）” 相关机制，并要求文档与 README/验证计划/测试覆盖图口径一致。
 
-## Future (V4, not implemented)
+## Deferred (V4.x, not implemented)
 
-- 未来可能评审的 payoff 机制：Chain Attack / 属性球（Orbs）/ Full Burst / Fusion（不在 V1-V3.1 实现范围）。
+- 未来可能评审的 payoff 机制：Chain Attack（连锁攻击）/ Full Burst / Fusion / 更完整的 Orbs cash-out（不在 V4.0 实现范围）。
 - 进入实现前必须先完成 Readiness Review 与拆分计划：`docs/v4-readiness-review.md`。
 
 ## Input Intent
@@ -197,8 +197,98 @@ V3.1 不新增玩法实现，只要求本文档与 README/验证计划/测试覆
 - 输出：`tokens[]`（进入 snapshot）；`TokenCreated` 事件
 - 关键不变量：
   - token 只由 core 创建并持有；UI 不应直接增删 tokens。
-  - 本仓库在 V1-V3.1 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
+  - 本仓库在 <= V4.0 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
 - 测试覆盖：`tests/blade-combo-scenario.test.mjs`（TokenCreated 与 snapshot tokens）
+
+## Battle / HP / Result（V4.0）
+
+- 目的：为单驾驶员 MVP 提供“可击杀目标 + 战斗结果”的最小地基，并把扣血路径统一到可审计事件中。
+- 所属层：`src/core`
+- 主要文件：`src/core/combat-actor.js`
+- 输入：来自普攻/Art/Special/元素伤害/DoT tick 的 damage amount
+- 输出：`snapshot.battle/snapshot.target`；事件（DamageApplied/TargetHpChanged/TargetDefeated/BattleEnded）
+- 拥有状态：`CombatActor.battle`、`CombatActor.target`
+- 发出事件：
+  - `BattleStarted`（resetRuntime 后）
+  - `DamageApplied`
+  - `TargetHpChanged`
+  - `TargetDefeated`
+  - `BattleEnded`
+- 关键不变量：
+  - 所有扣血必须走统一通路并产出 `DamageApplied`，避免“偷偷改 hp”。
+  - hp 归零必须触发 `TargetDefeated` 与 `BattleEnded(Victory)`（可由 event log 证明）。
+- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/single-driver-mvp.test.mjs`
+
+## Routine / Skill Trait（V4.0）
+
+- 目的：引入 “Routine（套路）” 与 “Routine Skill（套路技能）” 的最小识别模型，用于驱动 tiles/orb 生成；并预留 trait（SkillTrait）接口供未来扩展。
+- 所属层：`src/core`
+- 主要文件：`src/core/routine.js`、`src/core/skill-trait.js`
+- 输入：ArtId（当前用 Art1/2/3 映射）
+- 输出：`{ routineId, skillId, layer, traits[] }`（当前 traits 不参与结算）
+- 关键不变量：
+  - 映射是纯函数；命中才触发后续 tiles/orb（whiff 不加）。
+  - 当前 MVP 不把 traits 参与伤害/DoT 结算，避免范围膨胀。
+- 测试覆盖：通过 scenarios/tests 的端到端链路间接覆盖（tile/orb 依赖该映射）
+
+## Routine Tiles（套路牌，V4.0）
+
+- 目的：把“套路技能命中记录”显式化为最多 3 张 tiles，用于后续 orb 生成条件判断。
+- 所属层：`src/core`
+- 主要文件：`src/core/routine-orb.js`、`src/core/combat-actor.js`
+- 输入：Routine Skill 命中（当前由 `onArtHit` 在命中结算后触发）
+- 输出：`snapshot.routineTiles[]`；事件（Added/Removed）
+- 拥有状态：`CombatActor.routineTiles`
+- 发出事件：`RoutineTileAdded`、`RoutineTileRemoved`
+- 关键不变量：
+  - tiles 上限为 3；超出必须移除最旧 tile 且产出 `RoutineTileRemoved`。
+  - whiff 不产出 tile（以 `ActionWhiffed` 与缺少 tile 事件可证明）。
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`（create/break 场景 proof）
+
+## Routine Orb（套路球，V4.0）
+
+- 目的：在最少规则下验证“3 张同 Routine => 生成 orb”的确定性条件与替换语义。
+- 所属层：`src/core`
+- 主要文件：`src/core/routine-orb.js`、`src/core/combat-actor.js`
+- 输入：`routineTiles`（最近 3 张）
+- 输出：`snapshot.routineOrb`；事件（Created/Replaced）
+- 拥有状态：`CombatActor.routineOrb`
+- 发出事件：`RoutineOrbCreated`、`RoutineOrbReplaced`
+- 关键不变量：
+  - 仅当 tiles 长度为 3 且 routineId 全相同才创建。
+  - 同时只允许 1 个 active orb；重复创建走替换事件而不是 silent overwrite。
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`（routine-orb-create proof）
+
+## Orb Break（破球，V4.0）
+
+- 目的：提供一个显式 API 触发 orb 结算，产出“元素伤害 + Debuff”的可审计链路，并清空 orb/tiles。
+- 所属层：`src/core`
+- 主要文件：`src/core/combat-actor.js`
+- 输入：`actor.breakRoutineOrb()`
+- 输出：事件（BreakStarted/Broken/BreakFinished + ElementDamageApplied + DebuffApplied）；状态清空（routineOrb/routineTiles）
+- 发出事件：
+  - `RoutineOrbBreakFailed`（无 orb）
+  - `RoutineOrbBreakStarted`
+  - `ElementDamageApplied`
+  - `DebuffApplied`
+  - `RoutineOrbBroken`
+  - `RoutineOrbBreakFinished`
+- 关键不变量：
+  - 无 orb 必须失败且给出原因（reason=no_orb），不能 silent no-op。
+  - 破球结算后必须清空 orb 与 tiles（可由 snapshot 断言）。
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`、`tests/routine-orb.test.mjs`
+
+## Debuffs（灼烧 Burn，V4.0）
+
+- 目的：用最小 DoT 模型验证“持续 tick 扣血可击杀”的战斗闭环。
+- 所属层：`src/core`
+- 主要文件：`src/core/debuff.js`、`src/core/combat-actor.js`
+- 输入：DebuffApplied（当前仅来自破球）
+- 输出：每次 tick 产出 `DebuffTickDamage` 并通过 `DamageApplied` 扣血；到期产出 `DebuffExpired`
+- 发出事件：`DebuffApplied`、`DebuffTickDamage`、`DebuffExpired`
+- 关键不变量：
+  - tick 必须可观察（事件 + 扣血通路），且 tick 可以导致击杀与 BattleEnded。
+- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/routine-orb-scenario.test.mjs`（burn-kill proof）
 
 ## Event Log
 

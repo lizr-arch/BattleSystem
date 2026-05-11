@@ -59,6 +59,12 @@ export class DebugPanel {
       mvpOrb: this.byId('mvpOrb'),
       mvpBurn: this.byId('mvpBurn'),
       mvpLastEvent: this.byId('mvpLastEvent'),
+      mvpRunScenario: this.byId('mvpRunScenario'),
+      mvpGrantTiles: this.byId('mvpGrantTiles'),
+      mvpCastSkill1: this.byId('mvpCastSkill1'),
+      mvpCastSkill2: this.byId('mvpCastSkill2'),
+      mvpCastSkill3: this.byId('mvpCastSkill3'),
+      mvpBreakOrb: this.byId('mvpBreakOrb'),
       scFullBattleLoop: this.byId('scFullBattleLoop'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
@@ -93,7 +99,18 @@ export class DebugPanel {
     return element;
   }
 
-  bindControls({ onPause, onStep, onReset, onClear }) {
+  bindControls({
+    onPause,
+    onStep,
+    onReset,
+    onClear,
+    onMvpRunScenario,
+    onMvpGrantTiles,
+    onMvpCastSkill1,
+    onMvpCastSkill2,
+    onMvpCastSkill3,
+    onMvpBreakOrb,
+  }) {
     this.refs.pause.addEventListener('click', onPause);
     this.refs.step.addEventListener('click', onStep);
     this.refs.reset.addEventListener('click', onReset);
@@ -129,6 +146,13 @@ export class DebugPanel {
     this.refs.dbgCast2.addEventListener('click', () => this.castArt(1));
     this.refs.dbgCast3.addEventListener('click', () => this.castArt(2));
     this.refs.dbgCast4.addEventListener('click', () => this.castArt(3));
+
+    if (onMvpRunScenario) this.refs.mvpRunScenario.addEventListener('click', onMvpRunScenario);
+    if (onMvpGrantTiles) this.refs.mvpGrantTiles.addEventListener('click', onMvpGrantTiles);
+    if (onMvpCastSkill1) this.refs.mvpCastSkill1.addEventListener('click', onMvpCastSkill1);
+    if (onMvpCastSkill2) this.refs.mvpCastSkill2.addEventListener('click', onMvpCastSkill2);
+    if (onMvpCastSkill3) this.refs.mvpCastSkill3.addEventListener('click', onMvpCastSkill3);
+    if (onMvpBreakOrb) this.refs.mvpBreakOrb.addEventListener('click', onMvpBreakOrb);
   }
 
   applyTuning() {

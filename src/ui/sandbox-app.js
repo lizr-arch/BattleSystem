@@ -26,64 +26,35 @@ export class SandboxApp {
       onStep: () => this.stepOneFrame(),
       onReset: () => this.reset(),
       onClear: () => this.actor.eventLog.clear(),
+      onMvpRunScenario: () => {
+        this.debugPanel.runScenario('single-driver-routine-orb-victory');
+        this.renderOnce();
+      },
+      onMvpGrantTiles: () => {
+        this.actor.paused = true;
+        this.actor.emit('DebugGrantRoutineTiles', { requested: 3 });
+        this.debugPanel.grantAllArtsReady();
+        this.ensureCloseToTarget();
+        this.castFireSkill(0);
+        this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
+        this.castFireSkill(1);
+        this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
+        this.castFireSkill(2);
+        this.fastForwardUntil((s) => s.routineOrb !== null || s.battle?.active === false, 1800);
+        this.renderOnce();
+      },
+      onMvpCastSkill1: () => { this.castFireSkill(0); this.renderOnce(); },
+      onMvpCastSkill2: () => { this.castFireSkill(1); this.renderOnce(); },
+      onMvpCastSkill3: () => { this.castFireSkill(2); this.renderOnce(); },
+      onMvpBreakOrb: () => {
+        this.actor.paused = true;
+        this.actor.breakRoutineOrb();
+        this.renderOnce();
+      },
     });
-    this.bindSingleDriverMvpControls();
 
     this.lastTimestamp = performance.now();
     this.window.requestAnimationFrame(this.loop);
-  }
-
-  bindSingleDriverMvpControls() {
-    const byId = (id) => {
-      const el = this.document.getElementById(id);
-      if (!el) throw new Error(`Missing Single Driver MVP element #${id}`);
-      return el;
-    };
-
-    const runScenarioBtn = byId('mvpRunScenario');
-    const grantTilesBtn = byId('mvpGrantTiles');
-    const cast1Btn = byId('mvpCastSkill1');
-    const cast2Btn = byId('mvpCastSkill2');
-    const cast3Btn = byId('mvpCastSkill3');
-    const breakOrbBtn = byId('mvpBreakOrb');
-
-    runScenarioBtn.addEventListener('click', () => {
-      this.debugPanel.runScenario('single-driver-routine-orb-victory');
-      this.renderOnce();
-    });
-
-    grantTilesBtn.addEventListener('click', () => {
-      this.actor.paused = true;
-      this.actor.emit('DebugGrantRoutineTiles', { requested: 3 });
-      this.debugPanel.grantAllArtsReady();
-      this.ensureCloseToTarget();
-      this.castFireSkill(0);
-      this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
-      this.castFireSkill(1);
-      this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
-      this.castFireSkill(2);
-      this.fastForwardUntil((s) => s.routineOrb !== null || s.battle?.active === false, 1800);
-      this.renderOnce();
-    });
-
-    cast1Btn.addEventListener('click', () => {
-      this.castFireSkill(0);
-      this.renderOnce();
-    });
-    cast2Btn.addEventListener('click', () => {
-      this.castFireSkill(1);
-      this.renderOnce();
-    });
-    cast3Btn.addEventListener('click', () => {
-      this.castFireSkill(2);
-      this.renderOnce();
-    });
-
-    breakOrbBtn.addEventListener('click', () => {
-      this.actor.paused = true;
-      this.actor.breakRoutineOrb();
-      this.renderOnce();
-    });
   }
 
   ensureCloseToTarget() {
