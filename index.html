@@ -143,6 +143,16 @@
       <div class="buttons"><button id="pause">Pause</button><button id="step">Step</button><button id="reset">Reset</button><button id="clear">Clear</button></div>
     </div>
     <div class="section">
+      <h2>Battle Loop Status</h2>
+      <div class="row"><span>Arts</span><span id="blsArts" class="pill">-</span></div>
+      <div class="row"><span>Driver Combo</span><span id="blsDriver" class="pill">None</span></div>
+      <div class="row"><span>Special</span><span id="blsSpecial" class="pill">0/300 L0</span></div>
+      <div class="row"><span>Blade Combo</span><span id="blsBlade" class="pill">-</span></div>
+      <div class="row"><span>Last Key Event</span><span id="blsLastEvent" class="pill">-</span></div>
+      <div class="row"><span>Tokens</span><span id="blsTokens" class="pill">0</span></div>
+      <pre id="blsTokensList"></pre>
+    </div>
+    <div class="section">
       <h2>Driver Combo</h2>
       <div class="row"><span>Stage</span><span id="dcStage" class="pill">None</span></div>
       <div class="row"><span>Timer</span><span class="bar buffer"><i id="dcBar"></i></span></div>
@@ -161,6 +171,7 @@
     <div class="section">
       <h2>Scenario</h2>
       <div class="buttons">
+        <button id="scFullBattleLoop">Run Full Battle Loop</button>
         <button id="scFull">Run Full Combo</button>
         <button id="scWrong">Run Wrong Order</button>
         <button id="scExpireBreak">Run Expire Break</button>

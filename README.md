@@ -18,7 +18,8 @@ Special Gauge 充能（由 Arts 命中驱动）
 完成路线产出 Token（仅产出，不兑现）
 ```
 
-明确边界：本仓库不实现 Chain Attack（不作为未来版本规划的一部分）。
+明确边界：本仓库当前阶段不实现 Chain Attack / 属性球 / Full Burst / Fusion 等 payoff 机制。
+如未来进入 V4，必须先完成 Readiness Review 与拆分计划（见 `docs/v4-readiness-review.md`），且不得在同一里程碑中同时引入“大玩法 + 工程扩张”。
 
 ## V1 目标与边界
 
@@ -62,6 +63,18 @@ Break -> Topple -> Launch -> Smash
 - Special 有等级（L1~L3）与消耗；释放成功会记录消费与命中事件。
 - Special 命中会推进 Blade Combo 路线（默认示例路线：`Fire(L1) -> Water(L2) -> Fire(L3)`）。
 - 路线完成后会创建一个 Token 并记录 `TokenCreated`（当前仅用于“延迟奖励输入”的可观察性验证，不包含兑现机制）。
+
+## V3.1 文档同步与验收口径（已实现）
+
+V3.1 不新增玩法实现，只做“文档同步 + 可观察性验收口径对齐”，用于避免后续扩展时出现规则漂移：
+
+- README / AGENTS / docs 路线图与验收计划对齐。
+- 明确 V4 的预研内容只允许以 Readiness Review + 拆分计划形式进入仓库（不直接落玩法）。
+
+## V4 Chain Attack 预研（未来，仅文档）
+
+V4 预研的目标是把未来可能的 Chain Attack / Orbs / Full Burst / Fusion 机制拆成“可观察、可测试、可分阶段落地”的计划，而不是在当前仓库直接实现大玩法。
+详见 `docs/v4-readiness-review.md`。
 
 ## V1 目录结构
 
@@ -125,3 +138,4 @@ See:
 - `docs/event-catalog.md`
 - `docs/test-coverage-map.md`
 - `docs/v3-readiness-review.md`
+- `docs/v4-readiness-review.md`

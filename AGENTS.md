@@ -30,7 +30,7 @@ Special 消费与命中（推进 Blade Combo）
 Blade Combo 完成产出 Token（仅产出，不兑现）
 ```
 
-当前阶段：V3 Special/Blade/Token 原型已实现；当前任务以“文档同步 + 可观察性验收”为主。
+当前阶段：V3 Special/Blade/Token 原型已实现；V3.1 以“文档同步 + 可观察性验收口径对齐”为主（不新增玩法实现）。
 
 主要目标：
 
@@ -254,6 +254,11 @@ SPEC -> PLAN -> DO -> VERIFY -> REPORT
 - docs/test-coverage-map.md
 - docs/v3-readiness-review.md
 
+进入 V4 前额外要求：
+
+- 必须先阅读并更新 `docs/v4-readiness-review.md`，以其作为“未来 payoff 机制”的唯一入口文档。
+- V4 必须拆分：先做 V4.0（文档/事件目录/测试与 scenario 计划/可观察性验收口径），再进入 V4.1+ 的最小原型；禁止把“大玩法落地 + 工程扩张”塞进同一个里程碑。
+
 ### 5.2 PLAN
 
 再列出：
@@ -433,10 +438,22 @@ V2 交付物：
 - Blade Combo（Special 命中推进路线，完成产出 TokenCreated）。
 - scenarios/tests/UI 最小可观察性入口（`npm test` + 浏览器 Debug 面板）。
 
-### 明确不做（仓库边界）
+### V3.1：文档同步 + 验收口径对齐（当前/完成）
 
-- Chain Attack（明确排除，不纳入路线图）。
-- Token cash-out（当前仅产出 token，用于延迟奖励输入验证；不在本仓库范围内实现兑现机制）。
+- README / AGENTS / docs 的路线图、机制图、测试覆盖图、验证计划保持同步。
+- 明确 V4 仅允许以 Readiness Review + 拆分计划进入仓库（先文档与可观察性资产，后最小原型）。
+- 新增 `docs/v4-readiness-review.md` 作为 V4 预研唯一入口。
+
+### V4：Chain Attack / Orbs / Full Burst / Fusion（未来，必须拆分）
+
+- V4.0（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险清单与拆分里程碑。
+- V4.1（最小原型）：只做最小闭环与可观察性，不做数值平衡与复杂表现。
+- V4.2（工具与可视化）：补齐 Debug UI 与 trace/proof 体验，避免黑盒。
+
+### 明确不做（当前版本边界：<= V3.1）
+
+- Chain Attack / 属性球 / Full Burst / Fusion（当前不做；如未来进入 V4，必须按 Readiness Review 拆分里程碑推进）。
+- Token cash-out（当前仅产出 token，用于延迟奖励输入验证；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
 
 ### 制作人验收结论（截至 V2.1）
 

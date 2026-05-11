@@ -1,6 +1,12 @@
-# V3 Mechanics Map
+# V3.1 Mechanics Map
 
 本文档列出 BattleSystem 当前机制地图（Mechanic Inventory）。机制本身以代码与测试为准；本文档提供“机制→文件→输入/输出/事件/不变量/测试”的可追溯索引。
+V3.1 不新增玩法实现，只要求本文档与 README/验证计划/测试覆盖图口径一致。
+
+## Future (V4, not implemented)
+
+- 未来可能评审的 payoff 机制：Chain Attack / 属性球（Orbs）/ Full Burst / Fusion（不在 V1-V3.1 实现范围）。
+- 进入实现前必须先完成 Readiness Review 与拆分计划：`docs/v4-readiness-review.md`。
 
 ## Input Intent
 
@@ -191,7 +197,7 @@
 - 输出：`tokens[]`（进入 snapshot）；`TokenCreated` 事件
 - 关键不变量：
   - token 只由 core 创建并持有；UI 不应直接增删 tokens。
-  - 本仓库只验证“产出与可观察性”，明确不实现 cash-out/Chain Attack。
+  - 本仓库在 V1-V3.1 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
 - 测试覆盖：`tests/blade-combo-scenario.test.mjs`（TokenCreated 与 snapshot tokens）
 
 ## Event Log
@@ -271,7 +277,7 @@
 - 输出：`actor.tick()` 调用、Debug 事件 `DebugGrantArtsReady/DebugGrantSpecialReady`、UI 渲染与 PASS/FAIL proof 输出
 - 拥有状态：UI 组件状态（keys/oneShot、DOM refs）
 - 发出事件：`DebugGrantArtsReady`、`DebugGrantSpecialReady`（由 debug panel / dev scenarios 直接发出，用于验证准备）
-- 消费事件：读取 `actor.getSnapshot()` 与 `actor.eventLog`（渲染）
+- 消费事件：读取 `actor.getSnapshot()`（含 `eventLogText`）用于渲染
 - 关键不变量：
   - UI 不决定战斗规则，只驱动 tick 并展示可观察结果。
   - Scenario 结果必须可解释（proof + trace tail）。

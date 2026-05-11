@@ -141,10 +141,33 @@ Break -> Topple -> Launch -> Smash
   - Node：`npm test`（包含 Special/Blade/Token 相关 tests 与 scenarios）。
   - Browser：右侧 Debug 面板展示 gauge/route/tokens，并提供一键 Run scenarios 与 debug buttons（不依赖键盘焦点）。
 
-## 明确不做（仓库边界）
+## V3.1：文档同步 + 可观察性验收口径（当前/完成）
 
-- Chain Attack（明确排除，不纳入路线图）。
-- Token cash-out（本仓库只验证 token 的产出与可观察性，不实现兑现/破碎/Full Burst 等 payoff 机制）。
+状态：当前（本任务完成后视为完成；不新增玩法实现）
+
+范围：
+
+- README / AGENTS / docs 的路线图、验证计划、机制图、测试覆盖图保持一致。
+- 明确 V4 的预研入口与拆分规则（先文档与验收资产，后最小原型）。
+- 新增 `docs/v4-readiness-review.md`（V4 的唯一入口文档）。
+
+验收：
+
+- 文档之间不互相矛盾（边界、非目标、路线阶段一致）。
+- `npm test` 仍通过；浏览器入口不受影响。
+
+## V4：Chain Attack / Orbs / Full Burst / Fusion（未来，必须拆分）
+
+说明：V4 只在完成 Readiness Review 与拆分计划后才允许进入实现阶段；禁止一次性引入大玩法与工程扩张。
+
+- V4.0（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险与拆分里程碑。
+- V4.1（最小原型）：最小闭环 + 可观察性（事件/快照/trace），不做数值平衡与复杂表现。
+- V4.2（工具与可视化）：补齐 Debug UI、场景按钮、proof/trace 体验与覆盖矩阵。
+
+## 明确不做（当前版本边界：<= V3.1）
+
+- Chain Attack / 属性球 / Full Burst / Fusion（当前不做；如未来进入 V4，必须按 Readiness Review 拆分里程碑推进）。
+- Token cash-out（当前只验证 token 的产出与可观察性；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
 
 ## 工程原则
 

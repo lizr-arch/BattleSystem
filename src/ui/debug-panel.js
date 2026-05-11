@@ -33,6 +33,13 @@ export class DebugPanel {
       step: this.byId('step'),
       reset: this.byId('reset'),
       clear: this.byId('clear'),
+      blsArts: this.byId('blsArts'),
+      blsDriver: this.byId('blsDriver'),
+      blsSpecial: this.byId('blsSpecial'),
+      blsBlade: this.byId('blsBlade'),
+      blsTokens: this.byId('blsTokens'),
+      blsTokensList: this.byId('blsTokensList'),
+      blsLastEvent: this.byId('blsLastEvent'),
       dcStage: this.byId('dcStage'),
       dcBar: this.byId('dcBar'),
       dcFramesLeft: this.byId('dcFramesLeft'),
@@ -45,6 +52,7 @@ export class DebugPanel {
       bcRouteId: this.byId('bcRouteId'),
       bcExpected: this.byId('bcExpected'),
       tokensList: this.byId('tokensList'),
+      scFullBattleLoop: this.byId('scFullBattleLoop'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
       scExpireBreak: this.byId('scExpireBreak'),
@@ -90,6 +98,7 @@ export class DebugPanel {
     this.refs.maxCharge.addEventListener('input', sync);
     this.applyTuning();
 
+    this.refs.scFullBattleLoop.addEventListener('click', () => this.runScenario('full-battle-loop'));
     this.refs.scFull.addEventListener('click', () => this.runScenario('full-driver-combo'));
     this.refs.scWrong.addEventListener('click', () => this.runScenario('wrong-order-smash'));
     this.refs.scExpireBreak.addEventListener('click', () => this.runScenario('expire-break'));
@@ -159,13 +168,67 @@ export class DebugPanel {
     return lines.join('\n');
   }
 
-  findLastDriverEventMessage() {
-    const events = this.actor.eventLog?.events ?? [];
-    for (let i = events.length - 1; i >= 0; i -= 1) {
-      const e = events[i];
-      if (String(e.type).startsWith('DriverCombo')) return String(e.message ?? e.type);
+  findLastEventLine(eventLogText, accept) {
+    const text = typeof eventLogText === 'string' ? eventLogText : '';
+    if (!text) return '-';
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const s = String(line || '').trim();
+      if (!s) continue;
+      const msg = s.replace(/^F\d+\s+/, '');
+      if (accept(msg)) return s;
+    }
+    for (const line of lines) {
+      const s = String(line || '').trim();
+      if (s) return s;
     }
     return '-';
+  }
+
+  renderBattleLoopStatus(snapshot) {
+    const s = snapshot ?? this.actor.getSnapshot();
+    const fmtArtShort = (art) => {
+      if (!art) return null;
+      const ready = art.ready ? ' READY' : '';
+      return `${String(art.id ?? 'Art')} ${art.charge ?? 0}/${art.maxCharge ?? 0}${ready}`;
+    };
+    const arts = [fmtArtShort(s.art1), fmtArtShort(s.art2), fmtArtShort(s.art3), fmtArtShort(s.art4)].filter(Boolean);
+    this.refs.blsArts.textContent = arts.length > 0 ? arts.join(' | ') : '-';
+
+    const dcStage = s.driverCombo?.stage ?? 'None';
+    this.refs.blsDriver.textContent = String(dcStage || 'None');
+
+    const spCharge = Math.max(0, Number(s.specialGauge?.charge ?? 0));
+    const spReady = Math.max(0, Number(s.specialGauge?.readyLevel ?? 0));
+    this.refs.blsSpecial.textContent = `${spCharge | 0}/300 L${spReady | 0}`;
+
+    const bcStage = s.bladeCombo?.stage ?? 'None';
+    const bcRoute = s.bladeCombo?.routeId ?? '-';
+    const nextElement = s.bladeCombo?.expectedNextElement ?? null;
+    const nextMinLevel = s.bladeCombo?.expectedNextMinLevel ?? null;
+    const bcNext = nextElement ? `${String(nextElement)} L${String(nextMinLevel ?? 0)}` : '-';
+    this.refs.blsBlade.textContent = `${String(bcStage)} route=${String(bcRoute || '-')} next=${bcNext}`;
+
+    const tokens = Array.isArray(s.tokens) ? s.tokens : [];
+    this.refs.blsTokens.textContent = String(tokens.length | 0);
+    this.renderTokens(tokens, this.refs.blsTokensList);
+
+    const keyPrefixes = [
+      'ActionHit',
+      'ActionWhiffed',
+      'RecoveryCanceledToMovement',
+      'RecoveryCanceledToArt',
+      'CancelBonusApplied',
+      'ArtBecameReady',
+      'ArtChargeChanged',
+      'ArtConsumed',
+      'DriverCombo',
+      'Special',
+      'BladeCombo',
+      'TokenCreated',
+    ];
+    const lastKey = this.findLastEventLine(s.eventLogText, (msg) => keyPrefixes.some((p) => msg.startsWith(p)));
+    this.refs.blsLastEvent.textContent = lastKey;
   }
 
   renderDriverCombo(driverCombo) {
@@ -206,13 +269,13 @@ export class DebugPanel {
     this.refs.spInfo.textContent = `${charge | 0}/300 L${readyLevel | 0}`;
   }
 
-  renderTokens(tokens) {
+  renderTokens(tokens, element = this.refs.tokensList) {
     const list = Array.isArray(tokens) ? tokens : [];
     if (list.length <= 0) {
-      this.refs.tokensList.textContent = '-';
+      element.textContent = '-';
       return;
     }
-    this.refs.tokensList.textContent = list
+    element.textContent = list
       .map((t, i) => `${String(i).padStart(2, '0')} ${t.id ?? 'Token'} element=${t.element ?? '?'} route=${t.sourceRouteId ?? '-'} @${t.createdFrame ?? 0}`)
       .join('\n');
   }
@@ -312,8 +375,9 @@ export class DebugPanel {
     this.refs.art3Info.textContent = fmtArt(art3);
     this.refs.art4Info.textContent = fmtArt(art4);
     this.refs.log.textContent = s.eventLogText;
+    this.renderBattleLoopStatus(s);
     this.renderDriverCombo(s.driverCombo);
-    this.refs.dcLastEvent.textContent = this.findLastDriverEventMessage();
+    this.refs.dcLastEvent.textContent = this.findLastEventLine(s.eventLogText, (msg) => msg.startsWith('DriverCombo'));
     this.renderBladeCombo(s.bladeCombo);
     this.renderSpecialGauge(s.specialGauge);
     this.renderTokens(s.tokens);

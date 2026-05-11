@@ -64,4 +64,18 @@ function run(name) {
   assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.DriverComboAdvanced && e.data?.toStage === DriverComboStage.Topple));
 }
 
+{
+  const { actor, result } = run('full-battle-loop');
+  assert.equal(result.passed, true);
+  assert.equal(result.finalSnapshot.driverCombo.stage, DriverComboStage.None);
+  assert.equal(result.finalSnapshot.bladeCombo.stage, BladeComboStage.None);
+  assert.ok(result.finalSnapshot.tokens.some((t) => t.id === 'FireToken'));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.DriverComboFinished));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.SpecialHit && e.data?.specialId === 'FireLv1'));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.SpecialHit && e.data?.specialId === 'WaterLv2'));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.SpecialHit && e.data?.specialId === 'FireLv3'));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.BladeComboFinished && e.data?.routeId === 'FireWaterFire'));
+  assert.ok(actor.eventLog.events.some((e) => e.type === CombatEventType.TokenCreated && e.data?.id === 'FireToken'));
+}
+
 console.log('blade combo scenario test passed');

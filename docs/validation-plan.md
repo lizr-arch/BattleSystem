@@ -1,4 +1,4 @@
-# 验证计划（V1-V3）
+# 验证计划（V1-V3.1）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
@@ -6,7 +6,8 @@
 
 在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、以及 V3 的 Special/Blade/Token 原型验证清楚，并保证行为可解释、可复现。
 
-明确边界：本仓库不实现 Chain Attack，也不实现 token 的 cash-out/兑现机制。
+明确边界：在 V1-V3.1 范围内，本仓库不实现 Chain Attack / 属性球 / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制。
+如未来进入 V4，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
 
 核心闭环（V1）：
 
@@ -129,6 +130,14 @@ DriverComboRefreshed Break 12f->180f
 - 上述 V1~V3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
 - 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出）。
 
+## 文档一致性验收（V3.1）
+
+V3.1 不新增玩法实现，验收以“口径一致 + 可追溯”为主：
+
+- README / AGENTS / docs 路线图不互相矛盾（版本命名、边界、非目标一致）。
+- `docs/mechanics-map.md` 与 `docs/test-coverage-map.md` 保持同步（机制与测试覆盖口径一致）。
+- V4 预研只能通过 `docs/v4-readiness-review.md` 进入，且必须拆分里程碑（先文档与验收资产，后最小原型）。
+
 ## 自动化测试（Node）
 
 `tests/` 覆盖核心不变量：
@@ -145,12 +154,11 @@ DriverComboRefreshed Break 12f->180f
 - Special Gauge：充能、readyLevel 阈值、消费与失败原因。
 - Blade Combo：开始/推进/失败/过期/完成，以及 TokenCreated。
 
-## 非目标（当前阶段不做）
+## 非目标（当前阶段不做：<= V3.1）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI / 攻击行为。
 - 队友 AI。
-- 属性球。
-- Token cash-out（兑现/破碎/消费）。
-- Chain Attack（明确排除）。
+- 属性球 / Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4，按 Readiness Review 拆分推进）。
+- Token cash-out（兑现/破碎/消费；需等待 V4 拆分评审）。
 - 完整伤害公式与数值平衡。

@@ -1,10 +1,14 @@
-# V3 Test Coverage Map
+# V3.1 Test Coverage Map
 
 本文档盘点 `tests/*.mjs` 的覆盖范围，用于回答：
 
 - 当前哪些机制已有确定性测试证据？
 - 哪些事件被断言过？
 - 后续扩展（非本仓库范围）时哪些测试必须保持通过（保护性不变量）？
+
+## Future (V4, planned only)
+
+V4 仅允许在完成 `docs/v4-readiness-review.md`（含拆分计划）后进入实现；在此之前这里只记录“测试资产应该如何演进”的方向，不代表已实现。
 
 ## tests/combat-timing-smoke.test.mjs
 
