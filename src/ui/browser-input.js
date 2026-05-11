@@ -37,6 +37,9 @@ export class BrowserInput {
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', '1', '2', '3', '4', '.'].includes(key)) {
       event.preventDefault();
     }
+    if ((event.ctrlKey || event.metaKey) && ['q', 'w', 'e'].includes(key)) {
+      event.preventDefault();
+    }
 
     if (!this.keys.has(key)) {
       if (key === '1') this.oneShot.art1 = true;
