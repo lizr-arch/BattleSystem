@@ -1,4 +1,4 @@
-# V3 Event Catalog
+# V4.0 Event Catalog
 
 本文档列出当前所有 `CombatEventType`，并给出其定义位置、发出位置、触发条件、`data` 字段与日志格式。事件名与字段以代码为准（见 `src/core/enums.js` 与 `src/core/combat-events.js`）。
 
@@ -32,6 +32,19 @@
 - 相关机制：Browser Debug UI（Reset 按钮）、Scenario Runner（prepare 中会 reset）
 - 测试覆盖：间接（scenarios 的 prepare 会调用）
 - 备注：`resetRuntime({ keepLog:false })` 默认会清空 eventLog 后再 emit Reset。
+
+## BattleStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`resetRuntime`）
+- 触发条件：actor 重置后开始一场新的 battle（初始化 target hp/dead/battle 状态）。
+- data 字段：
+  - `targetId: string`
+  - `targetHp: number`
+  - `targetMaxHp: number`
+- 日志格式：`BattleStarted target=<targetId> hp=<targetHp>/<targetMaxHp>`
+- 相关机制：Battle / HP / Result、Scenario Runner（prepare 会 reset）
+- 测试覆盖：`tests/single-driver-mvp.test.mjs`、`tests/routine-orb-scenario.test.mjs`（proof 断言存在）
 
 ## InputBuffered
 
@@ -159,6 +172,60 @@
 - 相关机制：Action Timeline、Auto Attack Chain、Arts
 - 测试覆盖：未做显式断言（由状态机推进间接覆盖）
 - 备注：当前“结束事件”发在 action 清空前。
+
+## DamageApplied
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
+- 触发条件：任何来源尝试对 target 扣血（普攻/Art/Special/元素伤害/DoT tick）。
+- data 字段：
+  - `targetId: string`
+  - `amount: number`（本次实际扣血；可能为 0）
+  - `source: 'AutoAttack' | 'Art' | 'Special' | 'Element' | 'Debuff' | string`
+  - `sourceId: string|null`
+  - `beforeHp: number`
+  - `afterHp: number`
+- 日志格式：`DamageApplied target=<targetId> amount=<amount> src=<source>`
+- 相关机制：Battle / HP / Result
+- 测试覆盖：`tests/single-driver-mvp.test.mjs`、`tests/routine-orb-scenario.test.mjs`（proof 断言存在）
+- 备注：当 battle 已结束/target 已 dead/amount<=0 时，仍会记录一条 amount=0 的 DamageApplied（用于审计“尝试发生过”）。
+
+## TargetHpChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
+- 触发条件：target hp 确实发生变化时（before != after）。
+- data 字段：
+  - `targetId: string`
+  - `before: number`
+  - `after: number`
+  - `maxHp: number`
+- 日志格式：`TargetHpChanged <before>-><after>/<maxHp>`
+- 相关机制：Battle / HP / Result
+- 测试覆盖：`tests/single-driver-mvp.test.mjs`、`tests/routine-orb-scenario.test.mjs`（proof 断言存在）
+
+## TargetDefeated
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
+- 触发条件：hp 归零且此前未 dead。
+- data 字段：
+  - `targetId: string`
+- 日志格式：`TargetDefeated target=<targetId>`
+- 相关机制：Battle / HP / Result、Debuff kill
+- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`
+- 备注：该事件之后 battle 会结束，tick 仍允许处理 vfx，但不再推进战斗规则。
+
+## BattleEnded
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
+- 触发条件：battle 结束时（当前仅实现 Victory）。
+- data 字段：
+  - `result: 'Victory' | string`
+- 日志格式：`BattleEnded result=<result>`
+- 相关机制：Battle / HP / Result
+- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`
 
 ## ArtChargeChanged
 
@@ -567,4 +634,152 @@
 - 相关机制：Tokens
 - 测试覆盖：`tests/blade-combo-scenario.test.mjs`（断言 TokenCreated 与 snapshot tokens）
 - 备注：本仓库只验证 token 的产出与可观察性；明确不实现 token 的消费/兑现（例如 Chain Attack 或其它 cash-out 机制）。
+
+## RoutineTileAdded
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit` 的 Routine Skill 分支）
+- 触发条件：Art 命中且能映射到 Routine Skill 时，添加一张 tile（添加后 tiles 上限仍为 3）。
+- data 字段：
+  - `routineId: string`
+  - `skillId: string`
+  - `layer: number`
+  - `tilesCount: number`（添加后数量）
+  - `beforeTilesCount: number`
+- 日志格式：`RoutineTileAdded routine=<routineId> layer=<layer> tiles=<tilesCount>`
+- 相关机制：Routine Tiles、Routine Orb
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`（proof 断言存在）
+
+## RoutineTileRemoved
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit` 添加 tile 超出上限后的移除分支）
+- 触发条件：添加 tile 后超过上限（3 张）时移除最旧 tile。
+- data 字段：
+  - `routineId: string`
+  - `skillId: string`
+  - `layer: number`
+  - `tilesCount: number`（移除后数量）
+- 日志格式：`RoutineTileRemoved routine=<routineId> layer=<layer> tiles=<tilesCount>`
+- 相关机制：Routine Tiles
+- 测试覆盖：间接（当前内置场景主要使用 3 张组合；该事件在超出上限的场景中可被验证）
+
+## RoutineOrbCreated
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit` tile 更新后）
+- 触发条件：最近 3 张 tile 同一 routineId 且此前无 active orb 时创建 orb。
+- data 字段：
+  - `routineId: string`
+  - `totalLayer: number`
+- 日志格式：`RoutineOrbCreated routine=<routineId> totalLayer=<totalLayer>`
+- 相关机制：Routine Orb
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`（proof 断言存在）
+
+## RoutineOrbReplaced
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`onArtHit` tile 更新后）
+- 触发条件：满足创建条件且此前已有 active orb 时，以新 orb 替换旧 orb。
+- data 字段：
+  - `routineId: string`
+  - `totalLayer: number`
+  - `beforeRoutineId: string`
+  - `beforeTotalLayer: number`
+- 日志格式：`RoutineOrbReplaced routine=<routineId> totalLayer=<totalLayer>`
+- 相关机制：Routine Orb
+- 测试覆盖：间接（当前 MVP 场景主要验证 Created；Replaced 作为可扩展分支保留）
+
+## RoutineOrbBreakFailed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`breakRoutineOrb`）
+- 触发条件：调用 `actor.breakRoutineOrb()` 但当前没有 active orb。
+- data 字段：
+  - `reason: 'no_orb' | string`
+- 日志格式：`RoutineOrbBreakFailed reason=<reason>`
+- 相关机制：Orb Break
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`（without-orb proof）
+
+## RoutineOrbBreakStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`breakRoutineOrb`）
+- 触发条件：开始一次破球结算。
+- data 字段：
+  - `routineId: string`
+  - `totalLayer: number`
+- 日志格式：`RoutineOrbBreakStarted routine=<routineId> totalLayer=<totalLayer>`
+- 相关机制：Orb Break
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`
+
+## ElementDamageApplied
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`breakRoutineOrb`）
+- 触发条件：破球造成一次元素伤害（随后必须通过 `DamageApplied` 扣血通路结算）。
+- data 字段：
+  - `element: string`
+  - `amount: number`
+  - `totalLayer?: number`
+- 日志格式：`ElementDamageApplied element=<element> amount=<amount>`
+- 相关机制：Orb Break、Battle / HP / Result
+- 测试覆盖：`tests/single-driver-mvp.test.mjs`（proof 断言存在）
+
+## DebuffApplied
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（当前由 `breakRoutineOrb` 施加 Burn）
+- 触发条件：某个 debuff 被施加到 target（当前只实现 Burn）。
+- data 字段：
+  - `type: string`（例如 Burn）
+  - `durationFrames: number`
+- 日志格式：`DebuffApplied <type> <durationFrames>f`
+- 相关机制：Debuffs（Burn）
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`
+
+## RoutineOrbBroken
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`breakRoutineOrb`）
+- 触发条件：破球主要结算完成并确认本次 orb 已被破坏。
+- data 字段：
+  - `routineId: string`
+  - `totalLayer: number`
+- 日志格式：`RoutineOrbBroken routine=<routineId> totalLayer=<totalLayer>`
+- 相关机制：Orb Break
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`
+
+## RoutineOrbBreakFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`breakRoutineOrb`）
+- 触发条件：破球结算收尾（已清空 routineOrb/routineTiles）。
+- data 字段：无（`{}`）
+- 日志格式：`RoutineOrbBreakFinished`
+- 相关机制：Orb Break
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`（break 场景 proof）
+
+## DebuffTickDamage
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（每帧 `tickDebuffs` 结算时）
+- 触发条件：debuff 达到 tick 时机并产生一次伤害。
+- data 字段：
+  - `type: string`
+  - `amount: number`
+- 日志格式：`DebuffTickDamage <type> amount=<amount>`
+- 相关机制：Debuffs（Burn）、Battle / HP / Result
+- 测试覆盖：`tests/routine-orb-scenario.test.mjs`（burn-kill proof）
+
+## DebuffExpired
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（每帧 `tickDebuffs` 结算时）
+- 触发条件：debuff 计时归零并从列表移除。
+- data 字段：
+  - `type: string`
+- 日志格式：`DebuffExpired <type>`
+- 相关机制：Debuffs（Burn）
+- 测试覆盖：间接（当前 MVP 场景主要验证击杀闭环；到期事件保留用于 future 验证）
 
