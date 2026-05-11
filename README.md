@@ -35,6 +35,14 @@ Burn tick 可击杀 => BattleEnded(Victory)
 明确边界：<= V4.0 不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现。
 如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划（见 `docs/v4-readiness-review.md`），且不得在同一里程碑中同时引入“大玩法 + 工程扩张”。
 
+## V4.1 Enemy Attack Model Design（敌人攻击模型设计）
+
+V4.1 是设计阶段，不实现复杂 NPC AI（敌人 AI）。它为 V4.2 Enemy Attack MVP Implementation（敌人攻击最小实现）提供开发规格：
+
+- `docs/enemy-attack-model.md`
+- `docs/npc-ai-design.md`
+- `docs/v4.2-enemy-attack-mvp-spec.md`
+
 ## V1 目标与边界
 
 这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒（浏览器可跑 + Node 可重复测试）：
@@ -160,5 +168,8 @@ See:
 - `docs/event-catalog.md`
 - `docs/test-coverage-map.md`
 - `docs/routine-orb-system.md`
+- `docs/enemy-attack-model.md`
+- `docs/npc-ai-design.md`
+- `docs/v4.2-enemy-attack-mvp-spec.md`
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
