@@ -1,6 +1,6 @@
 # 战斗模型
 
-## 实现位置（V1-V3）
+## 实现位置（V1-V4.0）
 
 - 规则实现：`src/core/*`（纯逻辑，不依赖 DOM / Canvas）
 - 默认数值：`src/data/default-combat-config.js`
@@ -143,6 +143,57 @@ Token 是 Blade Combo 完成后的产物，用于“延迟奖励输入”的可�
 - 当前实现只包含创建与快照可读（`tokens[]` + `TokenCreated`）。
 - 明确不包含：兑现/破碎/消费（例如 Chain Attack 或其它 cash-out 机制）。
 
+## Battle / HP / Result（V4.0）
+
+V4.0 引入“可击杀目标 + 战斗结果”作为单驾驶员 MVP 的最小闭环地基。
+
+### 状态模型
+
+```text
+battle: { active: boolean, result: null | 'Victory' }
+target: { hp, maxHp, dead, ... }
+```
+
+### 规则
+
+- 所有扣血必须走统一通路，并可被事件审计：
+  - `DamageApplied`（记录来源与本次实际扣血）
+  - `TargetHpChanged`（记录 before/after/maxHp）
+- 当 `target.hp` 归零时：
+  - 产出 `TargetDefeated`
+  - 战斗结束：`battle.active=false`，`battle.result='Victory'`，并产出 `BattleEnded`
+
+## Routine Orb（套路球，V4.0）
+
+Routine Orb 系统是 V4.0 的“最小属性球闭环”：用最少规则验证“命中记录 → 球生成 → 破球结算 → DoT 击杀”的可观察链路。
+
+### 概念
+
+- Routine（套路）：一条技能路线标识（当前仅 `FireRoutine`）。
+- Tile（套路牌）：套路技能命中后生成的记录项（最多 3 张）。
+- Orb（套路球）：最近 3 张 tile 都属于同一 routine 时自动生成（仅 1 个 active）。
+- Orb Break（破球）：对 active orb 执行一次性结算（元素伤害 + Debuff），并清空 orb 与 tiles。
+
+### 推进规则（概览）
+
+```text
+Art hit (mapped to RoutineSkill)
+  => RoutineTileAdded (cap=3, oldest removed)
+  => if last 3 tiles same routine => RoutineOrbCreated / RoutineOrbReplaced
+
+breakRoutineOrb()
+  => RoutineOrbBreakStarted
+  => ElementDamageApplied + DamageApplied + TargetHpChanged
+  => DebuffApplied(Burn)
+  => RoutineOrbBroken + RoutineOrbBreakFinished
+  => clear routineOrb + routineTiles
+```
+
+### Burn（灼烧）
+
+- 破球会施加 Burn（300f，60f tick，5 damage/tick）。
+- 每次 tick 必须产出 `DebuffTickDamage`，并通过 `DamageApplied` 扣血；若击杀目标，必须触发 `TargetDefeated` 与 `BattleEnded Victory`。
+
 ## 默认参数
 
 | 动作 | Startup | Active | Recovery | Damage | Art Charge Gain | Special Gain | Effect |
@@ -173,15 +224,15 @@ Token 是 Blade Combo 完成后的产物，用于“延迟奖励输入”的可�
 | Special Gauge | 0..300（阈值 100/200/300） |
 | Blade Combo Route | FireWaterFire（240f） |
 
-## 当前暂不实现（<= V3.1）
+## 当前暂不实现（<= V4.0）
 
-当前阶段暂不实现（如未来进入 V4，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
+当前阶段暂不实现（当前版本边界：<= V4.0；如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
 
 - 敌人攻击和 AI。
 - 仇恨系统。
-- 属性球（Orbs）。
-- 更多元素/多路线（当前仅示例 Fire/Water + 单路线）。
-- Token cash-out（只产出 token，不消费/兑现）。
-- Chain Attack / Full Burst / Fusion（<= V3.1 不实现；未来只允许按 V4 拆分评审进入）。
+- 复杂属性球系统（多球共存、堆叠/计数规则、与连锁兑现的整套 cash-out）。
+- Chain Attack / Full Burst / Fusion（V4.0 延后；未来只允许按 V4 拆分评审进入）。
+- Token cash-out（只验证 token 产出，不消费/兑现）。
+- Routine Skill trait 参与结算（当前 trait 模型仅预留接口，不影响伤害结算）。
 
 这些后续都可以挂在当前 `ActionHit` / `DriverCombo*` 等事件链路之后。

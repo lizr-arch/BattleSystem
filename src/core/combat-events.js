@@ -6,6 +6,8 @@ export function formatCombatEvent(type, data = {}) {
       return 'Init';
     case CombatEventType.Reset:
       return 'Reset';
+    case CombatEventType.BattleStarted:
+      return `BattleStarted target=${data.targetId ?? 'Unknown'} hp=${data.targetHp ?? 0}/${data.targetMaxHp ?? 0}`;
     case CombatEventType.InputBuffered:
       return `InputBuffered UseArt${(data.slot ?? 0) + 1} ${data.frames ?? 0}f`;
     case CombatEventType.InputConsumed:
@@ -35,6 +37,14 @@ export function formatCombatEvent(type, data = {}) {
       return `ActionWhiffed ${data.actionId ?? data.artId ?? 'Unknown'}`;
     case CombatEventType.ActionFinished:
       return `ActionFinished ${data.actionId ?? data.artId ?? 'Unknown'}`;
+    case CombatEventType.DamageApplied:
+      return `DamageApplied target=${data.targetId ?? 'Unknown'} amount=${data.amount ?? 0} src=${data.source ?? '?'}`;
+    case CombatEventType.TargetHpChanged:
+      return `TargetHpChanged ${data.before ?? 0}->${data.after ?? 0}/${data.maxHp ?? 0}`;
+    case CombatEventType.TargetDefeated:
+      return `TargetDefeated target=${data.targetId ?? 'Unknown'}`;
+    case CombatEventType.BattleEnded:
+      return `BattleEnded result=${data.result ?? '?'}`;
     case CombatEventType.ArtChargeChanged:
       return `ArtChargeChanged ${data.artId ?? 'Unknown'} ${data.before ?? 0}->${data.after ?? 0}`;
     case CombatEventType.ArtBecameReady:
@@ -93,6 +103,30 @@ export function formatCombatEvent(type, data = {}) {
       return `BladeComboFinished route=${data.routeId ?? '?'} element=${data.element ?? '?'}`;
     case CombatEventType.TokenCreated:
       return `TokenCreated ${data.id ?? '?'} element=${data.element ?? '?'} route=${data.sourceRouteId ?? '?'}`;
+    case CombatEventType.RoutineTileAdded:
+      return `RoutineTileAdded routine=${data.routineId ?? '?'} layer=${data.layer ?? 0} tiles=${data.tilesCount ?? 0}`;
+    case CombatEventType.RoutineTileRemoved:
+      return `RoutineTileRemoved routine=${data.routineId ?? '?'} layer=${data.layer ?? 0} tiles=${data.tilesCount ?? 0}`;
+    case CombatEventType.RoutineOrbCreated:
+      return `RoutineOrbCreated routine=${data.routineId ?? '?'} totalLayer=${data.totalLayer ?? 0}`;
+    case CombatEventType.RoutineOrbReplaced:
+      return `RoutineOrbReplaced routine=${data.routineId ?? '?'} totalLayer=${data.totalLayer ?? 0}`;
+    case CombatEventType.RoutineOrbBreakFailed:
+      return `RoutineOrbBreakFailed reason=${data.reason ?? '?'}`;
+    case CombatEventType.RoutineOrbBreakStarted:
+      return `RoutineOrbBreakStarted routine=${data.routineId ?? '?'} totalLayer=${data.totalLayer ?? 0}`;
+    case CombatEventType.RoutineOrbBroken:
+      return `RoutineOrbBroken routine=${data.routineId ?? '?'} totalLayer=${data.totalLayer ?? 0}`;
+    case CombatEventType.RoutineOrbBreakFinished:
+      return `RoutineOrbBreakFinished`;
+    case CombatEventType.ElementDamageApplied:
+      return `ElementDamageApplied element=${data.element ?? '?'} amount=${data.amount ?? 0}`;
+    case CombatEventType.DebuffApplied:
+      return `DebuffApplied ${data.type ?? '?'} ${data.durationFrames ?? 0}f`;
+    case CombatEventType.DebuffTickDamage:
+      return `DebuffTickDamage ${data.type ?? '?'} amount=${data.amount ?? 0}`;
+    case CombatEventType.DebuffExpired:
+      return `DebuffExpired ${data.type ?? '?'}`;
     default:
       return String(type);
   }

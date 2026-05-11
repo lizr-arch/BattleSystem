@@ -16,10 +16,15 @@ const scanDirs = [
 
 const requiredDocs = [
   'docs/system-map.md',
+  'docs/combat-model.md',
   'docs/mechanics-map.md',
   'docs/event-catalog.md',
   'docs/test-coverage-map.md',
+  'docs/validation-plan.md',
+  'docs/roadmap.md',
+  'docs/routine-orb-system.md',
   'docs/v3-readiness-review.md',
+  'docs/v4-readiness-review.md',
 ];
 
 async function exists(filePath) {

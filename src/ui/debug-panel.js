@@ -52,6 +52,19 @@ export class DebugPanel {
       bcRouteId: this.byId('bcRouteId'),
       bcExpected: this.byId('bcExpected'),
       tokensList: this.byId('tokensList'),
+      mvpBattle: this.byId('mvpBattle'),
+      mvpTargetHpText: this.byId('mvpTargetHpText'),
+      mvpTargetHpBar: this.byId('mvpTargetHpBar'),
+      mvpTiles: this.byId('mvpTiles'),
+      mvpOrb: this.byId('mvpOrb'),
+      mvpBurn: this.byId('mvpBurn'),
+      mvpLastEvent: this.byId('mvpLastEvent'),
+      mvpRunScenario: this.byId('mvpRunScenario'),
+      mvpGrantTiles: this.byId('mvpGrantTiles'),
+      mvpCastSkill1: this.byId('mvpCastSkill1'),
+      mvpCastSkill2: this.byId('mvpCastSkill2'),
+      mvpCastSkill3: this.byId('mvpCastSkill3'),
+      mvpBreakOrb: this.byId('mvpBreakOrb'),
       scFullBattleLoop: this.byId('scFullBattleLoop'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
@@ -86,7 +99,18 @@ export class DebugPanel {
     return element;
   }
 
-  bindControls({ onPause, onStep, onReset, onClear }) {
+  bindControls({
+    onPause,
+    onStep,
+    onReset,
+    onClear,
+    onMvpRunScenario,
+    onMvpGrantTiles,
+    onMvpCastSkill1,
+    onMvpCastSkill2,
+    onMvpCastSkill3,
+    onMvpBreakOrb,
+  }) {
     this.refs.pause.addEventListener('click', onPause);
     this.refs.step.addEventListener('click', onStep);
     this.refs.reset.addEventListener('click', onReset);
@@ -122,6 +146,13 @@ export class DebugPanel {
     this.refs.dbgCast2.addEventListener('click', () => this.castArt(1));
     this.refs.dbgCast3.addEventListener('click', () => this.castArt(2));
     this.refs.dbgCast4.addEventListener('click', () => this.castArt(3));
+
+    if (onMvpRunScenario) this.refs.mvpRunScenario.addEventListener('click', onMvpRunScenario);
+    if (onMvpGrantTiles) this.refs.mvpGrantTiles.addEventListener('click', onMvpGrantTiles);
+    if (onMvpCastSkill1) this.refs.mvpCastSkill1.addEventListener('click', onMvpCastSkill1);
+    if (onMvpCastSkill2) this.refs.mvpCastSkill2.addEventListener('click', onMvpCastSkill2);
+    if (onMvpCastSkill3) this.refs.mvpCastSkill3.addEventListener('click', onMvpCastSkill3);
+    if (onMvpBreakOrb) this.refs.mvpBreakOrb.addEventListener('click', onMvpBreakOrb);
   }
 
   applyTuning() {
@@ -280,9 +311,51 @@ export class DebugPanel {
       .join('\n');
   }
 
+  renderSingleDriverMvp(snapshot) {
+    const s = snapshot ?? this.actor.getSnapshot();
+    const battleActive = s.battle?.active === false ? 'inactive' : 'active';
+    const battleResult = s.battle?.result ?? '-';
+    this.refs.mvpBattle.textContent = `${battleActive} result=${String(battleResult)}`;
+
+    const hp = Math.max(0, Number(s.target?.hp ?? 0));
+    const maxHp = Math.max(0, Number(s.target?.maxHp ?? 0));
+    const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
+    const dead = s.target?.dead === true;
+    this.refs.mvpTargetHpText.textContent = `${hp | 0}/${maxHp | 0}${dead ? ' DEAD' : ''}`;
+    this.refs.mvpTargetHpBar.style.width = `${Math.round(ratio * 100)}%`;
+
+    const tiles = Array.isArray(s.routineTiles) ? s.routineTiles : [];
+    if (tiles.length <= 0) {
+      this.refs.mvpTiles.textContent = '-';
+    } else {
+      const label = tiles.map((t) => `${t.skillId ?? '?'} L${t.layer ?? 0}`).join(' | ');
+      this.refs.mvpTiles.textContent = label;
+    }
+
+    const orb = s.routineOrb;
+    this.refs.mvpOrb.textContent = orb ? `${orb.routineId ?? '?'} L${orb.totalLayer ?? 0}` : '-';
+
+    const debuffs = Array.isArray(s.debuffs) ? s.debuffs : [];
+    const burn = debuffs.find((d) => d?.type === 'Burn' && (d?.framesLeft ?? 0) > 0) ?? null;
+    this.refs.mvpBurn.textContent = burn ? `Burn ${(burn.framesLeft ?? 0) | 0}f` : '-';
+
+    const keyPrefixes = [
+      'RoutineTile',
+      'RoutineOrb',
+      'ElementDamageApplied',
+      'Debuff',
+      'DamageApplied',
+      'TargetHpChanged',
+      'TargetDefeated',
+      'BattleEnded',
+    ];
+    const lastKey = this.findLastEventLine(s.eventLogText, (msg) => keyPrefixes.some((p) => msg.startsWith(p)));
+    this.refs.mvpLastEvent.textContent = lastKey;
+  }
+
   runScenario(name) {
     const scenario = getScenario(name);
-    const prevAutoAttackRange = this.actor.autoAttackRange;
+    const prevAutoAttackRange = this.actor.getSnapshot().autoAttackRange;
     this.actor.paused = true;
 
     const result = runScenarioCore({
@@ -313,14 +386,7 @@ export class DebugPanel {
 
   grantSpecialLevel(level) {
     this.actor.paused = true;
-    if (typeof this.actor.debugGrantSpecialReady === 'function') {
-      this.actor.debugGrantSpecialReady({ level });
-    } else {
-      const lv = Math.max(0, Math.min(3, level | 0));
-      const charge = lv * 100;
-      this.actor.specialGauge.charge = charge;
-      this.actor.emit(CombatEventType.DebugGrantSpecialReady, { charge, level: lv });
-    }
+    this.actor.debugGrantSpecialReady({ level });
     this.render(this.actor.getSnapshot());
   }
 
@@ -381,5 +447,6 @@ export class DebugPanel {
     this.renderBladeCombo(s.bladeCombo);
     this.renderSpecialGauge(s.specialGauge);
     this.renderTokens(s.tokens);
+    this.renderSingleDriverMvp(s);
   }
 }

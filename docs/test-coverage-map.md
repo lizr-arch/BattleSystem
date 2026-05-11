@@ -1,4 +1,4 @@
-# V3.1 Test Coverage Map
+# V4.0 Test Coverage Map
 
 本文档盘点 `tests/*.mjs` 的覆盖范围，用于回答：
 
@@ -6,9 +6,9 @@
 - 哪些事件被断言过？
 - 后续扩展（非本仓库范围）时哪些测试必须保持通过（保护性不变量）？
 
-## Future (V4, planned only)
+## Deferred (V4.x, planned only)
 
-V4 仅允许在完成 `docs/v4-readiness-review.md`（含拆分计划）后进入实现；在此之前这里只记录“测试资产应该如何演进”的方向，不代表已实现。
+V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusion 等 payoff 机制仍延后，进入实现前必须先完成 `docs/v4-readiness-review.md` 的拆分评审与计划。
 
 ## tests/combat-timing-smoke.test.mjs
 
@@ -208,4 +208,87 @@ V4 仅允许在完成 `docs/v4-readiness-review.md`（含拆分计划）后进�
   - driver-and-blade-coexist：Driver Combo 与 Blade Combo 并行存在且互不覆盖。
 - 必须保持通过的原因：
   - 这是 V3 的“机制链路验收”证据，防止未来改动破坏 token 产出链路。
+
+## tests/full-battle-loop-scenario.test.mjs
+
+- 测试目标：跑内置 `full-battle-loop` scenario，验证 Driver Combo + Special/Blade/Token 的整条闭环能稳定 PASS。
+- 覆盖机制：
+  - Scenario Runner
+  - Driver Combo（完成）
+  - Special/Blade Combo（完成）
+  - Tokens（TokenCreated）
+- 覆盖事件（显式断言）：
+  - proof 中包含 `DriverComboFinished`
+  - proof 中包含 `BladeComboFinished`
+  - proof 中包含 `TokenCreated FireToken`
+- 关键断言（保护性不变量）：
+  - 最终 `driverCombo.stage=None` 且 `bladeCombo.stage=None`
+  - 最终 tokens 包含 `FireToken`
+- 必须保持通过的原因：
+  - 这是 V1~V3 主闭环的端到端稳定性证据（未来机制不应破坏该链路）。
+
+## tests/routine-orb.test.mjs
+
+- 测试目标：验证 Routine Orb（套路球）与 Burn（灼烧）基础行为：破球扣血、DoT tick 可击杀、战斗结束事件存在。
+- 覆盖机制：
+  - Battle / HP / Result
+  - Routine Tiles / Routine Orb / Orb Break
+  - Debuffs（Burn）
+- 覆盖事件（显式断言）：
+  - `TargetDefeated`
+  - `BattleEnded`（result=Victory）
+- 关键断言（保护性不变量）：
+  - 破球与 tick 扣血都必须走统一扣血通路（由事件与最终 hp/胜负间接证明）。
+- 必须保持通过的原因：
+  - 这是 V4.0 单驾驶员 MVP 的核心击杀闭环证据。
+
+## tests/routine-orb-scenario.test.mjs
+
+- 测试目标：跑内置 routine-orb 相关 scenarios，验证 tiles/orb/break/burn-kill/without-orb 的确定性 proof 与最终 snapshot。
+- 覆盖机制：
+  - Scenario Runner
+  - Routine Tiles（Added/Removed）
+  - Routine Orb（Created）
+  - Orb Break（Failed/Started/Broken/Finished）
+  - Debuffs（Applied/TickDamage）
+  - Battle / HP / Result（击杀与 BattleEnded）
+- 覆盖事件（显式断言）：
+  - `RoutineTileAdded`
+  - `RoutineOrbCreated`
+  - `RoutineOrbBreakFailed`（no_orb）
+  - `RoutineOrbBroken`
+  - `DebuffApplied`
+  - `DebuffTickDamage`
+  - `TargetDefeated`
+  - `BattleEnded`（Victory）
+- 关键断言（保护性不变量）：
+  - whiff 不加 tile（通过场景准备关闭 effect，保证命中链路可解释）。
+  - 破球后必须清空 `routineOrb/routineTiles`，并保留 Burn。
+- 必须保持通过的原因：
+  - 这是 V4.0 机制链路验收模板，保证 MVP 可审计且可复现。
+
+## tests/single-driver-mvp.test.mjs
+
+- 测试目标：跑内置 `single-driver-routine-orb-victory` scenario，验证 “单驾驶员·套路球 MVP” 的完整闭环稳定 PASS。
+- 覆盖机制：
+  - Battle / HP / Result
+  - Routine Tiles / Routine Orb / Orb Break
+  - Debuffs（Burn tick 击杀）
+- 覆盖事件（显式断言存在）：
+  - `BattleStarted`
+  - `ActionHit`
+  - `DamageApplied`
+  - `TargetHpChanged`
+  - `RoutineTileAdded`
+  - `RoutineOrbCreated`
+  - `RoutineOrbBroken`
+  - `ElementDamageApplied`
+  - `DebuffApplied`
+  - `DebuffTickDamage`
+  - `TargetDefeated`
+  - `BattleEnded`（Victory）
+- 关键断言（保护性不变量）：
+  - 最终 `battle.result=Victory` 且 `target.dead=true` 且 `routineOrb=null`（orb 不残留）。
+- 必须保持通过的原因：
+  - 这是 V4.0 交付的“一键可审计验收入口”（Node 侧）。
 

@@ -3,9 +3,12 @@ import { CombatCommandBuffer, CombatInputFrame } from './combat-input.js';
 import { CombatEventLog } from './combat-event-log.js';
 import { emitCombatEvent } from './combat-events.js';
 import { BladeComboState } from './blade-combo.js';
+import { tickDebuffs, createBurnDebuff } from './debuff.js';
 import { DriverComboState, getDriverComboDurationFrames } from './driver-combo.js';
 import { ActorState, CombatEventType } from './enums.js';
 import { clamp, distance, normalize2 } from './math.js';
+import { getRoutineSkillByArtId } from './routine.js';
+import { addRoutineTile, canCreateRoutineOrbFromTiles, createRoutineOrbFromTiles } from './routine-orb.js';
 import { SpecialGaugeState } from './special-gauge.js';
 import { createToken } from './token.js';
 
@@ -42,6 +45,10 @@ export class CombatActor {
     this.spawnY = this.y;
 
     this.target = target;
+    if (this.target.maxHp === undefined) this.target.maxHp = this.target.hp;
+    if (this.target.dead === undefined) this.target.dead = false;
+    this.player = { hp: 999999, maxHp: 999999, dead: false };
+    this.battle = { active: true, result: null };
     this.autoAttackRange = autoAttackRange;
     this.artRange = artRange;
     this.moveSpeed = moveSpeed;
@@ -69,6 +76,9 @@ export class CombatActor {
     this.driverCombo = new DriverComboState();
     this.bladeCombo = new BladeComboState({ routes: bladeComboRoutes });
     this.tokens = [];
+    this.routineTiles = [];
+    this.routineOrb = null;
+    this.debuffs = [];
 
     this.eventLog = eventLog;
     this.commandBuffer = new CombatCommandBuffer({
@@ -88,6 +98,11 @@ export class CombatActor {
     this.paused = false;
 
     this.emit(CombatEventType.Init);
+    this.emit(CombatEventType.BattleStarted, {
+      targetId: this.target.id,
+      targetHp: this.target.hp,
+      targetMaxHp: this.target.maxHp
+    });
   }
 
   log(type, message, data = {}) {
@@ -147,13 +162,16 @@ export class CombatActor {
       ready: art.ready,
     }) : null);
 
+    const battle = this.battle ?? { active: true, result: null };
+    const player = this.player ?? { hp: 0, maxHp: 0, dead: false };
+    const target = this.target ?? { id: 'Dummy', x: 0, y: 0, radius: 0, hp: 0, maxHp: 0, dead: true };
+
     return {
       id: this.id,
       frame: this.frame,
       state: this.state,
       position: { x: this.x, y: this.y },
       radius: this.radius,
-      target: { ...this.target },
       autoAttackRange: this.autoAttackRange,
       artRange: this.artRange,
       inAutoRange: this.inAutoRange(),
@@ -208,7 +226,13 @@ export class CombatActor {
       vfx: this.vfx.map((fx) => ({ ...fx })),
       paused: this.paused,
       eventLogText: this.eventLog.toText(),
-      config: this.getConfigSnapshot()
+      config: this.getConfigSnapshot(),
+      battle: { ...battle },
+      player: { ...player },
+      target: { ...target },
+      routineTiles: (this.routineTiles ?? []).map((t) => ({ ...t })),
+      routineOrb: this.routineOrb ? { ...this.routineOrb } : null,
+      debuffs: (this.debuffs ?? []).map((d) => ({ ...d })),
     };
   }
 
@@ -233,7 +257,7 @@ export class CombatActor {
   }
 
   canStartAutoAttack(moveIntent) {
-    return !moveIntent && this.inAutoRange() && this.state !== ActorState.Dead;
+    return !moveIntent && this.inAutoRange() && this.battle?.active !== false && !this.target?.dead && this.state !== ActorState.Dead;
   }
 
   setInputBufferFrames(frames) {
@@ -262,11 +286,84 @@ export class CombatActor {
     this.driverCombo = new DriverComboState();
     this.bladeCombo = new BladeComboState({ routes: this.bladeCombo.routes });
     this.tokens = [];
+    this.routineTiles = [];
+    this.routineOrb = null;
+    this.debuffs = [];
     this.vfx = [];
     this.paused = false;
+    if (this.player) {
+      this.player.hp = this.player.maxHp;
+      this.player.dead = false;
+    }
+    if (this.target) {
+      this.target.hp = this.target.maxHp ?? this.target.hp;
+      this.target.dead = false;
+    }
+    if (this.battle) {
+      this.battle.active = true;
+      this.battle.result = null;
+    }
 
     if (!keepLog) this.eventLog.clear();
     this.emit(CombatEventType.Reset);
+    this.emit(CombatEventType.BattleStarted, {
+      targetId: this.target.id,
+      targetHp: this.target.hp,
+      targetMaxHp: this.target.maxHp
+    });
+  }
+
+  ensureBattleActive() {
+    if (!this.battle) this.battle = { active: true, result: null };
+    if (!this.player) this.player = { hp: 999999, maxHp: 999999, dead: false };
+    if (!this.target) this.target = { id: 'Dummy', x: 0, y: 0, radius: 0, hp: 0, maxHp: 0, dead: true };
+  }
+
+  applyDamageToTarget(amount, { source = 'unknown', sourceId = null } = {}) {
+    this.ensureBattleActive();
+    const dmg = Math.max(0, Number(amount) | 0);
+    const before = Number(this.target.hp) | 0;
+    if (!this.battle.active || this.target.dead || dmg <= 0) {
+      this.emit(CombatEventType.DamageApplied, {
+        targetId: this.target.id,
+        amount: 0,
+        source,
+        sourceId,
+        beforeHp: before,
+        afterHp: before,
+      });
+      return { before, after: before, applied: 0, defeated: this.target.dead };
+    }
+
+    const after = Math.max(0, before - dmg);
+    this.emit(CombatEventType.DamageApplied, {
+      targetId: this.target.id,
+      amount: before - after,
+      source,
+      sourceId,
+      beforeHp: before,
+      afterHp: after,
+    });
+
+    if (after !== before) {
+      this.target.hp = after;
+      this.emit(CombatEventType.TargetHpChanged, {
+        targetId: this.target.id,
+        before,
+        after,
+        maxHp: this.target.maxHp ?? 0
+      });
+    }
+
+    if (after <= 0 && !this.target.dead) {
+      this.target.dead = true;
+      this.emit(CombatEventType.TargetDefeated, { targetId: this.target.id });
+      this.battle.active = false;
+      this.battle.result = 'Victory';
+      this.emit(CombatEventType.BattleEnded, { result: this.battle.result });
+    }
+
+    return { before, after, applied: before - after, defeated: this.target.dead };
   }
 
   debugGrantSpecialReady({ level = null, charge = null } = {}) {
@@ -284,12 +381,57 @@ export class CombatActor {
     return { charge: clamped, level: lv };
   }
 
+  breakRoutineOrb() {
+    if (!this.routineOrb) {
+      this.emit(CombatEventType.RoutineOrbBreakFailed, { reason: 'no_orb' });
+      return { ok: false, reason: 'no_orb' };
+    }
+
+    const orb = this.routineOrb;
+    this.emit(CombatEventType.RoutineOrbBreakStarted, { routineId: orb.routineId, totalLayer: orb.totalLayer });
+
+    const totalLayer = Number(orb.totalLayer) | 0;
+    const amount = Math.max(0, totalLayer * 20);
+    this.emit(CombatEventType.ElementDamageApplied, { element: 'Fire', amount, totalLayer });
+    this.applyDamageToTarget(amount, { source: 'Element', sourceId: 'RoutineOrbBreak' });
+
+    const burn = createBurnDebuff({ appliedFrame: this.frame });
+    this.debuffs = [...(this.debuffs ?? []), burn];
+    this.emit(CombatEventType.DebuffApplied, { type: burn.type, durationFrames: burn.framesLeft });
+
+    this.emit(CombatEventType.RoutineOrbBroken, { routineId: orb.routineId, totalLayer: orb.totalLayer });
+    this.routineOrb = null;
+    this.routineTiles = [];
+    this.emit(CombatEventType.RoutineOrbBreakFinished, {});
+    return { ok: true };
+  }
+
   tick(rawInput = new CombatInputFrame()) {
     const input = rawInput instanceof CombatInputFrame
       ? rawInput
       : new CombatInputFrame(rawInput);
 
     this.frame += 1;
+
+    if (this.battle?.active === false) {
+      this.tickVfx();
+      return;
+    }
+
+    const debuffResult = tickDebuffs(this.debuffs, 1);
+    this.debuffs = debuffResult.debuffs;
+    for (const tick of debuffResult.ticks) {
+      this.emit(CombatEventType.DebuffTickDamage, { type: tick.type, amount: tick.damage });
+      this.applyDamageToTarget(tick.damage, { source: 'Debuff', sourceId: tick.type });
+    }
+    for (const exp of debuffResult.expired) {
+      this.emit(CombatEventType.DebuffExpired, { type: exp.type });
+    }
+    if (this.battle?.active === false) {
+      this.tickVfx();
+      return;
+    }
+
     const driverComboEvent = this.driverCombo.tick(1);
     if (driverComboEvent) {
       this.emit(driverComboEvent.type, driverComboEvent.data);
@@ -530,6 +672,7 @@ export class CombatActor {
     }
 
     this.emit(CombatEventType.ActionHit, { actionId: spec.id, damage: spec.damage });
+    this.applyDamageToTarget(spec.damage, { source: 'AutoAttack', sourceId: spec.id });
     this.spawnDamageNumber(spec.damage, 'hit');
 
     for (const art of this.arts) {
@@ -553,9 +696,56 @@ export class CombatActor {
       return;
     }
 
+    const routineSkill = getRoutineSkillByArtId(art.id);
     const damage = Math.round(art.actionSpec.damage * (canceled ? this.cancelBonusDamageMultiplier : 1));
     this.emit(CombatEventType.ActionHit, { artId: art.id, damage, canceled });
+    this.applyDamageToTarget(damage, { source: 'Art', sourceId: art.id });
     this.spawnDamageNumber(damage, canceled ? 'cancel-art' : 'art');
+
+    if (routineSkill) {
+      const beforeCount = (this.routineTiles ?? []).length;
+      const tile = {
+        routineId: routineSkill.routineId,
+        skillId: routineSkill.skillId,
+        layer: routineSkill.layer,
+        createdFrame: this.frame,
+      };
+      const added = addRoutineTile(this.routineTiles, tile, { maxTiles: 3 });
+      this.routineTiles = added.tiles;
+      this.emit(CombatEventType.RoutineTileAdded, {
+        routineId: tile.routineId,
+        skillId: tile.skillId,
+        layer: tile.layer,
+        tilesCount: this.routineTiles.length,
+        beforeTilesCount: beforeCount,
+      });
+      for (const r of added.removed) {
+        this.emit(CombatEventType.RoutineTileRemoved, {
+          routineId: r.routineId,
+          skillId: r.skillId,
+          layer: r.layer,
+          tilesCount: this.routineTiles.length,
+        });
+      }
+
+      if (canCreateRoutineOrbFromTiles(this.routineTiles)) {
+        const nextOrb = createRoutineOrbFromTiles(this.routineTiles, { createdFrame: this.frame });
+        if (this.routineOrb) {
+          this.emit(CombatEventType.RoutineOrbReplaced, {
+            routineId: nextOrb.routineId,
+            totalLayer: nextOrb.totalLayer,
+            beforeRoutineId: this.routineOrb.routineId,
+            beforeTotalLayer: this.routineOrb.totalLayer,
+          });
+        } else {
+          this.emit(CombatEventType.RoutineOrbCreated, {
+            routineId: nextOrb.routineId,
+            totalLayer: nextOrb.totalLayer,
+          });
+        }
+        this.routineOrb = nextOrb;
+      }
+    }
 
     const specialGain = art.specialChargeGain ?? 0;
     if (specialGain > 0) {
@@ -598,6 +788,7 @@ export class CombatActor {
     const damage = special.damage ?? special.actionSpec.damage ?? 0;
     this.emit(CombatEventType.SpecialHit, { specialId: special.id, element: special.element ?? null, level: special.level, damage });
     this.emit(CombatEventType.ActionHit, { actionId: special.actionSpec.id, damage });
+    this.applyDamageToTarget(damage, { source: 'Special', sourceId: special.id });
     this.spawnDamageNumber(damage, 'special');
 
     if (special.element) {

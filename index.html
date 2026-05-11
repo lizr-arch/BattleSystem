@@ -169,6 +169,24 @@
       <pre id="tokensList"></pre>
     </div>
     <div class="section">
+      <h2>Single Driver MVP</h2>
+      <div class="row"><span>Battle</span><span id="mvpBattle" class="pill">-</span></div>
+      <div class="row"><span>Target HP</span><span><span id="mvpTargetHpText" class="pill">-</span><span class="bar" style="margin-top:8px"><i id="mvpTargetHpBar"></i></span></span></div>
+      <div class="row"><span>Tiles</span><span id="mvpTiles" class="pill">-</span></div>
+      <div class="row"><span>Orb</span><span id="mvpOrb" class="pill">-</span></div>
+      <div class="row"><span>Burn</span><span id="mvpBurn" class="pill">-</span></div>
+      <div class="row"><span>Last MVP Event</span><span id="mvpLastEvent" class="pill">-</span></div>
+      <div class="buttons">
+        <button id="mvpRunScenario">Run MVP Scenario</button>
+        <button id="mvpGrantTiles">Grant Tiles</button>
+        <button id="mvpCastSkill1">Cast FireSkill1</button>
+        <button id="mvpCastSkill2">Cast FireSkill2</button>
+        <button id="mvpCastSkill3">Cast FireSkill3</button>
+        <button id="mvpBreakOrb">Break Orb</button>
+      </div>
+      <div class="small">提示：Grant Tiles 会自动施放 FireSkill1~3 以生成 Orb；Break Orb 会附加 Burn。</div>
+    </div>
+    <div class="section">
       <h2>Scenario</h2>
       <div class="buttons">
         <button id="scFullBattleLoop">Run Full Battle Loop</button>

@@ -18,8 +18,22 @@ Special Gauge 充能（由 Arts 命中驱动）
 完成路线产出 Token（仅产出，不兑现）
 ```
 
-明确边界：本仓库当前阶段不实现 Chain Attack / 属性球 / Full Burst / Fusion 等 payoff 机制。
-如未来进入 V4，必须先完成 Readiness Review 与拆分计划（见 `docs/v4-readiness-review.md`），且不得在同一里程碑中同时引入“大玩法 + 工程扩张”。
+V4.0 额外闭环（Single Driver Routine-Orb MVP）：
+
+```text
+Arts 命中（映射为套路技能）
+  ↓
+生成 Routine Tiles（最多 3 张）
+  ↓
+3 张同 Routine => 生成 Routine Orb（套路球）
+  ↓
+破球（元素伤害 + Burn）
+  ↓
+Burn tick 可击杀 => BattleEnded(Victory)
+```
+
+明确边界：<= V4.0 不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现。
+如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划（见 `docs/v4-readiness-review.md`），且不得在同一里程碑中同时引入“大玩法 + 工程扩张”。
 
 ## V1 目标与边界
 
@@ -71,9 +85,17 @@ V3.1 不新增玩法实现，只做“文档同步 + 可观察性验收口径对
 - README / AGENTS / docs 路线图与验收计划对齐。
 - 明确 V4 的预研内容只允许以 Readiness Review + 拆分计划形式进入仓库（不直接落玩法）。
 
-## V4 Chain Attack 预研（未来，仅文档）
+## V4.0 Single Driver Routine-Orb MVP（已实现）
 
-V4 预研的目标是把未来可能的 Chain Attack / Orbs / Full Burst / Fusion 机制拆成“可观察、可测试、可分阶段落地”的计划，而不是在当前仓库直接实现大玩法。
+- 新增 Battle/HP/Result（可击杀目标 + 统一扣血通路 + Victory 结束判定）。
+- 新增 Routine Orb（套路球）最小闭环：tiles/orb/破球/Burn/tick/击杀。
+- 一键验证入口：
+  - Node：`npm test`（包含 routine-orb 与 single-driver-mvp tests/scenarios）。
+  - Browser：右侧 Debug 面板的 Scenario 按钮可运行 `single-driver-routine-orb-victory` 等场景，并在 “Single Driver MVP” 区块展示 HP/tiles/orb/burn 与关键事件。
+
+## V4.x Chain Attack 预研（未来，仅文档）
+
+V4.x 预研的目标是把未来可能的 Chain Attack / Full Burst / Fusion 与更完整的 Orbs cash-out 拆成“可观察、可测试、可分阶段落地”的计划，而不是在当前仓库直接实现大玩法。
 详见 `docs/v4-readiness-review.md`。
 
 ## V1 目录结构
@@ -137,5 +159,6 @@ See:
 - `docs/mechanics-map.md`
 - `docs/event-catalog.md`
 - `docs/test-coverage-map.md`
+- `docs/routine-orb-system.md`
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
