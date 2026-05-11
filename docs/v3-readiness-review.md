@@ -72,8 +72,8 @@
   - Art whiff 不推进 Driver Combo
   - Special whiff 不推进 Blade Combo
 
-## 5. 明确不做（仓库边界）
+## 5. 明确不做（当前版本边界：<= V3.1）
 
-- Chain Attack（明确排除，不纳入路线图）
-- Token cash-out（兑现/破碎/消费/Full Burst 等 payoff 机制）
+- Chain Attack / 属性球 / Full Burst / Fusion（当前不做；如未来进入 V4，按 Readiness Review 拆分推进）
+- Token cash-out（兑现/破碎/消费等 payoff 机制；需等待 V4 拆分评审，见 `docs/v4-readiness-review.md`）
 

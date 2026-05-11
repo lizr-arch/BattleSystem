@@ -4,3 +4,6 @@ node_modules/
 *.log
 coverage/
 dist/
+artifacts/
+playwright-report/
+test-results/

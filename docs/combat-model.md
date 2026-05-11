@@ -173,15 +173,15 @@ Token 是 Blade Combo 完成后的产物，用于“延迟奖励输入”的可�
 | Special Gauge | 0..300（阈值 100/200/300） |
 | Blade Combo Route | FireWaterFire（240f） |
 
-## 当前暂不实现
+## 当前暂不实现（<= V3.1）
 
-当前阶段暂不实现：
+当前阶段暂不实现（如未来进入 V4，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
 
 - 敌人攻击和 AI。
 - 仇恨系统。
-- 属性球。
+- 属性球（Orbs）。
 - 更多元素/多路线（当前仅示例 Fire/Water + 单路线）。
 - Token cash-out（只产出 token，不消费/兑现）。
-- Chain Attack（明确排除，不在本仓库范围内实现）。
+- Chain Attack / Full Burst / Fusion（<= V3.1 不实现；未来只允许按 V4 拆分评审进入）。
 
 这些后续都可以挂在当前 `ActionHit` / `DriverCombo*` 等事件链路之后。

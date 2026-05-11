@@ -8,6 +8,27 @@ function point(canvas, worldX, worldY) {
   return { x: offsetX + worldX * scale, y: offsetY + worldY * scale, scale };
 }
 
+function rgba(hex, a) {
+  const s = String(hex || '').replace('#', '');
+  if (s.length !== 6) return `rgba(255,255,255,${a})`;
+  const r = parseInt(s.slice(0, 2), 16);
+  const g = parseInt(s.slice(2, 4), 16);
+  const b = parseInt(s.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function parseEventLine(line) {
+  const m = /^F(\d+)\s+(.+)$/.exec(String(line || '').trim());
+  if (!m) return null;
+  return { frame: Number(m[1]) | 0, message: String(m[2] || '') };
+}
+
+function parseRouteStepTotal(routeId) {
+  const s = String(routeId || '');
+  const hits = s.match(/Fire|Water/g);
+  return Array.isArray(hits) ? hits.length : 0;
+}
+
 export class CanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -15,6 +36,10 @@ export class CanvasRenderer {
     this.resize = this.resize.bind(this);
     window.addEventListener('resize', this.resize);
     this.resize();
+    this.lastSmashEventFrame = -1;
+    this.lastTokenEventFrame = -1;
+    this.smashFlashUntilFrame = 0;
+    this.tokenFlashUntilFrame = 0;
   }
 
   resize() {
@@ -32,6 +57,7 @@ export class CanvasRenderer {
 
     const actor = snapshot;
     const target = actor.target;
+    const frame = Number(actor.frame ?? 0) | 0;
 
     this.circle(target.x, target.y, actor.autoAttackRange, 'rgba(121,183,255,.035)', 'rgba(121,183,255,.25)', 1);
     this.circle(target.x, target.y, actor.artRange, 'rgba(127,216,141,.02)', 'rgba(127,216,141,.16)', 1);
@@ -51,26 +77,31 @@ export class CanvasRenderer {
     }
 
     const bladeStage = actor.bladeCombo?.stage ?? BladeComboStage.None;
-    if (bladeStage !== BladeComboStage.None) {
-      const label = String(bladeStage).toUpperCase();
-      const color = '#ff9dff';
-      this.text(label, target.x, target.y - target.radius - 66, color, 14);
-      const next = actor.bladeCombo?.expectedNextElement
-        ? `${String(actor.bladeCombo.expectedNextElement)} L${String(actor.bladeCombo.expectedNextMinLevel ?? 0)}`
-        : '';
-      if (next) {
-        this.text(`NEXT ${next}`, target.x, target.y - target.radius - 86, '#cfd6e4', 12);
-      }
+    const bcRouteId = actor.bladeCombo?.routeId ?? null;
+    const bcStepIndex = Number(actor.bladeCombo?.stepIndex ?? -1) | 0;
+    if (bladeStage !== BladeComboStage.None && bcRouteId) {
+      const stepNow = Math.max(0, bcStepIndex + 1);
+      const stepTotal = parseRouteStepTotal(bcRouteId);
+      const label = stepTotal > 0 ? `${String(bcRouteId)} ${stepNow}/${stepTotal}` : `${String(bcRouteId)} ${stepNow}/?`;
+      this.text(label, target.x, target.y - target.radius - 66, '#ff9dff', 14);
     }
 
     const spCharge = actor.specialGauge?.charge ?? 0;
     const spLv = actor.specialGauge?.readyLevel ?? 0;
     const tokens = Array.isArray(actor.tokens) ? actor.tokens : [];
-    const tokenTail = tokens.length > 0 ? (tokens[tokens.length - 1]?.id ?? 'Token') : '-';
+    const tokenIds = tokens.map((t) => String(t?.id ?? 'Token'));
+    const tokenLabel = tokenIds.length > 0 ? tokenIds.slice(-3).join(',') : '-';
     const hudX = 120;
     this.text(`SP ${spCharge}/300 L${spLv}`, hudX, 40, '#7fd88d', 12);
-    this.text(`BC ${String(bladeStage)} ${actor.bladeCombo?.framesLeft ?? 0}f`, hudX, 60, '#ff9dff', 12);
-    this.text(`TOK ${tokens.length} (${tokenTail})`, hudX, 80, '#e8ecf3', 12);
+    if (bladeStage !== BladeComboStage.None && bcRouteId) {
+      const stepNow = Math.max(0, bcStepIndex + 1);
+      const stepTotal = parseRouteStepTotal(bcRouteId);
+      const bcHud = stepTotal > 0 ? `BC ${String(bcRouteId)} ${stepNow}/${stepTotal}` : `BC ${String(bcRouteId)} ${stepNow}/?`;
+      this.text(bcHud, hudX, 60, '#ff9dff', 12);
+    } else {
+      this.text('BC -', hudX, 60, '#ff9dff', 12);
+    }
+    this.text(`TOK ${tokenLabel}`, hudX, 80, '#e8ecf3', 12);
 
     let fill = '#273244';
     let stroke = actor.inAutoRange ? '#7fd88d' : '#98a2b3';
@@ -104,6 +135,39 @@ export class CanvasRenderer {
 
     const actionLabel = actor.action ? `${actor.action.id} / ${actor.action.phase}` : actor.state;
     this.text(actionLabel, actor.position.x, actor.position.y + 42, '#cfd6e4', 12);
+
+    const logText = typeof actor.eventLogText === 'string' ? actor.eventLogText : '';
+    if (logText) {
+      const lines = logText.split('\n');
+      const head = lines.slice(0, 18);
+      for (const line of head) {
+        const parsed = parseEventLine(line);
+        if (!parsed) continue;
+        if (parsed.message.startsWith('DriverComboFinished')) {
+          if (parsed.frame > this.lastSmashEventFrame) {
+            this.lastSmashEventFrame = parsed.frame;
+            this.smashFlashUntilFrame = parsed.frame + 24;
+          }
+        }
+        if (parsed.message.startsWith('TokenCreated')) {
+          if (parsed.frame > this.lastTokenEventFrame) {
+            this.lastTokenEventFrame = parsed.frame;
+            this.tokenFlashUntilFrame = parsed.frame + 24;
+          }
+        }
+      }
+    }
+
+    if (frame < this.smashFlashUntilFrame) {
+      const left = Math.max(0, this.smashFlashUntilFrame - frame);
+      const a = Math.max(0, Math.min(1, left / 24));
+      this.text('SMASH!', target.x, target.y - target.radius - 110, rgba('#ff4d6d', a), 30);
+    }
+    if (frame < this.tokenFlashUntilFrame) {
+      const left = Math.max(0, this.tokenFlashUntilFrame - frame);
+      const a = Math.max(0, Math.min(1, left / 24));
+      this.text('TOKEN!', target.x, target.y - target.radius - 140, rgba('#ff9dff', a), 26);
+    }
 
     for (const fx of actor.vfx) {
       const color = fx.kind === 'hit'
