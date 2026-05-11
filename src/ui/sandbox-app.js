@@ -1,4 +1,5 @@
 import { createDefaultCombatActor } from '../data/default-combat-config.js';
+import { CombatInputFrame } from '../core/combat-input.js';
 import { BrowserInput } from './browser-input.js';
 import { CanvasRenderer } from './canvas-renderer.js';
 import { DebugPanel } from './debug-panel.js';
@@ -26,9 +27,93 @@ export class SandboxApp {
       onReset: () => this.reset(),
       onClear: () => this.actor.eventLog.clear(),
     });
+    this.bindSingleDriverMvpControls();
 
     this.lastTimestamp = performance.now();
     this.window.requestAnimationFrame(this.loop);
+  }
+
+  bindSingleDriverMvpControls() {
+    const byId = (id) => {
+      const el = this.document.getElementById(id);
+      if (!el) throw new Error(`Missing Single Driver MVP element #${id}`);
+      return el;
+    };
+
+    const runScenarioBtn = byId('mvpRunScenario');
+    const grantTilesBtn = byId('mvpGrantTiles');
+    const cast1Btn = byId('mvpCastSkill1');
+    const cast2Btn = byId('mvpCastSkill2');
+    const cast3Btn = byId('mvpCastSkill3');
+    const breakOrbBtn = byId('mvpBreakOrb');
+
+    runScenarioBtn.addEventListener('click', () => {
+      this.debugPanel.runScenario('single-driver-routine-orb-victory');
+      this.renderOnce();
+    });
+
+    grantTilesBtn.addEventListener('click', () => {
+      this.actor.paused = true;
+      this.actor.emit('DebugGrantRoutineTiles', { requested: 3 });
+      this.debugPanel.grantAllArtsReady();
+      this.ensureCloseToTarget();
+      this.castFireSkill(0);
+      this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
+      this.castFireSkill(1);
+      this.fastForwardUntil((s) => s.state === 'Locomotion' || s.battle?.active === false, 1200);
+      this.castFireSkill(2);
+      this.fastForwardUntil((s) => s.routineOrb !== null || s.battle?.active === false, 1800);
+      this.renderOnce();
+    });
+
+    cast1Btn.addEventListener('click', () => {
+      this.castFireSkill(0);
+      this.renderOnce();
+    });
+    cast2Btn.addEventListener('click', () => {
+      this.castFireSkill(1);
+      this.renderOnce();
+    });
+    cast3Btn.addEventListener('click', () => {
+      this.castFireSkill(2);
+      this.renderOnce();
+    });
+
+    breakOrbBtn.addEventListener('click', () => {
+      this.actor.paused = true;
+      this.actor.breakRoutineOrb();
+      this.renderOnce();
+    });
+  }
+
+  ensureCloseToTarget() {
+    const s = this.actor.getSnapshot();
+    const tx = Number(s.target?.x ?? 0);
+    const ty = Number(s.target?.y ?? 0);
+    this.actor.x = tx - 100;
+    this.actor.y = ty;
+    this.actor.autoAttackRange = 0;
+  }
+
+  castFireSkill(slot) {
+    this.actor.paused = true;
+    this.actor.tick(new CombatInputFrame({ artSlotsPressed: [slot] }));
+  }
+
+  fastForwardUntil(predicate, maxFrames) {
+    this.actor.paused = true;
+    const max = Math.max(0, Number(maxFrames ?? 0) | 0);
+    for (let i = 0; i < max; i += 1) {
+      const s = this.actor.getSnapshot();
+      if (predicate(s)) break;
+      this.actor.tick(new CombatInputFrame());
+    }
+  }
+
+  renderOnce() {
+    const snapshot = this.actor.getSnapshot();
+    this.renderer.draw(snapshot);
+    this.debugPanel.render(snapshot);
   }
 
   reset() {

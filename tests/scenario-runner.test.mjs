@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 
 import { createDefaultCombatActor } from '../src/data/default-combat-config.js';
-import { assertSnapshot, runScenario, waitFrames } from '../src/dev/scenario-runner.js';
+import { CombatEventType } from '../src/core/enums.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, runScenario, waitFrames } from '../src/dev/scenario-runner.js';
 
 function createInRangeNoAuto() {
   const actor = createDefaultCombatActor();
@@ -66,6 +67,28 @@ function captureConsole(fn) {
   assert.ok(output.includes('Scenario PASS: happy'));
   assert.ok(output.includes('Advance3'));
   assert.ok(output.includes('StageNone'));
+}
+
+{
+  const actor = createInRangeNoAuto();
+  const output = captureConsole(() => {
+    const result = runScenario({
+      actor,
+      name: 'break-routine-orb-no-orb',
+      maxFrames: 30,
+      steps: [
+        breakRoutineOrb('BreakNoOrb'),
+        assertEvent(CombatEventType.RoutineOrbBreakFailed, (e) => e.data?.reason === 'no_orb', 'Assert RoutineOrbBreakFailed no_orb'),
+      ],
+    });
+
+    assert.equal(result.passed, true);
+    assert.ok(result.proof.some((p) => p.label === 'BreakNoOrb'));
+    assert.ok(result.proof.some((p) => p.label === 'Assert RoutineOrbBreakFailed no_orb'));
+  });
+
+  assert.ok(output.includes('Scenario PASS: break-routine-orb-no-orb'));
+  assert.ok(output.includes('BreakNoOrb'));
 }
 
 console.log('scenario runner test passed');

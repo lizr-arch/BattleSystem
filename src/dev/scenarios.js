@@ -1,5 +1,5 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
-import { assertEvent, assertSnapshot, castArt, castSpecial, grantSpecialReady, waitFrames, waitUntil } from './scenario-runner.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantSpecialReady, waitFrames, waitUntil } from './scenario-runner.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -18,6 +18,21 @@ function grantAllArtsReady(actor) {
     data[art.id] = { charge: art.charge, maxCharge: art.maxCharge };
   }
   actor.emit(CombatEventType.DebugGrantArtsReady, data);
+}
+
+function setupActorForRoutineOrbScenario(actor, { targetHp = null } = {}) {
+  if (targetHp !== null && targetHp !== undefined) {
+    actor.target.maxHp = targetHp;
+    actor.target.hp = targetHp;
+  }
+  actor.resetRuntime();
+  setupActorForScenario(actor);
+  grantAllArtsReady(actor);
+  for (const art of actor.arts ?? []) {
+    if (art?.id === 'Art1' || art?.id === 'Art2' || art?.id === 'Art3') {
+      art.effect = null;
+    }
+  }
 }
 
 function hasEvent(events, type, predicate) {
@@ -312,6 +327,147 @@ export const scenarios = Object.freeze({
       castArt(1, 'Cast Art2 (Topple)'),
       waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DriverComboAdvanced, (e) => e.data?.toStage === DriverComboStage.Topple), 'Wait DriverComboAdvanced Topple'),
       assertSnapshot((s) => s.driverCombo?.stage === DriverComboStage.Topple && s.bladeCombo?.stage === BladeComboStage.Stage1, 'Assert Topple while blade still Stage1'),
+    ],
+  },
+
+  'routine-orb-create': {
+    name: 'routine-orb-create',
+    maxFrames: 2500,
+    prepare(actor) {
+      setupActorForRoutineOrbScenario(actor);
+    },
+    steps: [
+      castArt(0, 'Cast FireSkill1 (Art1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 1), 'Wait RoutineTileAdded L1'),
+      assertEvent(CombatEventType.ActionHit, (e) => e.data?.artId === 'Art1', 'Proof ActionHit Art1'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art1'),
+
+      castArt(1, 'Cast FireSkill2 (Art2)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 2), 'Wait RoutineTileAdded L2'),
+      assertEvent(CombatEventType.ActionHit, (e) => e.data?.artId === 'Art2', 'Proof ActionHit Art2'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art2'),
+
+      castArt(2, 'Cast FireSkill3 (Art3)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 3), 'Wait RoutineTileAdded L3'),
+      assertEvent(CombatEventType.ActionHit, (e) => e.data?.artId === 'Art3', 'Proof ActionHit Art3'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineOrbCreated, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6), 'Wait RoutineOrbCreated totalLayer=6'),
+
+      assertSnapshot((s) => (s.routineTiles?.length ?? 0) === 3, 'Assert routineTiles length=3'),
+      assertSnapshot((s) => s.routineOrb?.routineId === 'FireRoutine' && s.routineOrb?.totalLayer === 6, 'Assert routineOrb FireRoutine totalLayer=6'),
+    ],
+  },
+
+  'routine-orb-break': {
+    name: 'routine-orb-break',
+    maxFrames: 2500,
+    prepare(actor) {
+      setupActorForRoutineOrbScenario(actor);
+    },
+    steps: [
+      castArt(0, 'Cast FireSkill1 (Art1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 1), 'Wait RoutineTileAdded L1'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art1'),
+
+      castArt(1, 'Cast FireSkill2 (Art2)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 2), 'Wait RoutineTileAdded L2'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art2'),
+
+      castArt(2, 'Cast FireSkill3 (Art3)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineOrbCreated, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6), 'Wait RoutineOrbCreated totalLayer=6'),
+
+      breakRoutineOrb('Break RoutineOrb'),
+      assertEvent(CombatEventType.RoutineOrbBreakStarted, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6, 'Proof RoutineOrbBreakStarted'),
+      assertEvent(CombatEventType.ElementDamageApplied, (e) => e.data?.element === 'Fire' && e.data?.amount === 120, 'Proof ElementDamageApplied Fire amount=120'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'Element' && e.data?.sourceId === 'RoutineOrbBreak' && e.data?.amount === 120, 'Proof DamageApplied Element amount=120'),
+      assertEvent(CombatEventType.DebuffApplied, (e) => e.data?.type === 'Burn' && (e.data?.durationFrames ?? 0) === 300, 'Proof DebuffApplied Burn 300f'),
+      assertEvent(CombatEventType.RoutineOrbBroken, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6, 'Proof RoutineOrbBroken'),
+      assertEvent(CombatEventType.RoutineOrbBreakFinished, null, 'Proof RoutineOrbBreakFinished'),
+
+      assertSnapshot((s) => s.routineOrb === null, 'Assert routineOrb cleared'),
+      assertSnapshot((s) => (s.routineTiles?.length ?? 0) === 0, 'Assert routineTiles cleared'),
+      assertSnapshot((s) => (s.debuffs ?? []).some((d) => d?.type === 'Burn' && (d?.framesLeft ?? 0) > 0), 'Assert Burn present'),
+    ],
+  },
+
+  'routine-orb-break-without-orb': {
+    name: 'routine-orb-break-without-orb',
+    maxFrames: 600,
+    prepare(actor) {
+      setupActorForRoutineOrbScenario(actor);
+    },
+    steps: [
+      breakRoutineOrb('Break without orb'),
+      assertEvent(CombatEventType.RoutineOrbBreakFailed, (e) => e.data?.reason === 'no_orb', 'Proof RoutineOrbBreakFailed no_orb'),
+      assertSnapshot((s) => s.routineOrb === null, 'Assert routineOrb null'),
+      assertSnapshot((s) => (s.routineTiles?.length ?? 0) === 0, 'Assert routineTiles empty'),
+    ],
+  },
+
+  'routine-burn-kill': {
+    name: 'routine-burn-kill',
+    maxFrames: 4000,
+    prepare(actor) {
+      setupActorForRoutineOrbScenario(actor, { targetHp: 280 });
+    },
+    steps: [
+      castArt(0, 'Cast FireSkill1 (Art1)'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art1'),
+      castArt(1, 'Cast FireSkill2 (Art2)'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art2'),
+      castArt(2, 'Cast FireSkill3 (Art3)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineOrbCreated, (e) => e.data?.routineId === 'FireRoutine'), 'Wait RoutineOrbCreated'),
+
+      breakRoutineOrb('Break RoutineOrb'),
+      assertEvent(CombatEventType.DebuffApplied, (e) => e.data?.type === 'Burn', 'Proof DebuffApplied Burn'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DebuffTickDamage, (e) => e.data?.type === 'Burn'), 'Wait DebuffTickDamage Burn'),
+      assertEvent(CombatEventType.DebuffTickDamage, (e) => e.data?.type === 'Burn' && e.data?.amount === 5, 'Proof DebuffTickDamage Burn amount=5'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.TargetDefeated), 'Wait TargetDefeated'),
+      assertEvent(CombatEventType.TargetDefeated, null, 'Proof TargetDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Victory', 'Proof BattleEnded Victory'),
+
+      assertSnapshot((s) => s.battle?.result === 'Victory' && s.target?.dead === true, 'Assert Victory and target dead'),
+    ],
+  },
+
+  'single-driver-routine-orb-victory': {
+    name: 'single-driver-routine-orb-victory',
+    maxFrames: 6000,
+    prepare(actor) {
+      setupActorForRoutineOrbScenario(actor, { targetHp: 280 });
+    },
+    steps: [
+      assertEvent(CombatEventType.BattleStarted, null, 'Proof BattleStarted'),
+
+      castArt(0, 'Cast FireSkill1 (Art1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.ActionHit, (e) => e.data?.artId === 'Art1'), 'Wait ActionHit Art1'),
+      assertEvent(CombatEventType.ActionHit, (e) => e.data?.artId === 'Art1', 'Proof ActionHit Art1'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'Art' && e.data?.sourceId === 'Art1', 'Proof DamageApplied Art1'),
+      assertEvent(CombatEventType.TargetHpChanged, null, 'Proof TargetHpChanged'),
+      assertEvent(CombatEventType.RoutineTileAdded, (e) => e.data?.routineId === 'FireRoutine' && e.data?.layer === 1, 'Proof RoutineTileAdded L1'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art1'),
+
+      castArt(1, 'Cast FireSkill2 (Art2)'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art2'),
+
+      castArt(2, 'Cast FireSkill3 (Art3)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.RoutineOrbCreated, (e) => e.data?.routineId === 'FireRoutine'), 'Wait RoutineOrbCreated'),
+      assertEvent(CombatEventType.RoutineOrbCreated, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6, 'Proof RoutineOrbCreated totalLayer=6'),
+
+      breakRoutineOrb('Break RoutineOrb'),
+      assertEvent(CombatEventType.RoutineOrbBroken, (e) => e.data?.routineId === 'FireRoutine' && e.data?.totalLayer === 6, 'Proof RoutineOrbBroken'),
+      assertEvent(CombatEventType.ElementDamageApplied, (e) => e.data?.element === 'Fire' && e.data?.amount === 120, 'Proof ElementDamageApplied Fire amount=120'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'Element' && e.data?.sourceId === 'RoutineOrbBreak', 'Proof DamageApplied Element'),
+      assertEvent(CombatEventType.DebuffApplied, (e) => e.data?.type === 'Burn', 'Proof DebuffApplied Burn'),
+
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DebuffTickDamage, (e) => e.data?.type === 'Burn'), 'Wait DebuffTickDamage Burn'),
+      assertEvent(CombatEventType.DebuffTickDamage, (e) => e.data?.type === 'Burn' && e.data?.amount === 5, 'Proof DebuffTickDamage Burn amount=5'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.TargetDefeated), 'Wait TargetDefeated'),
+      assertEvent(CombatEventType.TargetDefeated, null, 'Proof TargetDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Victory', 'Proof BattleEnded Victory'),
+
+      assertSnapshot((s) => s.battle?.result === 'Victory', 'Assert battle.result Victory'),
+      assertSnapshot((s) => s.target?.dead === true, 'Assert target.dead true'),
+      assertSnapshot((s) => s.routineOrb === null, 'Assert routineOrb null'),
     ],
   },
 });

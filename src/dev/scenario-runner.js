@@ -43,6 +43,10 @@ export function grantSpecialReady(charge = 300, label = '') {
   return { kind: 'grantSpecialReady', charge: clampInt(charge), label: String(label || `grantSpecialReady(${String(charge)})`) };
 }
 
+export function breakRoutineOrb(label = '') {
+  return { kind: 'breakRoutineOrb', label: String(label || 'breakRoutineOrb') };
+}
+
 export function assertSnapshot(predicate, label) {
   return { kind: 'assertSnapshot', predicate, label: String(label) };
 }
@@ -207,6 +211,14 @@ export function runScenario({
       framesElapsed += 1;
       recorder.record(actor, { note: label });
       passStep(label, { ok, specialId: id, slot });
+      continue;
+    }
+
+    if (kind === 'breakRoutineOrb') {
+      if (typeof actor.breakRoutineOrb !== 'function') return fail(label, { reason: 'actor_missing_breakRoutineOrb' });
+      const result = actor.breakRoutineOrb();
+      recorder.record(actor, { note: label });
+      passStep(label, { result });
       continue;
     }
 
