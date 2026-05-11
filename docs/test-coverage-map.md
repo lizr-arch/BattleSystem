@@ -1,10 +1,10 @@
-# V2.2 Test Coverage Map
+# V3 Test Coverage Map
 
 本文档盘点 `tests/*.mjs` 的覆盖范围，用于回答：
 
 - 当前哪些机制已有确定性测试证据？
 - 哪些事件被断言过？
-- V3 开发时哪些测试必须保持通过（保护性不变量）？
+- 后续扩展（非本仓库范围）时哪些测试必须保持通过（保护性不变量）？
 
 ## tests/combat-timing-smoke.test.mjs
 
@@ -131,5 +131,77 @@
 - 没覆盖的风险：
   - 不覆盖“键盘焦点/浏览器 one-shot”问题（已由 V2.1 通过 Debug UI 按钮规避，Node 侧保持确定性验证）。
 - V3 必须保持通过的原因：
-  - 这是“机制链路验收”模板；V3 应补齐同级别 scenarios（happy/wrong-order/expire），并保持现有场景不退化。
+  - 这是“机制链路验收”模板；V3 已补齐 Blade Combo 同级 scenarios，后续扩展需保持两套场景不退化。
+
+## tests/special-gauge.test.mjs
+
+- 测试目标：验证 SpecialGaugeState 的阈值、readyLevel、充能与消费规则是确定的。
+- 覆盖机制：Special Gauge
+- 覆盖事件：无（纯 state 测试）
+- 关键断言：
+  - `addCharge` 的 before/after 与 becameReady 语义正确（跨过 100/200/300 时触发）。
+  - `tryConsumeLevel` 在不足 charge/readyLevel 时失败，在足够时成功并扣减 cost。
+- 没覆盖的风险：
+  - 不覆盖“由 Art 命中触发充能事件”的 emit 链路（由 special-actor.test 覆盖）。
+- 必须保持通过的原因：
+  - Special 的所有行为都依赖该资源条的确定性。
+
+## tests/special-actor.test.mjs
+
+- 测试目标：验证 SpecialGauge 在 actor 内的挂载点、事件产出，以及 castSpecial 的失败/成功/命中链路。
+- 覆盖机制：
+  - Special Gauge（通过 Art 命中充能）
+  - Special Cast（消费/失败原因/命中事件）
+  - Event Log（通过 findEvent 断言）
+- 覆盖事件（显式断言）：
+  - `SpecialChargeChanged`
+  - `SpecialBecameReady`
+  - `SpecialCastFailed`
+  - `SpecialConsumed`
+  - `SpecialHit`
+- 关键断言（保护性不变量）：
+  - Art 命中会累积 special charge，并在跨阈值时产生 ready 事件。
+  - 不足等级 castSpecial 必须失败且不改变 state。
+  - 成功 castSpecial 必须消费 charge，并在命中帧产出 SpecialHit。
+- 没覆盖的风险：
+  - 不覆盖 Blade Combo 路线推进（由 blade-combo* 覆盖）。
+- 必须保持通过的原因：
+  - V3 的 Special/Blade 入口依赖该链路的确定性与可审计性。
+
+## tests/blade-combo.test.mjs
+
+- 测试目标：验证 BladeComboState 的 start/advance/finish/fail/expire 规则不变量。
+- 覆盖机制：Blade Combo
+- 覆盖事件：无（直接检查返回事件对象与状态）
+- 关键断言：
+  - 未命中路线时 `no_route`。
+  - 匹配第一步会 Started，推进会 Advanced，最后一步会 Finished 并清空状态。
+  - 错元素/等级不足会 Failed 且不推进。
+  - tick 归零会 Expired 且回到 None。
+- 必须保持通过的原因：
+  - route 状态机是 token 产出的前置条件，必须可解释可复现。
+
+## tests/blade-combo-scenario.test.mjs
+
+- 测试目标：跑内置 Blade Combo scenarios，验证 runner + Special + Blade + Token 的端到端链路（纯逻辑、确定性）。
+- 覆盖机制：
+  - Scenario Runner（steps + prepare）
+  - Special（Grant Special / castSpecial / hit）
+  - Blade Combo（Started/Advanced/Failed/Expired/Finished）
+  - Tokens（TokenCreated + snapshot tokens）
+  - Driver Combo（coexist 场景中与 Blade 并行）
+- 覆盖事件（显式断言）：
+  - `BladeComboStarted`
+  - `BladeComboAdvanced`
+  - `BladeComboFailed`
+  - `BladeComboExpired`
+  - `BladeComboFinished`
+  - `TokenCreated`
+- 关键断言（保护性不变量）：
+  - full-blade-combo：完成示例路线后 stage None 且 tokens 长度为 1。
+  - wrong-element / insufficient-level：失败原因可审计，且 stage 不推进。
+  - expire-blade-combo：倒计时归零过期回 None。
+  - driver-and-blade-coexist：Driver Combo 与 Blade Combo 并行存在且互不覆盖。
+- 必须保持通过的原因：
+  - 这是 V3 的“机制链路验收”证据，防止未来改动破坏 token 产出链路。
 

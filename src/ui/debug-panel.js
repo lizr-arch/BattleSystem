@@ -20,6 +20,8 @@ export class DebugPanel {
       art2Info: this.byId('art2Info'),
       art3Info: this.byId('art3Info'),
       art4Info: this.byId('art4Info'),
+      spBar: this.byId('spBar'),
+      spInfo: this.byId('spInfo'),
       log: this.byId('log'),
       buffer: this.byId('buffer'),
       cancel: this.byId('cancel'),
@@ -36,13 +38,32 @@ export class DebugPanel {
       dcFramesLeft: this.byId('dcFramesLeft'),
       dcDuration: this.byId('dcDuration'),
       dcLastEvent: this.byId('dcLastEvent'),
+      bcStage: this.byId('bcStage'),
+      bcBar: this.byId('bcBar'),
+      bcFramesLeft: this.byId('bcFramesLeft'),
+      bcDuration: this.byId('bcDuration'),
+      bcRouteId: this.byId('bcRouteId'),
+      bcExpected: this.byId('bcExpected'),
+      tokensList: this.byId('tokensList'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
       scExpireBreak: this.byId('scExpireBreak'),
       scExpireTopple: this.byId('scExpireTopple'),
+      scBladeFull: this.byId('scBladeFull'),
+      scBladeFailWaterFirst: this.byId('scBladeFailWaterFirst'),
+      scBladeWrongElement: this.byId('scBladeWrongElement'),
+      scBladeInsufficientLevel: this.byId('scBladeInsufficientLevel'),
+      scBladeExpire: this.byId('scBladeExpire'),
+      scDriverBladeCoexist: this.byId('scDriverBladeCoexist'),
       scResult: this.byId('scResult'),
       scProof: this.byId('scProof'),
       dbgGrantReady: this.byId('dbgGrantReady'),
+      dbgGrantSp1: this.byId('dbgGrantSp1'),
+      dbgGrantSp2: this.byId('dbgGrantSp2'),
+      dbgGrantSp3: this.byId('dbgGrantSp3'),
+      dbgCastSpFire1: this.byId('dbgCastSpFire1'),
+      dbgCastSpWater2: this.byId('dbgCastSpWater2'),
+      dbgCastSpFire3: this.byId('dbgCastSpFire3'),
       dbgStepToRecovery: this.byId('dbgStepToRecovery'),
       dbgCast1: this.byId('dbgCast1'),
       dbgCast2: this.byId('dbgCast2'),
@@ -73,8 +94,20 @@ export class DebugPanel {
     this.refs.scWrong.addEventListener('click', () => this.runScenario('wrong-order-smash'));
     this.refs.scExpireBreak.addEventListener('click', () => this.runScenario('expire-break'));
     this.refs.scExpireTopple.addEventListener('click', () => this.runScenario('expire-topple'));
+    this.refs.scBladeFull.addEventListener('click', () => this.runScenario('full-blade-combo'));
+    this.refs.scBladeFailWaterFirst.addEventListener('click', () => this.runScenario('blade-combo-fail-water-first'));
+    this.refs.scBladeWrongElement.addEventListener('click', () => this.runScenario('wrong-element-blade-combo'));
+    this.refs.scBladeInsufficientLevel.addEventListener('click', () => this.runScenario('insufficient-level-blade-combo'));
+    this.refs.scBladeExpire.addEventListener('click', () => this.runScenario('expire-blade-combo'));
+    this.refs.scDriverBladeCoexist.addEventListener('click', () => this.runScenario('driver-and-blade-coexist'));
 
     this.refs.dbgGrantReady.addEventListener('click', () => this.grantAllArtsReady());
+    this.refs.dbgGrantSp1.addEventListener('click', () => this.grantSpecialLevel(1));
+    this.refs.dbgGrantSp2.addEventListener('click', () => this.grantSpecialLevel(2));
+    this.refs.dbgGrantSp3.addEventListener('click', () => this.grantSpecialLevel(3));
+    this.refs.dbgCastSpFire1.addEventListener('click', () => this.castSpecial('FireLv1'));
+    this.refs.dbgCastSpWater2.addEventListener('click', () => this.castSpecial('WaterLv2'));
+    this.refs.dbgCastSpFire3.addEventListener('click', () => this.castSpecial('FireLv3'));
     this.refs.dbgStepToRecovery.addEventListener('click', () => this.stepToRecovery());
     this.refs.dbgCast1.addEventListener('click', () => this.castArt(0));
     this.refs.dbgCast2.addEventListener('click', () => this.castArt(1));
@@ -147,6 +180,43 @@ export class DebugPanel {
     this.refs.dcDuration.textContent = String(duration | 0);
   }
 
+  renderBladeCombo(bladeCombo) {
+    const stage = bladeCombo?.stage ?? 'None';
+    const framesLeft = Math.max(0, Number(bladeCombo?.framesLeft ?? 0));
+    const duration = Math.max(0, Number(bladeCombo?.duration ?? 0));
+    const ratio = duration > 0 ? Math.max(0, Math.min(1, framesLeft / duration)) : 0;
+    const routeId = bladeCombo?.routeId ?? '-';
+    const nextElement = bladeCombo?.expectedNextElement ?? null;
+    const nextMinLevel = bladeCombo?.expectedNextMinLevel ?? null;
+    const expected = nextElement ? `${String(nextElement)} L${String(nextMinLevel ?? 0)}` : '-';
+
+    this.refs.bcStage.textContent = stage;
+    this.refs.bcBar.style.width = `${Math.round(ratio * 100)}%`;
+    this.refs.bcFramesLeft.textContent = String(framesLeft | 0);
+    this.refs.bcDuration.textContent = String(duration | 0);
+    this.refs.bcRouteId.textContent = String(routeId || '-');
+    this.refs.bcExpected.textContent = expected;
+  }
+
+  renderSpecialGauge(specialGauge) {
+    const charge = Math.max(0, Number(specialGauge?.charge ?? 0));
+    const ratio = Math.max(0, Math.min(1, Number(specialGauge?.ratio ?? 0)));
+    const readyLevel = Math.max(0, Number(specialGauge?.readyLevel ?? 0));
+    this.refs.spBar.style.width = `${Math.round(ratio * 100)}%`;
+    this.refs.spInfo.textContent = `${charge | 0}/300 L${readyLevel | 0}`;
+  }
+
+  renderTokens(tokens) {
+    const list = Array.isArray(tokens) ? tokens : [];
+    if (list.length <= 0) {
+      this.refs.tokensList.textContent = '-';
+      return;
+    }
+    this.refs.tokensList.textContent = list
+      .map((t, i) => `${String(i).padStart(2, '0')} ${t.id ?? 'Token'} element=${t.element ?? '?'} route=${t.sourceRouteId ?? '-'} @${t.createdFrame ?? 0}`)
+      .join('\n');
+  }
+
   runScenario(name) {
     const scenario = getScenario(name);
     const prevAutoAttackRange = this.actor.autoAttackRange;
@@ -175,6 +245,26 @@ export class DebugPanel {
       data[art.id] = { charge: art.charge, maxCharge: art.maxCharge };
     }
     this.actor.emit(CombatEventType.DebugGrantArtsReady, data);
+    this.render(this.actor.getSnapshot());
+  }
+
+  grantSpecialLevel(level) {
+    this.actor.paused = true;
+    if (typeof this.actor.debugGrantSpecialReady === 'function') {
+      this.actor.debugGrantSpecialReady({ level });
+    } else {
+      const lv = Math.max(0, Math.min(3, level | 0));
+      const charge = lv * 100;
+      this.actor.specialGauge.charge = charge;
+      this.actor.emit(CombatEventType.DebugGrantSpecialReady, { charge, level: lv });
+    }
+    this.render(this.actor.getSnapshot());
+  }
+
+  castSpecial(specialId) {
+    this.actor.paused = true;
+    this.actor.castSpecial(String(specialId));
+    this.actor.tick(new CombatInputFrame());
     this.render(this.actor.getSnapshot());
   }
 
@@ -224,5 +314,8 @@ export class DebugPanel {
     this.refs.log.textContent = s.eventLogText;
     this.renderDriverCombo(s.driverCombo);
     this.refs.dcLastEvent.textContent = this.findLastDriverEventMessage();
+    this.renderBladeCombo(s.bladeCombo);
+    this.renderSpecialGauge(s.specialGauge);
+    this.renderTokens(s.tokens);
   }
 }

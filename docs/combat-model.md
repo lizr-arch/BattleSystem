@@ -1,6 +1,6 @@
 # 战斗模型
 
-## 实现位置（V1-V2）
+## 实现位置（V1-V3）
 
 - 规则实现：`src/core/*`（纯逻辑，不依赖 DOM / Canvas）
 - 默认数值：`src/data/default-combat-config.js`
@@ -93,17 +93,73 @@ Launch + Smash  => Finished(Smash) 并回到 None
 | Topple | 150f | 2.5s |
 | Launch | 120f | 2.0s |
 
+## Special Gauge（V3）
+
+Special Gauge 是一条“可充能、可 ready、可消费”的资源条，用于驱动 Specials。
+
+### 状态模型
+
+```text
+charge: 0..300
+readyLevel: 0..3（按阈值 100/200/300 计算）
+```
+
+### 充能与消费规则
+
+- 充能入口：当前实现为 “Art 命中” 后按 `art.specialChargeGain` 增加（whiff 不充能）。
+- 只有当 `readyLevel >= special.level` 时，才允许消费并释放该 Special。
+- 消耗规则：消费等级 L1/L2/L3 的 cost 为 100/200/300（= level * 100）。
+
+## Blade Combo（V3）
+
+Blade Combo 是一条“元素路线链”，由 Specials 命中推进；完成后产出 Token（延迟奖励输入）。
+
+### 状态模型
+
+```text
+stage: None / Stage1 / Stage2
+framesLeft: 倒计时（归零过期回 None）
+routeId: 当前路线（或 null）
+stepIndex: 当前步索引（-1 表示无）
+expectedNext: 下一步要求（element + minLevel）
+```
+
+### 推进规则（以默认路线为例）
+
+```text
+None   + Fire(L1)  => Started(Stage1)  next=Water(L2)
+Stage1 + Water(L2) => Advanced(Stage2) next=Fire(L3)
+Stage2 + Fire(L3)  => Finished + TokenCreated(FireToken) 并回到 None
+```
+
+- Specials whiff 不推进（由 Special 命中结算触发推进）。
+- 错元素 / 等级不足会产出 Failed 事件，且不推进当前阶段。
+- 倒计时归零会产出 Expired，且回到 None。
+
+## Token（V3）
+
+Token 是 Blade Combo 完成后的产物，用于“延迟奖励输入”的可观察性验证。
+
+- 当前实现只包含创建与快照可读（`tokens[]` + `TokenCreated`）。
+- 明确不包含：兑现/破碎/消费（例如 Chain Attack 或其它 cash-out 机制）。
+
 ## 默认参数
 
-| 动作 | Startup | Active | Recovery | Damage | Charge Gain | Effect |
+| 动作 | Startup | Active | Recovery | Damage | Art Charge Gain | Special Gain | Effect |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| AA1 | 18f | 2f | 24f | 10 | +1 | 0 | - |
+| AA2 | 22f | 2f | 28f | 14 | +1 | 0 | - |
+| AA3 | 30f | 2f | 36f | 24 | +2 | 0 | - |
+| Art1 | 15f | 4f | 28f | 40 | 0 | +25 | Break |
+| Art2 | 15f | 4f | 28f | 50 | 0 | +25 | Topple |
+| Art3 | 15f | 4f | 28f | 60 | 0 | +30 | Launch |
+| Art4 | 15f | 4f | 28f | 80 | 0 | +40 | Smash |
+
+| Special | Startup | Active | Recovery | Damage | Level | Element |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| AA1 | 18f | 2f | 24f | 10 | +1 | - |
-| AA2 | 22f | 2f | 28f | 14 | +1 | - |
-| AA3 | 30f | 2f | 36f | 24 | +2 | - |
-| Art1 | 15f | 4f | 28f | 40 | 0 | Break |
-| Art2 | 15f | 4f | 28f | 50 | 0 | Topple |
-| Art3 | 15f | 4f | 28f | 60 | 0 | Launch |
-| Art4 | 15f | 4f | 28f | 80 | 0 | Smash |
+| FireLv1 | 20f | 4f | 36f | 120 | 1 | Fire |
+| WaterLv2 | 22f | 4f | 38f | 180 | 2 | Water |
+| FireLv3 | 24f | 5f | 40f | 240 | 3 | Fire |
 
 | 参数 | 默认值 |
 | --- | ---: |
@@ -114,6 +170,8 @@ Launch + Smash  => Finished(Smash) 并回到 None
 | Art2 Max Charge | 3 |
 | Art3 Max Charge | 4 |
 | Art4 Max Charge | 4 |
+| Special Gauge | 0..300（阈值 100/200/300） |
+| Blade Combo Route | FireWaterFire（240f） |
 
 ## 当前暂不实现
 
@@ -121,9 +179,9 @@ Launch + Smash  => Finished(Smash) 并回到 None
 
 - 敌人攻击和 AI。
 - 仇恨系统。
-- 必杀技。
-- 异刃连击。
 - 属性球。
-- 连锁攻击。
+- 更多元素/多路线（当前仅示例 Fire/Water + 单路线）。
+- Token cash-out（只产出 token，不消费/兑现）。
+- Chain Attack（明确排除，不在本仓库范围内实现）。
 
 这些后续都可以挂在当前 `ActionHit` / `DriverCombo*` 等事件链路之后。

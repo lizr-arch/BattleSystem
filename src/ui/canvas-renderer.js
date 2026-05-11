@@ -1,4 +1,4 @@
-import { ActorState, ActionPhase, DriverComboStage } from '../core/enums.js';
+import { ActorState, ActionPhase, BladeComboStage, DriverComboStage } from '../core/enums.js';
 
 function point(canvas, worldX, worldY) {
   const rect = canvas.getBoundingClientRect();
@@ -49,6 +49,28 @@ export class CanvasRenderer {
           : '#c59cff';
       this.text(stageLabel, target.x, target.y - target.radius - 42, stageColor, 18);
     }
+
+    const bladeStage = actor.bladeCombo?.stage ?? BladeComboStage.None;
+    if (bladeStage !== BladeComboStage.None) {
+      const label = String(bladeStage).toUpperCase();
+      const color = '#ff9dff';
+      this.text(label, target.x, target.y - target.radius - 66, color, 14);
+      const next = actor.bladeCombo?.expectedNextElement
+        ? `${String(actor.bladeCombo.expectedNextElement)} L${String(actor.bladeCombo.expectedNextMinLevel ?? 0)}`
+        : '';
+      if (next) {
+        this.text(`NEXT ${next}`, target.x, target.y - target.radius - 86, '#cfd6e4', 12);
+      }
+    }
+
+    const spCharge = actor.specialGauge?.charge ?? 0;
+    const spLv = actor.specialGauge?.readyLevel ?? 0;
+    const tokens = Array.isArray(actor.tokens) ? actor.tokens : [];
+    const tokenTail = tokens.length > 0 ? (tokens[tokens.length - 1]?.id ?? 'Token') : '-';
+    const hudX = 120;
+    this.text(`SP ${spCharge}/300 L${spLv}`, hudX, 40, '#7fd88d', 12);
+    this.text(`BC ${String(bladeStage)} ${actor.bladeCombo?.framesLeft ?? 0}f`, hudX, 60, '#ff9dff', 12);
+    this.text(`TOK ${tokens.length} (${tokenTail})`, hudX, 80, '#e8ecf3', 12);
 
     let fill = '#273244';
     let stroke = actor.inAutoRange ? '#7fd88d' : '#98a2b3';

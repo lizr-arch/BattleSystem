@@ -1,22 +1,28 @@
 # BattleSystem
 
-浏览器优先的战斗系统验证沙盒，用来快速验证“异度之刃 2-like”的底层战斗闭环：
+浏览器优先的战斗系统验证沙盒，用来快速验证“异度之刃 2-like”的底层战斗闭环与最小 Combo 原型。
 
 ```text
-Auto attack hit
+普攻命中
   ↓
-Art charge
+Arts 充能（普攻资源）
   ↓
-Recovery cancel
+后摇取消（到移动 / 到 Arts）
   ↓
-Use art (hit)
+Arts 命中（可选：Driver Combo）
   ↓
-Driver Combo (optional)
+Special Gauge 充能（由 Arts 命中驱动）
+  ↓
+释放 Special（命中推进 Blade Combo）
+  ↓
+完成路线产出 Token（仅产出，不兑现）
 ```
+
+明确边界：本仓库不实现 Chain Attack（不作为未来版本规划的一部分）。
 
 ## V1 目标与边界
 
-这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒：
+这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒（浏览器可跑 + Node 可重复测试）：
 
 Implemented / planned in the first browser prototype:
 
@@ -49,6 +55,13 @@ Break -> Topple -> Launch -> Smash
 ```
 
 所有推进/失败/过期/完成都可通过事件日志与右侧面板观察（详见 `docs/validation-plan.md`）。
+
+## V3 Special / Blade Combo / Token（已实现）
+
+- Arts 命中会为 Special Gauge 充能（默认每个 Art 都有 `specialChargeGain`）。
+- Special 有等级（L1~L3）与消耗；释放成功会记录消费与命中事件。
+- Special 命中会推进 Blade Combo 路线（默认示例路线：`Fire(L1) -> Water(L2) -> Fire(L3)`）。
+- 路线完成后会创建一个 Token 并记录 `TokenCreated`（当前仅用于“延迟奖励输入”的可观察性验证，不包含兑现机制）。
 
 ## V1 目录结构
 
@@ -83,6 +96,8 @@ Space             : pause / resume
 R                 : reset
 .                 : step one frame
 ```
+
+Special/Blade/Scenario 建议通过右侧 Debug 面板按钮验证（不依赖键盘焦点）。
 
 ## Test
 

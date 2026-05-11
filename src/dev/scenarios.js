@@ -1,5 +1,5 @@
-import { CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
-import { assertEvent, assertSnapshot, castArt, waitFrames, waitUntil } from './scenario-runner.js';
+import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
+import { assertEvent, assertSnapshot, castArt, castSpecial, grantSpecialReady, waitFrames, waitUntil } from './scenario-runner.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -113,6 +113,143 @@ export const scenarios = Object.freeze({
       waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DriverComboExpired, (e) => e.data?.stage === DriverComboStage.Topple), 'Wait DriverComboExpired Topple'),
       assertEvent(CombatEventType.DriverComboExpired, (e) => e.data?.stage === DriverComboStage.Topple, 'Assert DriverComboExpired Topple'),
       assertSnapshot((s) => s.driverCombo?.stage === DriverComboStage.None, 'Assert stage None after expire'),
+    ],
+  },
+
+  'full-blade-combo': {
+    name: 'full-blade-combo',
+    maxFrames: 5000,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+    },
+    steps: [
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboStarted, (e) => e.data?.routeId === 'FireWaterFire'), 'Wait BladeComboStarted'),
+      assertEvent(CombatEventType.BladeComboStarted, (e) => e.data?.element === BladeComboElement.Fire && e.data?.expectedNextElement === BladeComboElement.Water, 'Assert started Fire->Water'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after FireLv1'),
+
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('WaterLv2', 'Cast WaterLv2 (Water L2)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboAdvanced, (e) => e.data?.toStage === BladeComboStage.Stage2), 'Wait BladeComboAdvanced to Stage2'),
+      assertEvent(CombatEventType.BladeComboAdvanced, (e) => e.data?.element === BladeComboElement.Water && e.data?.expectedNextElement === BladeComboElement.Fire, 'Assert advanced Water->Fire'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after WaterLv2'),
+
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv3', 'Cast FireLv3 (Fire L3)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboFinished, (e) => e.data?.routeId === 'FireWaterFire'), 'Wait BladeComboFinished'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.TokenCreated, (e) => e.data?.id === 'FireToken'), 'Wait TokenCreated FireToken'),
+      assertSnapshot((s) => s.bladeCombo?.stage === BladeComboStage.None, 'Assert blade combo cleared'),
+      assertSnapshot((s) => (s.tokens?.length ?? 0) === 1 && s.tokens[0]?.id === 'FireToken', 'Assert one FireToken exists'),
+    ],
+  },
+
+  'blade-combo-fail-water-first': {
+    name: 'blade-combo-fail-water-first',
+    maxFrames: 2000,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+    },
+    steps: [
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('WaterLv2', 'Cast WaterLv2 (Water L2)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboFailed, (e) => e.data?.reason === 'no_route'), 'Wait BladeComboFailed no_route'),
+      assertSnapshot((s) => s.bladeCombo?.stage === BladeComboStage.None, 'Assert stage None'),
+    ],
+  },
+
+  'wrong-element-blade-combo': {
+    name: 'wrong-element-blade-combo',
+    maxFrames: 3500,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+    },
+    steps: [
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboStarted), 'Wait BladeComboStarted'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after FireLv1'),
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv3', 'Cast FireLv3 (wrong element)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboFailed, (e) => e.data?.reason === 'wrong_element'), 'Wait BladeComboFailed wrong_element'),
+      assertSnapshot((s) => s.bladeCombo?.stage === BladeComboStage.Stage1, 'Assert still Stage1'),
+    ],
+  },
+
+  'insufficient-level-blade-combo': {
+    name: 'insufficient-level-blade-combo',
+    maxFrames: 4500,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+    },
+    steps: [
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboStarted), 'Wait BladeComboStarted'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after FireLv1'),
+
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('WaterLv2', 'Cast WaterLv2 (Water L2)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboAdvanced, (e) => e.data?.toStage === BladeComboStage.Stage2), 'Wait BladeComboAdvanced to Stage2'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after WaterLv2'),
+
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1, insufficient level)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboFailed, (e) => e.data?.reason === 'insufficient_level'), 'Wait BladeComboFailed insufficient_level'),
+      assertEvent(CombatEventType.BladeComboFailed, (e) => e.data?.reason === 'insufficient_level' && e.data?.requiresMinLevel === 3, 'Assert requires min level 3'),
+      assertSnapshot((s) => s.bladeCombo?.stage === BladeComboStage.Stage2, 'Assert still Stage2'),
+    ],
+  },
+
+  'expire-blade-combo': {
+    name: 'expire-blade-combo',
+    maxFrames: 4000,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+    },
+    steps: [
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboStarted), 'Wait BladeComboStarted'),
+      waitFrames(260, 'Wait 260f'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboExpired, (e) => e.data?.stage === BladeComboStage.Stage1), 'Wait BladeComboExpired Stage1'),
+      assertSnapshot((s) => s.bladeCombo?.stage === BladeComboStage.None, 'Assert expired to None'),
+    ],
+  },
+
+  'driver-and-blade-coexist': {
+    name: 'driver-and-blade-coexist',
+    maxFrames: 6000,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      grantAllArtsReady(actor);
+    },
+    steps: [
+      castArt(0, 'Cast Art1 (Break)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DriverComboApplied, (e) => e.data?.stage === DriverComboStage.Break), 'Wait DriverComboApplied Break'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after Art1'),
+
+      grantSpecialReady(300, 'Grant Special ready (L3)'),
+      castSpecial('FireLv1', 'Cast FireLv1 (Fire L1)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BladeComboStarted, (e) => e.data?.routeId === 'FireWaterFire'), 'Wait BladeComboStarted'),
+      waitUntil((s) => s.state === 'Locomotion', 'Wait Locomotion after FireLv1'),
+      assertSnapshot((s) => s.driverCombo?.stage === DriverComboStage.Break && s.bladeCombo?.stage === BladeComboStage.Stage1, 'Assert driver+blade both active'),
+
+      castArt(1, 'Cast Art2 (Topple)'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.DriverComboAdvanced, (e) => e.data?.toStage === DriverComboStage.Topple), 'Wait DriverComboAdvanced Topple'),
+      assertSnapshot((s) => s.driverCombo?.stage === DriverComboStage.Topple && s.bladeCombo?.stage === BladeComboStage.Stage1, 'Assert Topple while blade still Stage1'),
     ],
   },
 });

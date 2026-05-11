@@ -21,10 +21,16 @@ Startup / Active / Recovery
   ↓
 后摇取消
   ↓
-武技消费
+武技命中（可选：Driver Combo）
+  ↓
+Special Gauge 充能（由武技命中驱动）
+  ↓
+Special 消费与命中（推进 Blade Combo）
+  ↓
+Blade Combo 完成产出 Token（仅产出，不兑现）
 ```
 
-当前阶段：V2.2 机制地图 + 系统资产盘点；进入 V3 前应先完成一轮文档审计与可验证接入点梳理。
+当前阶段：V3 Special/Blade/Token 原型已实现；当前任务以“文档同步 + 可观察性验收”为主。
 
 主要目标：
 
@@ -105,10 +111,17 @@ tools/serve.py          本地静态服务器
 AA1: startup 18f, active 2f, recovery 24f, damage 10, charge +1
 AA2: startup 22f, active 2f, recovery 28f, damage 14, charge +1
 AA3: startup 30f, active 2f, recovery 36f, damage 24, charge +2
-Art1: startup 15f, active 4f, recovery 28f, damage 40, maxCharge 2, effect Break
-Art2: startup 15f, active 4f, recovery 28f, damage 50, maxCharge 3, effect Topple
-Art3: startup 15f, active 4f, recovery 28f, damage 60, maxCharge 4, effect Launch
-Art4: startup 15f, active 4f, recovery 28f, damage 80, maxCharge 4, effect Smash
+Art1: startup 15f, active 4f, recovery 28f, damage 40, maxCharge 2, effect Break, special +25
+Art2: startup 15f, active 4f, recovery 28f, damage 50, maxCharge 3, effect Topple, special +25
+Art3: startup 15f, active 4f, recovery 28f, damage 60, maxCharge 4, effect Launch, special +30
+Art4: startup 15f, active 4f, recovery 28f, damage 80, maxCharge 4, effect Smash, special +40
+Special Gauge: thresholds 100/200/300, max 300
+Specials:
+  FireLv1: startup 20f, active 4f, recovery 36f, damage 120, element Fire, level 1
+  WaterLv2: startup 22f, active 4f, recovery 38f, damage 180, element Water, level 2
+  FireLv3: startup 24f, active 5f, recovery 40f, damage 240, element Fire, level 3
+Blade Combo Route:
+  FireWaterFire: duration 240f, steps Fire(L1)->Water(L2)->Fire(L3), token FireToken
 Input Buffer: 10f
 Cancel Bonus: 15f
 Cancel Bonus Multiplier: 1.2x
@@ -200,6 +213,9 @@ Startup -> Active -> Recovery -> Finished
 - Cancel Bonus 生效。
 - 动作结束。
 - Driver Combo 推进/刷新/失败/过期/完成。
+- Special 充能变化/ready/消费/施放失败/命中。
+- Blade Combo 开始/推进/失败/过期/完成。
+- Token 产出（创建）。
 
 ### 4.6 Driver Combo 规则（V2）
 
@@ -291,6 +307,9 @@ V2.1 起，优先使用“确定性日志验证”作为主验收证据：
 - 按 `1 -> 2 -> 3 -> 4` 顺序命中可完成 Smash，完成后 stage 回到 None。
 - 错序 effect 产出失败事件，stage 不推进。
 - 等待倒计时归零会过期回 None。
+- Special Gauge：武技命中会累积 charge，并在跨过阈值时产出 ready 事件。
+- Special：不足等级会失败；足够等级会消费并命中结算。
+- Blade Combo：按默认路线 Fire(L1)->Water(L2)->Fire(L3) 命中可完成并产出 TokenCreated。
 
 ### 5.5 REPORT
 
@@ -407,13 +426,17 @@ V2 交付物：
 - test coverage map（tests 覆盖矩阵）
 - V3 readiness review（Special/Blade Combo 接入点与风险）
 
-### V3：未来
+### V3：Special / Blade Combo / Token 原型（完成）
 
-Special / Blade Combo 原型。
+- Special Gauge（由 Art 命中充能，等级阈值 100/200/300）。
+- Special cast（消费 gauge，命中产出 SpecialHit）。
+- Blade Combo（Special 命中推进路线，完成产出 TokenCreated）。
+- scenarios/tests/UI 最小可观察性入口（`npm test` + 浏览器 Debug 面板）。
 
-### V4：未来
+### 明确不做（仓库边界）
 
-Chain Attack / token cash-out 原型。
+- Chain Attack（明确排除，不纳入路线图）。
+- Token cash-out（当前仅产出 token，用于延迟奖励输入验证；不在本仓库范围内实现兑现机制）。
 
 ### 制作人验收结论（截至 V2.1）
 

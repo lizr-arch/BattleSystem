@@ -31,6 +31,17 @@ export const DriverComboEffect = Object.freeze({
   Smash: 'Smash',
 });
 
+export const BladeComboElement = Object.freeze({
+  Fire: 'Fire',
+  Water: 'Water',
+});
+
+export const BladeComboStage = Object.freeze({
+  None: 'None',
+  Stage1: 'Stage1',
+  Stage2: 'Stage2',
+});
+
 export const CombatEventType = Object.freeze({
   Init: 'Init',
   Reset: 'Reset',
@@ -38,6 +49,7 @@ export const CombatEventType = Object.freeze({
   InputConsumed: 'InputConsumed',
   InputExpired: 'InputExpired',
   DebugGrantArtsReady: 'DebugGrantArtsReady',
+  DebugGrantSpecialReady: 'DebugGrantSpecialReady',
   ActionStarted: 'ActionStarted',
   ActionPhaseChanged: 'ActionPhaseChanged',
   ActionHit: 'ActionHit',
@@ -46,6 +58,11 @@ export const CombatEventType = Object.freeze({
   ArtChargeChanged: 'ArtChargeChanged',
   ArtBecameReady: 'ArtBecameReady',
   ArtConsumed: 'ArtConsumed',
+  SpecialChargeChanged: 'SpecialChargeChanged',
+  SpecialBecameReady: 'SpecialBecameReady',
+  SpecialConsumed: 'SpecialConsumed',
+  SpecialCastFailed: 'SpecialCastFailed',
+  SpecialHit: 'SpecialHit',
   CancelBonusWindowOpened: 'CancelBonusWindowOpened',
   CancelBonusApplied: 'CancelBonusApplied',
   RecoveryCanceledToMovement: 'RecoveryCanceledToMovement',
@@ -58,4 +75,10 @@ export const CombatEventType = Object.freeze({
   DriverComboFailed: 'DriverComboFailed',
   DriverComboExpired: 'DriverComboExpired',
   DriverComboFinished: 'DriverComboFinished',
+  BladeComboStarted: 'BladeComboStarted',
+  BladeComboAdvanced: 'BladeComboAdvanced',
+  BladeComboFailed: 'BladeComboFailed',
+  BladeComboExpired: 'BladeComboExpired',
+  BladeComboFinished: 'BladeComboFinished',
+  TokenCreated: 'TokenCreated',
 });

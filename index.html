@@ -55,7 +55,7 @@
       background: #1c2028;
       border-left: 1px solid #343b4a;
       display: grid;
-      grid-template-rows: auto auto auto auto auto 1fr;
+      grid-template-rows: auto auto auto auto auto auto 1fr;
       min-height: 0;
     }
     .section { padding: 14px 16px; border-bottom: 1px solid #343b4a; }
@@ -85,6 +85,18 @@
       padding: 10px 12px;
       overflow: auto;
       max-height: 220px;
+      min-height: 0;
+      border: 1px solid #343b4a;
+      border-radius: 10px;
+      background: #111620;
+      white-space: pre-wrap;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    #tokensList {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      overflow: auto;
+      max-height: 160px;
       min-height: 0;
       border: 1px solid #343b4a;
       border-radius: 10px;
@@ -124,6 +136,8 @@
       <div class="row"><span>Art2</span><span id="art2Info" class="pill">-</span></div>
       <div class="row"><span>Art3</span><span id="art3Info" class="pill">-</span></div>
       <div class="row"><span>Art4</span><span id="art4Info" class="pill">-</span></div>
+      <div class="row"><span>Special Gauge</span><span class="bar charge"><i id="spBar"></i></span></div>
+      <div class="row"><span>Special</span><span id="spInfo" class="pill">0/300 L0</span></div>
       <div class="row"><span>Cancel Bonus</span><span class="bar cancel"><i id="cancelBar"></i></span></div>
       <div class="row"><span>Input Buffer</span><span class="bar buffer"><i id="bufferBar"></i></span></div>
       <div class="buttons"><button id="pause">Pause</button><button id="step">Step</button><button id="reset">Reset</button><button id="clear">Clear</button></div>
@@ -136,12 +150,27 @@
       <div class="row"><span>Last Driver Event</span><span id="dcLastEvent" class="pill">-</span></div>
     </div>
     <div class="section">
+      <h2>Blade Combo / Tokens</h2>
+      <div class="row"><span>Stage</span><span id="bcStage" class="pill">None</span></div>
+      <div class="row"><span>Timer</span><span class="bar buffer"><i id="bcBar"></i></span></div>
+      <div class="row"><span>Frames</span><span><b id="bcFramesLeft">0</b> / <b id="bcDuration">0</b></span></div>
+      <div class="row"><span>Route</span><span id="bcRouteId" class="pill">-</span></div>
+      <div class="row"><span>Expected Next</span><span id="bcExpected" class="pill">-</span></div>
+      <pre id="tokensList"></pre>
+    </div>
+    <div class="section">
       <h2>Scenario</h2>
       <div class="buttons">
         <button id="scFull">Run Full Combo</button>
         <button id="scWrong">Run Wrong Order</button>
         <button id="scExpireBreak">Run Expire Break</button>
         <button id="scExpireTopple">Run Expire Topple</button>
+        <button id="scBladeFull">Run Full Blade</button>
+        <button id="scBladeFailWaterFirst">Run No Route</button>
+        <button id="scBladeWrongElement">Run Wrong Element</button>
+        <button id="scBladeInsufficientLevel">Run Insufficient Lv</button>
+        <button id="scBladeExpire">Run Expire Blade</button>
+        <button id="scDriverBladeCoexist">Run Driver+Blade</button>
       </div>
       <div class="row"><span>Result</span><span id="scResult" class="pill">-</span></div>
       <pre id="scProof"></pre>
@@ -150,6 +179,12 @@
       <h2>Debug Input</h2>
       <div class="buttons">
         <button id="dbgGrantReady">Grant All Arts Ready</button>
+        <button id="dbgGrantSp1">Grant Special Lv1</button>
+        <button id="dbgGrantSp2">Grant Special Lv2</button>
+        <button id="dbgGrantSp3">Grant Special Lv3</button>
+        <button id="dbgCastSpFire1">Cast FireLv1</button>
+        <button id="dbgCastSpWater2">Cast WaterLv2</button>
+        <button id="dbgCastSpFire3">Cast FireLv3</button>
         <button id="dbgStepToRecovery">Step To Recovery</button>
         <button id="dbgCast1">Cast Art1</button>
         <button id="dbgCast2">Cast Art2</button>
