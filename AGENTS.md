@@ -53,7 +53,7 @@ Burn tick 可击杀 => BattleEnded(Victory)
 - Burn：灼烧
 - Chain Attack：连锁攻击（V4.0 延后）
 
-当前阶段：V4.2 core enemy attack MVP 已实现；当前里程碑以“文档同步 + 可观察性验收口径 + audit:map 门禁”为主（不新增额外玩法扩展，除非用户明确要求）。
+当前阶段：V5.1 Backpack Blade MVP 已实现；当前里程碑以“文档同步 + 可观察性验收口径 + audit:map 门禁”为主（不新增额外玩法扩展，除非用户明确要求）。
 
 主要目标：
 
@@ -502,14 +502,25 @@ V2 交付物：
 ### V4.3+：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
 
 - 只允许在 Readiness Review + 拆分计划通过后进入实现（见 `docs/v4-readiness-review.md`）。
-- 必须先落 “文档与验收资产”，再落 “最小原型”，再补 “工具与可视化”。
+- 必须先落 "文档与验收资产"，再落 "最小原型"，再补 "工具与可视化"。
 
-### 明确不做（当前版本边界：<= V4.2）
+### V5.0：Backpack Blade Design（完成）
 
-- Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
+- 设计文档：`docs/v5-backpack-blade-index.md`、`docs/backpack-loadout-design.md`、`docs/blade-nested-socket-design.md`、`docs/v5.1-backpack-blade-mvp-spec.md`。
+
+### V5.1：Backpack Blade MVP（完成）
+
+- core：新增 `backpack-grid.js`、`backpack-items.js`、`loadout-resolver.js`、`blade-runtime.js`；9×9 背包 + 嵌套槽位 + 异刃自动攻击。
+- 可观察性：新增 11 个 Blade/Backpack 事件；`getSnapshot()` 扩展。
+- tests/scenarios/UI：Node 侧 `npm test` 纳入 4 个新测试文件；浏览器 Debug 面板提供 Backpack/Blades 区块与一键 Run。
+
+### 明确不做（当前版本边界：<= V5.1）
+
+- Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
-- Token cash-out（当前仅产出 token，用于延迟奖励输入验证；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
+- Token cash-out（当前仅产出 token，用于延迟奖励输入验证；兑现/破碎/消耗等 payoff 机制需等待未来评审）。
 - 敌人复杂 AI（行为树/寻路/追击/多敌人/队友 AI/完整 Aggro 仇恨系统）。
+- 背包拖拽 UI / 物品旋转 / Blade 独立寻路 / Blade 复杂 AI。
 
 ### 制作人验收结论（截至 V2.1）
 

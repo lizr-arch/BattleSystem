@@ -368,8 +368,6 @@ V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusio
   - `PlayerDefeated` 必须先于同帧的 `BattleEnded(Defeat)`（事件顺序可审计）。
   - battle ended 后继续 tick 不应产生新事件。
 
-
-
 ## tests/player-defeat-polish.test.mjs
 
 - 测试目标：验证 V4.3 Defeat Polish 的所有不变量。
@@ -392,3 +390,64 @@ V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusio
   - 3 个新 scenarios 通过 scenario runner。
   - V4.0 Routine-Orb 旧测试不回归。
   - V4.2 Enemy Attack 旧测试不回归。
+
+## tests/backpack-grid.test.mjs
+
+- 测试目标：验证 9×9 背包创建、合法放置、越界、重叠、实例 ID 自动生成、快照 API。
+- 覆盖机制：BackpackGrid
+- 覆盖事件：无（纯 state 测试）
+- 关键断言：
+  - 9×9 创建成功。
+  - 3×3 Blade (0,0) 合法放置。
+  - x+width>9 越界失败。
+  - y+height>9 越界失败。
+  - x<0 越界失败。
+  - 两 Blade 重叠失败。
+  - 不重叠放置成功。
+  - instanceId 自动生成。
+  - getSnapshot 返回正确结构。
+  - findItemById 正确定位。
+
+## tests/loadout-resolver.test.mjs
+
+- 测试目标：验证 LoadoutResolver 解析合法/非法背包、socket 解析、元素赋值、上限规则。
+- 覆盖机制：Loadout Resolver、Nested Socket、Element Core
+- 覆盖事件：BackpackResolved、BackpackInvalid
+- 关键断言：
+  - 合法背包输出 1 activeBlade、element=Neutral。
+  - FireCore 插入 socket 后 element=Fire、damageBonus=0.1。
+  - 重叠背包输出 errors + BackpackInvalid。
+  - 3 个 Blade 时只激活 2 个。
+  - socket 全局坐标计算正确。
+  - 空背包输出 0 activeBlades。
+  - 越界背包输出 errors。
+  - 无 Core 时 element=Neutral、sockets 仍记录。
+
+## tests/blade-runtime.test.mjs
+
+- 测试目标：验证 BladeRuntime 自动攻击时序、命中/打空、冷却机制。
+- 覆盖机制：Blade Runtime、Action Timeline、Range Check、Cooldown
+- 覆盖事件：BladeAttackStarted、BladeAttackHit、BladeAttackWhiffed、BladeAttackCooldownStarted、BladeAttackCooldownFinished
+- 关键断言：
+  - 创建后 state=Idle、cooldown=0。
+  - 在范围内自动攻击启动。
+  - 不在范围内不启动。
+  - 冷却期间不启动。
+  - Active 帧命中产生 BladeAttackHit + damage（含 damageBonus）。
+  - Active 帧打空产生 BladeAttackWhiffed、无 damage。
+  - 冷却结束后回到 Idle。
+
+## tests/backpack-blade-scenario.test.mjs
+
+- 测试目标：端到端验证 6 个内置 scenarios：有效放置、拒绝重叠、火焰核心解析、自动攻击命中/打空、最多 2 个激活。
+- 覆盖机制：Backpack Grid、Loadout Resolver、Blade Runtime、CombatActor 集成
+- 覆盖事件：BackpackResolved、BackpackInvalid、BladeLinked、BladeSocketResolved、BladeAttackStarted、BladeAttackHit、BladeAttackWhiffed、DamageApplied、TargetHpChanged
+- 关键断言：
+  - BackpackResolved activeBlades=1。
+  - 重叠产生 BackpackInvalid。
+  - FireCore 产生 BladeSocketResolved element=Fire。
+  - BladeLinked + BladeAttackStarted + BladeAttackHit 链路存在。
+  - DamageApplied source=Blade 存在。
+  - whiff 后无 DamageApplied source=Blade。
+  - 3 Blade 时 bladeRuntimes.length === 2。
+

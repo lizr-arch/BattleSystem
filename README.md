@@ -74,6 +74,18 @@ V4.3 是失败体验打磨阶段，不新增大玩法。目标是把 `BattleEnde
 - `docs/player-defeat-polish-design.md`
 - `docs/v4.3-player-defeat-polish-spec.md`
 
+## V5.1 Backpack Blade MVP（已实现）
+
+V5.1 实现最小 Backpack（背包）+ Blade（异刃）+ Nested Socket（嵌套槽位）+ Blade Auto Attack 闭环：
+
+- core：新增 `backpack-grid.js`（9×9 背包网格）、`backpack-items.js`（物品定义）、`loadout-resolver.js`（构筑解析器）、`blade-runtime.js`（异刃战斗单位自动攻击）。
+- 可观察性：新增 11 个 Blade/Backpack 事件（`BackpackResolved`、`BladeLinked`、`BladeAttackHit` 等）；`getSnapshot()` 扩展 `snapshot.backpack/resolvedLoadout/bladeRuntimes`。
+- 一键验证入口：
+  - Node：`npm test`（包含 backpack-grid/loadout-resolver/blade-runtime/backpack-blade-scenario 测试）。
+  - Browser：右侧 Debug 面板 "Backpack / Blades" 区块显示 Blade 状态；Canvas 绘制 BladeRuntime 标记。
+
+不做：拖拽 UI、物品旋转、Blade 独立寻路、Blade 复杂 AI、Chain Attack / Full Burst / Fusion Combo。
+
 ## V1 目标与边界
 
 这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒（浏览器可跑 + Node 可重复测试）：

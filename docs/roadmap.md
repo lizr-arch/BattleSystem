@@ -98,11 +98,32 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 目标：把 `BattleEnded Defeat（战斗失败）` 从事件结果打磨成稳定、可观察、可测试、可 reset（重置）的失败体验。
 
-## V5：Single Driver + Blade Production Flow（单人驱动者 + 异刃正式流程）（未来）
+## V5.0：Backpack Blade Design（背包异刃设计）（完成）
+
+状态：完成。
+
+交付物：
+
+- `docs/v5-backpack-blade-index.md`
+- `docs/backpack-loadout-design.md`
+- `docs/blade-nested-socket-design.md`
+- `docs/v5.1-backpack-blade-mvp-spec.md`
+
+## V5.1：Backpack Blade MVP（背包异刃最小实现）（完成）
+
+状态：完成。
+
+范围：9×9 BackpackGrid（背包网格）、BladeItem（异刃物品）占格、Nested Socket（嵌套槽位）、LoadoutResolver（构筑解析器）、BladeRuntime（异刃战斗单位）自动攻击。BladeAttackHit 带 element 并造成伤害。
+
+不做：拖拽 UI、物品旋转、Blade 独立寻路、Blade 复杂 AI、Chain Attack / Full Burst / Fusion Combo。
+
+新增文件：`src/core/backpack-grid.js`、`src/core/backpack-items.js`、`src/core/loadout-resolver.js`、`src/core/blade-runtime.js`。新增 11 个 Blade/Backpack 事件、6 个 scenarios、4 个测试文件。
+
+## V5.2：Blade Role Polish（异刃定位打磨）（未来）
 
 状态：未来。
 
-范围：Driver（驱动者）与 Blade（异刃）的正式数据关系、activeBlade（当前异刃）、Blade specials（异刃必杀）、非 debug 的异刃连击入口。
+范围：Tank Blade（肉异刃）减伤、DPS Blade（输出异刃）伤害加成精调。
 
 ## V6：Party Battle（队伍战斗）（未来）
 
