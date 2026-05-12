@@ -1,6 +1,9 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
 import { EnemyStrikeSpec } from '../core/enemy-strike.js';
 import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
+import { createBackpackGrid } from '../core/backpack-grid.js';
+import { resolveLoadout } from '../core/loadout-resolver.js';
+import { CombatInputFrame } from '../core/combat-input.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -883,6 +886,158 @@ export const scenarios = Object.freeze({
         });
       }, 'No combat events triggered after Defeat input'),
       assertSnapshot((s) => s.battle?.result === 'Defeat' && s.player?.hp === 0, 'Assert still Defeat after input'),
+    ],
+  },
+
+  'backpack-valid-blade-placement': {
+    name: 'backpack-valid-blade-placement',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      actor.backpackGrid = grid;
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertEvent(CombatEventType.BackpackResolved, (e) => (e.data?.activeBladeCount ?? 0) === 1, 'Assert BackpackResolved activeBlades=1'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeBlades?.length ?? 0) === 1, 'Assert 1 active blade'),
+    ],
+  },
+
+  'backpack-rejects-overlap': {
+    name: 'backpack-rejects-overlap',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      grid.place({ instanceId: 'blade_002', itemId: 'GuardianBlade', type: 'Blade', x: 1, y: 1, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+    },
+    steps: [
+      assertEvent(CombatEventType.BackpackInvalid, (e) => (e.data?.errorCount ?? 0) > 0, 'Assert BackpackInvalid with errors'),
+      assertSnapshot((s) => (s.resolvedLoadout?.errors?.length ?? 0) > 0, 'Assert errors not empty'),
+    ],
+  },
+
+  'blade-socket-resolves-fire-core': {
+    name: 'blade-socket-resolves-fire-core',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({
+        backpackGrid: grid,
+        socketAssignments: { 'blade_001:socket_1': 'FireCore' },
+      });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertEvent(CombatEventType.BladeSocketResolved, (e) => e.data?.element === 'Fire', 'Assert BladeSocketResolved element=Fire'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeBlades?.[0]?.element ?? '') === 'Fire', 'Assert resolvedBlade.element=Fire'),
+    ],
+  },
+
+  'blade-auto-attack-hits-target': {
+    name: 'blade-auto-attack-hits-target',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({
+        backpackGrid: grid,
+        socketAssignments: { 'blade_001:socket_1': 'FireCore' },
+      });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertEvent(CombatEventType.BladeLinked, null, 'Assert BladeLinked'),
+      waitFrames(55, 'Wait for blade attack startup+active'),
+      assertEvent(CombatEventType.BladeAttackHit, (e) => e.data?.element === 'Fire' && (e.data?.damage ?? 0) > 0, 'Assert BladeAttackHit Fire'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'Blade', 'Assert DamageApplied source=Blade'),
+    ],
+  },
+
+  'blade-auto-attack-whiffs-out-of-range': {
+    name: 'blade-auto-attack-whiffs-out-of-range',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.x = 0;
+      actor.y = 0;
+      actor.target.x = 999;
+      actor.target.y = 999;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade attack startup+active'),
+      assertEvent(CombatEventType.BladeAttackWhiffed, (e) => e.data?.reason === 'out_of_range', 'Assert BladeAttackWhiffed out_of_range'),
+    ],
+  },
+
+  'multiple-blades-limit-two-active': {
+    name: 'multiple-blades-limit-two-active',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'blade_001', itemId: 'CrimsonBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      grid.place({ instanceId: 'blade_002', itemId: 'GuardianBlade', type: 'Blade', x: 3, y: 0, width: 3, height: 3 });
+      grid.place({ instanceId: 'blade_003', itemId: 'CrimsonBlade', type: 'Blade', x: 6, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => (s.bladeRuntimes?.length ?? 0) === 2, 'Assert bladeRuntimes length=2'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeBlades?.length ?? 0) === 2, 'Assert activeBlades length=2'),
     ],
   },
 });
