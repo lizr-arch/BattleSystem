@@ -1,6 +1,6 @@
 # 战斗模型
 
-## 实现位置（V1-V4.0）
+## 实现位置（V1-V4.2）
 
 - 规则实现：`src/core/*`（纯逻辑，不依赖 DOM / Canvas）
 - 默认数值：`src/data/default-combat-config.js`
@@ -143,15 +143,16 @@ Token 是 Blade Combo 完成后的产物，用于“延迟奖励输入”的可�
 - 当前实现只包含创建与快照可读（`tokens[]` + `TokenCreated`）。
 - 明确不包含：兑现/破碎/消费（例如 Chain Attack 或其它 cash-out 机制）。
 
-## Battle / HP / Result（V4.0）
+## Battle / HP / Result（V4.0-V4.2）
 
 V4.0 引入“可击杀目标 + 战斗结果”作为单驾驶员 MVP 的最小闭环地基。
 
 ### 状态模型
 
 ```text
-battle: { active: boolean, result: null | 'Victory' }
-target: { hp, maxHp, dead, ... }
+battle: { active: boolean, result: null | 'Victory' | 'Defeat' }
+target: { id, hp, maxHp?, dead, ... }   # 当前用作“敌人血条/胜利判定目标”
+player: { hp, maxHp, dead }            # V4.2 起加入“可失败”
 ```
 
 ### 规则
@@ -162,6 +163,9 @@ target: { hp, maxHp, dead, ... }
 - 当 `target.hp` 归零时：
   - 产出 `TargetDefeated`
   - 战斗结束：`battle.active=false`，`battle.result='Victory'`，并产出 `BattleEnded`
+- 当 `player.hp` 归零时：
+  - 产出 `PlayerDefeated`
+  - 战斗结束：`battle.active=false`，`battle.result='Defeat'`，并产出 `BattleEnded`
 
 ## Routine Orb（套路球，V4.0）
 
@@ -194,6 +198,14 @@ breakRoutineOrb()
 - 破球会施加 Burn（300f，60f tick，5 damage/tick）。
 - 每次 tick 必须产出 `DebuffTickDamage`，并通过 `DamageApplied` 扣血；若击杀目标，必须触发 `TargetDefeated` 与 `BattleEnded Victory`。
 
+## EnemyStrike（敌人普通攻击，V4.2）
+
+V4.2 把“木桩目标”升级为“可主动攻击玩家的简单敌人”：
+
+- 敌人攻击按动作阶段运行：`Startup -> Active -> Recovery -> Finished`（沿用同一时间轴模型）。
+- 命中判定最小化：仅距离（`distance(player, target) <= range`）。
+- 控制门禁：Driver Combo 处于 `Topple/Launch` 时，敌人不能攻击；若正在攻击则中断并进入冷却。
+
 ## 默认参数
 
 | 动作 | Startup | Active | Recovery | Damage | Art Charge Gain | Special Gain | Effect |
@@ -205,6 +217,10 @@ breakRoutineOrb()
 | Art2 | 15f | 4f | 28f | 50 | 0 | +25 | Topple |
 | Art3 | 15f | 4f | 28f | 60 | 0 | +30 | Launch |
 | Art4 | 15f | 4f | 28f | 80 | 0 | +40 | Smash |
+
+| Enemy | Startup | Active | Recovery | Damage | Range | Cooldown |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| EnemyStrike | 30f | 4f | 30f | 15 | 140 | 90f |
 
 | Special | Startup | Active | Recovery | Damage | Level | Element |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -224,11 +240,11 @@ breakRoutineOrb()
 | Special Gauge | 0..300（阈值 100/200/300） |
 | Blade Combo Route | FireWaterFire（240f） |
 
-## 当前暂不实现（<= V4.0）
+## 当前暂不实现（<= V4.2）
 
-当前阶段暂不实现（当前版本边界：<= V4.0；如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
+当前阶段暂不实现（当前版本边界：<= V4.2；如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
 
-- 敌人攻击和 AI。
+- 敌人复杂 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
 - 仇恨系统。
 - 复杂属性球系统（多球共存、堆叠/计数规则、与连锁兑现的整套 cash-out）。
 - Chain Attack / Full Burst / Fusion（V4.0 延后；未来只允许按 V4 拆分评审进入）。

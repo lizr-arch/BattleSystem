@@ -1,6 +1,7 @@
 import { AutoAttackChainSpec, CombatActionSpec } from '../core/action.js';
 import { Art } from '../core/art.js';
 import { CombatActor } from '../core/combat-actor.js';
+import { EnemyStrikeSpec } from '../core/enemy-strike.js';
 import { ActionKind, BladeComboElement, DriverComboEffect } from '../core/enums.js';
 import { Special } from '../core/special.js';
 
@@ -192,6 +193,15 @@ export function createDefaultCombatActor() {
 
   const target = { id: 'Dummy', x: 660, y: 400, radius: 38, hp: 999999 };
   const position = { x: target.x - 100, y: target.y };
+  const enemyStrike = new EnemyStrikeSpec({
+    id: 'EnemyStrike',
+    startupFrames: 30,
+    activeFrames: 4,
+    recoveryFrames: 30,
+    cooldownFrames: 90,
+    damage: 15,
+    range: 140,
+  });
 
   return new CombatActor({
     id: 'Player',
@@ -208,6 +218,7 @@ export function createDefaultCombatActor() {
     bladeComboRoutes,
     inputBufferFrames: 10,
     cancelBonusFrames: 15,
-    cancelBonusDamageMultiplier: 1.2
+    cancelBonusDamageMultiplier: 1.2,
+    enemyStrike,
   });
 }

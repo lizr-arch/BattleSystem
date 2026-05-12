@@ -1,6 +1,11 @@
 # NPC AI Design（敌人 AI 设计）
 
-> 本文是 V4.1 Enemy Attack Model Design（敌人攻击模型设计）的一部分。本阶段只设计 Simple Enemy AI（简单敌人 AI），不实现复杂行为树。
+> 本文是 V4.1 Enemy Attack Model Design（敌人攻击模型设计）的一部分；V4.2 已按本文的最小口径落地 Simple Enemy（单敌人、单技能、无追击）。
+
+实现位置（V4.2）：
+
+- `src/core/enemy-strike.js`（EnemyRuntimeState / EnemyStrikeSpec）
+- `src/core/combat-actor.js`（`tickEnemy`：范围/冷却/控制门禁/事件）
 
 ## 1. AI 目标
 
@@ -60,13 +65,14 @@ targetId = Player
 
 V4.1 只记录这个方向，不实现。
 
-## 4. AI Tick（AI 每帧更新）草案
+## 4. AI Tick（AI 每帧更新）口径（对齐 V4.2 实现）
 
 V4.2 的每帧逻辑建议：
 
 ```text
-if enemy.dead:
-  state = Dead
+if target.dead:
+  enemy.state = Dead
+  enemy.action = null
   return
 
 if player.dead:

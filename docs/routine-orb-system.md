@@ -12,7 +12,7 @@
 | RoutineOrb | 套路球 | 当最近 3 张套路牌同一 Routine 时生成的球（仅一个 active） |
 | Orb Break | 破球 | 对当前 active orb 执行的结算（元素伤害 + Debuff） |
 | Debuff | 负面效果 | 目前只实现 Burn（灼烧） |
-| Single Driver | 单驾驶员 | 仅验证单个玩家 actor 的闭环，不引入队友/敌人 AI |
+| Single Driver | 单驾驶员 | 仅验证单个玩家 actor 的闭环，不引入队友 AI；敌人不进入复杂 AI（仅允许最小攻击闭环） |
 
 ## MVP 目标与非目标
 
@@ -25,7 +25,7 @@
 非目标（明确不做）：
 
 - 不实现 Chain Attack（连锁攻击）、Full Burst、Fusion、复杂 Orbs 系统与其 cash-out。
-- 不实现多 Routine、多元素、多 orb 共存、orb stacking/计数规则、队友/敌人 AI。
+- 不实现多 Routine、多元素、多 orb 共存、orb stacking/计数规则、队友 AI、复杂敌人 AI（追击/寻路/行为树/多敌人）。
 - SkillTrait（技能特性）在 V4.0 仍以“模型接口预留”为主；直接伤害仍复用既有 Art damage 通路，避免引入第二套结算规则。
 
 ## 核心闭环（事件链路视角）

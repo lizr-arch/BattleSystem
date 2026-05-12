@@ -1,12 +1,12 @@
-# 验证计划（V1-V4.0）
+# 验证计划（V1-V4.2）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
 ## 目标
 
-在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token，以及 V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）验证清楚，并保证行为可解释、可复现。
+在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token、V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环），以及 V4.2 的 Enemy Attack MVP（敌人最小攻击闭环）验证清楚，并保证行为可解释、可复现。
 
-明确边界：在 <= V4.0 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现。
+明确边界：在 <= V4.2 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小闭环，不实现追击/寻路/行为树/仇恨系统。
 如进入后续 V4.x，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
 
 核心闭环（V1）：
@@ -53,6 +53,18 @@ ElementDamageApplied + DebuffApplied(Burn)
 DebuffTickDamage 扣血可击杀
   ↓
 TargetDefeated + BattleEnded(Victory)
+```
+
+敌人攻击 MVP（V4.2）：
+
+```text
+敌人在范围内
+  ↓
+EnemyAttackStarted / EnemyAttackPhaseChanged
+  ↓
+EnemyAttackHit => PlayerDamageApplied（玩家掉血）
+  ↓
+PlayerDefeated + BattleEnded(Defeat)（可失败）
 ```
 
 ## 手动验证矩阵（V1：基础闭环）
@@ -106,6 +118,20 @@ TargetDefeated + BattleEnded(Victory)
 | 破球失败 | 无 orb 时点击/触发 `breakRoutineOrb` | 产生 `RoutineOrbBreakFailed reason=no_orb` |
 | 灼烧 tick 可击杀 | 用场景把 targetHp 设低（例如 280），生成 orb 并破球 | 出现 `DebuffTickDamage`，最终 `TargetDefeated` 与 `BattleEnded Victory` |
 
+## 手动验证矩阵（V4.2：Enemy Attack MVP）
+
+说明：V4.2 的验证推荐优先使用右侧 Debug 面板的 Enemy/Player 区块与 Scenario 一键 Run（不依赖键盘焦点）。键盘与移动仅用于补充观察 Canvas 提示与直觉校验。
+
+| Case | 玩家操作 | 期望结果 |
+| --- | --- | --- |
+| 敌人开始攻击 | 运行 scenario `enemy-starts-attack-when-player-in-range` | 出现 `EnemyAttackStarted`；Enemy/Player 面板显示 enemy.state=Attacking 且 phase=Startup |
+| 命中造成掉血 | 运行 scenario `enemy-attack-hits-player` | 出现 `EnemyAttackHit`、`PlayerDamageApplied`、`PlayerHpChanged`；玩家 HP 下降但未必死亡 |
+| 打空不掉血 | 运行 scenario `enemy-attack-whiffs-when-player-out-of-range` | 出现 `EnemyAttackWhiffed reason=out_of_range`；不应出现 `PlayerDamageApplied`；玩家 HP 不变 |
+| 冷却门禁 | 运行 scenario `enemy-attack-enters-cooldown` | 出现 `EnemyAttackCooldownStarted/Finished`；冷却期间不应再次 `EnemyAttackStarted` |
+| 被 Topple/Launch 控制不攻击 | 运行 scenario `enemy-cannot-attack-while-toppled` | 出现 `EnemyControlled`；enemy.state=Controlled；不应出现 `EnemyAttackStarted` |
+| 敌人可击败玩家 | 运行 scenario `enemy-can-defeat-player` | 出现 `PlayerDefeated` 与 `BattleEnded result=Defeat`；Enemy/Player 面板显示 battle inactive |
+| 玩家可击杀正在攻击的敌人 | 运行 scenario `player-can-defeat-attacking-enemy` | 出现 `TargetDefeated`（Victory）；在敌人被击杀前不应出现 `EnemyAttackHit` |
+
 ## Debug 信号（浏览器侧）
 
 使用右侧 Debug 面板与事件日志检查：
@@ -118,6 +144,7 @@ TargetDefeated + BattleEnded(Victory)
 - Blade Combo：stage、routeId、expectedNext、剩余帧数/进度。
 - Tokens：当前 tokens 列表（id/element/route/createdFrame）。
 - Single Driver MVP：target HP、tiles/orb、burn、最后一条 MVP 相关事件。
+- Enemy/Player：enemy state/action/phase/cooldown/hp；player hp；battle result；最后一条敌人相关事件。
 
 期望事件示例（非穷举）：
 
@@ -157,9 +184,21 @@ DebuffApplied Burn 300f
 DebuffTickDamage Burn amount=5
 TargetDefeated target=Dummy
 BattleEnded result=Victory
+EnemyTargetSelected enemy=Enemy target=Player
+EnemyAttackStarted EnemyStrike
+EnemyAttackPhaseChanged EnemyStrike Startup->Active
+EnemyAttackHit EnemyStrike damage=15
+PlayerDamageApplied amount=15 src=EnemyStrike enemy=Enemy
+PlayerHpChanged 100->85/100
+EnemyAttackFinished EnemyStrike
+EnemyAttackCooldownStarted EnemyStrike 90f
+EnemyControlled stage=Topple 60f
+EnemyStrikeInterrupted EnemyStrike reason=driver_combo
+PlayerDefeated
+BattleEnded result=Defeat
 ```
 
-## 验收标准（V1-V4.0）
+## 验收标准（V1-V4.2）
 
 - core deterministic tests（Node）：主验收证据，验证不变量与规则边界。
 - scenario runner（Node/UI）：机制链路验收证据，验证完整流程与失败原因（不依赖键盘焦点）。
@@ -171,15 +210,16 @@ BattleEnded result=Victory
 - `npm test` 在 Node 下通过。
 - `npm run audit:map` PASS（文档盘点门禁）。
 - 上述 V1~V3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
-- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出）。
+- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出、EnemyAttack 命中/打空/冷却/被控、Player Damage/Defeat）。
 
-## 文档一致性验收（V4.0）
+## 文档一致性验收（V4.2）
 
-V4.0 验收以“口径一致 + 可追溯 + 一键可复现”为主：
+V4.2 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 
 - README / AGENTS / docs 路线图不互相矛盾（版本命名、边界、非目标一致）。
 - `docs/mechanics-map.md` 与 `docs/test-coverage-map.md` 保持同步（机制与测试覆盖口径一致）。
 - `docs/routine-orb-system.md` 与事件目录/模型/测试覆盖口径一致。
+- Enemy Attack 相关文档（`docs/enemy-attack-model.md` / `docs/npc-ai-design.md` / `docs/v4.2-enemy-attack-mvp-spec.md`）与实现/事件目录/测试覆盖口径一致。
 - 后续 V4.x 预研只能通过 `docs/v4-readiness-review.md` 进入，且必须拆分里程碑。
 
 ## 自动化测试（Node）
@@ -199,11 +239,12 @@ V4.0 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Blade Combo：开始/推进/失败/过期/完成，以及 TokenCreated。
 - Battle / HP / Result：DamageApplied/TargetHpChanged/TargetDefeated/BattleEnded 的链路可审计。
 - Routine Orb MVP：tiles/orb/break/burn tick/击杀闭环（scenarios + tests）。
+- Enemy Attack MVP：EnemyAttack 时序/命中/打空/冷却/被控与 PlayerDefeated（tests + scenarios）。
 
-## 非目标（当前阶段不做：<= V4.0）
+## 非目标（当前阶段不做：<= V4.2）
 
 - 生产级最终动画与复杂表现管线。
-- 复杂敌人 AI / 攻击行为。
+- 复杂敌人 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
 - 队友 AI。
 - Chain Attack / Full Burst / Fusion（V4.0 延后；如未来进入 V4.x，按 Readiness Review 拆分推进）。
 - 复杂属性球系统与连锁兑现（V4.0 仅实现 Routine Orb 最小闭环）。

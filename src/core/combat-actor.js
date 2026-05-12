@@ -5,7 +5,8 @@ import { emitCombatEvent } from './combat-events.js';
 import { BladeComboState } from './blade-combo.js';
 import { tickDebuffs, createBurnDebuff } from './debuff.js';
 import { DriverComboState, getDriverComboDurationFrames } from './driver-combo.js';
-import { ActorState, CombatEventType } from './enums.js';
+import { ActionPhase, ActorState, CombatEventType, DriverComboStage, EnemyState } from './enums.js';
+import { EnemyRuntimeState } from './enemy-strike.js';
 import { clamp, distance, normalize2 } from './math.js';
 import { getRoutineSkillByArtId } from './routine.js';
 import { addRoutineTile, canCreateRoutineOrbFromTiles, createRoutineOrbFromTiles } from './routine-orb.js';
@@ -31,6 +32,8 @@ export class CombatActor {
     inputBufferFrames = 10,
     cancelBonusFrames = 15,
     cancelBonusDamageMultiplier = 1.2,
+    enemyStrike = null,
+    enemyStrikeInitialCooldown = 0,
     eventLog = new CombatEventLog()
   }) {
     if (!autoAttackChain) throw new Error('CombatActor requires autoAttackChain.');
@@ -79,6 +82,14 @@ export class CombatActor {
     this.routineTiles = [];
     this.routineOrb = null;
     this.debuffs = [];
+    this.enemy = new EnemyRuntimeState({
+      id: this.target.id,
+      targetId: this.id,
+      state: EnemyState.Idle,
+      strike: enemyStrike,
+      cooldownLeft: enemyStrikeInitialCooldown,
+      action: null,
+    });
 
     this.eventLog = eventLog;
     this.commandBuffer = new CombatCommandBuffer({
@@ -165,6 +176,9 @@ export class CombatActor {
     const battle = this.battle ?? { active: true, result: null };
     const player = this.player ?? { hp: 0, maxHp: 0, dead: false };
     const target = this.target ?? { id: 'Dummy', x: 0, y: 0, radius: 0, hp: 0, maxHp: 0, dead: true };
+    const enemy = this.enemy ?? null;
+    const enemyStrike = enemy?.strike ?? null;
+    const enemyAction = enemy?.action ?? null;
 
     return {
       id: this.id,
@@ -233,6 +247,49 @@ export class CombatActor {
       routineTiles: (this.routineTiles ?? []).map((t) => ({ ...t })),
       routineOrb: this.routineOrb ? { ...this.routineOrb } : null,
       debuffs: (this.debuffs ?? []).map((d) => ({ ...d })),
+      enemy: enemyStrike ? {
+        id: target.id,
+        enemyId: target.id,
+        hp: target.hp ?? 0,
+        maxHp: target.maxHp ?? 0,
+        dead: target.dead === true,
+        state: target.dead === true ? EnemyState.Dead : (enemy?.state ?? EnemyState.Idle),
+        position: { x: target.x, y: target.y },
+        targetId: enemy?.targetId ?? this.id,
+        cooldownLeft: enemy?.cooldownLeft ?? 0,
+        attackSpec: {
+          id: enemyStrike.id,
+          damage: enemyStrike.damage,
+          range: enemyStrike.range,
+          cooldownFrames: enemyStrike.cooldownFrames,
+          startupFrames: enemyStrike.actionSpec.startupFrames,
+          activeFrames: enemyStrike.actionSpec.activeFrames,
+          recoveryFrames: enemyStrike.actionSpec.recoveryFrames,
+          totalFrames: enemyStrike.actionSpec.totalFrames,
+        },
+        currentAction: enemyAction ? {
+          id: enemyAction.spec.id,
+          kind: enemyAction.spec.kind,
+          phase: enemyAction.phase,
+          elapsedFrames: enemyAction.elapsedFrames,
+          progress01: enemyAction.progress01,
+          totalFrames: enemyAction.spec.totalFrames,
+          startupFrames: enemyAction.spec.startupFrames,
+          activeFrames: enemyAction.spec.activeFrames,
+          recoveryFrames: enemyAction.spec.recoveryFrames,
+        } : null,
+        action: enemyAction ? {
+          id: enemyAction.spec.id,
+          kind: enemyAction.spec.kind,
+          phase: enemyAction.phase,
+          elapsedFrames: enemyAction.elapsedFrames,
+          progress01: enemyAction.progress01,
+          totalFrames: enemyAction.spec.totalFrames,
+          startupFrames: enemyAction.spec.startupFrames,
+          activeFrames: enemyAction.spec.activeFrames,
+          recoveryFrames: enemyAction.spec.recoveryFrames,
+        } : null,
+      } : null,
     };
   }
 
@@ -291,6 +348,9 @@ export class CombatActor {
     this.debuffs = [];
     this.vfx = [];
     this.paused = false;
+    if (this.enemy) {
+      this.enemy.reset();
+    }
     if (this.player) {
       this.player.hp = this.player.maxHp;
       this.player.dead = false;
@@ -366,6 +426,73 @@ export class CombatActor {
     return { before, after, applied: before - after, defeated: this.target.dead };
   }
 
+  applyDamageToPlayer(amount, { source = 'unknown', sourceId = null, enemyId = null } = {}) {
+    this.ensureBattleActive();
+    const dmg = Math.max(0, Number(amount) | 0);
+    const before = Number(this.player.hp) | 0;
+    const targetId = this.id;
+    if (!this.battle.active || this.player.dead || dmg <= 0) {
+      this.emit(CombatEventType.PlayerDamageApplied, {
+        targetId,
+        amount: 0,
+        source,
+        sourceId,
+        enemyId,
+        beforeHp: before,
+        afterHp: before,
+      });
+      this.emit(CombatEventType.DamageApplied, {
+        targetId,
+        amount: 0,
+        source,
+        sourceId,
+        enemyId,
+        beforeHp: before,
+        afterHp: before,
+      });
+      return { before, after: before, applied: 0, defeated: this.player.dead };
+    }
+
+    const after = Math.max(0, before - dmg);
+    this.emit(CombatEventType.PlayerDamageApplied, {
+      targetId,
+      amount: before - after,
+      source,
+      sourceId,
+      enemyId,
+      beforeHp: before,
+      afterHp: after,
+    });
+    this.emit(CombatEventType.DamageApplied, {
+      targetId,
+      amount: before - after,
+      source,
+      sourceId,
+      enemyId,
+      beforeHp: before,
+      afterHp: after,
+    });
+
+    if (after !== before) {
+      this.player.hp = after;
+      this.emit(CombatEventType.PlayerHpChanged, {
+        before,
+        after,
+        maxHp: this.player.maxHp ?? 0
+      });
+    }
+
+    if (after <= 0 && !this.player.dead) {
+      this.player.dead = true;
+      this.emit(CombatEventType.PlayerDefeated, {});
+      this.battle.active = false;
+      this.battle.result = 'Defeat';
+      this.emit(CombatEventType.BattleEnded, { result: this.battle.result });
+    }
+
+    return { before, after, applied: before - after, defeated: this.player.dead };
+  }
+
   debugGrantSpecialReady({ level = null, charge = null } = {}) {
     const lv = level === null || level === undefined ? null : Math.max(0, Math.min(3, level | 0));
     const max = this.specialGauge?.threshold3 ?? 300;
@@ -379,6 +506,18 @@ export class CombatActor {
     this.specialGauge.charge = clamped;
     this.emit(CombatEventType.DebugGrantSpecialReady, { charge: clamped, level: lv });
     return { charge: clamped, level: lv };
+  }
+
+  debugGrantEnemyCooldownReady({ tickAfter = false } = {}) {
+    if (!this.enemy) return { ok: false, reason: 'no_enemy' };
+    this.enemy.cooldownLeft = 0;
+    if (this.enemy.action === null && this.enemy.state === EnemyState.Cooldown) {
+      this.enemy.state = EnemyState.Idle;
+    }
+    if (tickAfter) {
+      this.tick(new CombatInputFrame());
+    }
+    return { ok: true, cooldownLeft: this.enemy.cooldownLeft | 0 };
   }
 
   breakRoutineOrb() {
@@ -465,7 +604,139 @@ export class CombatActor {
         break;
     }
 
+    if (this.battle?.active !== false) {
+      this.tickEnemy();
+    }
+
     this.tickVfx();
+  }
+
+  inEnemyStrikeRange() {
+    const strike = this.enemy?.strike ?? null;
+    if (!strike) return false;
+    return this.distToTarget() <= strike.range;
+  }
+
+  tickEnemy() {
+    const enemy = this.enemy;
+    const strike = enemy?.strike ?? null;
+    if (!enemy || !strike) return;
+
+    enemy.id = String(this.target?.id ?? enemy.id ?? 'Enemy');
+    enemy.enemyId = enemy.id;
+
+    if (this.target?.dead) {
+      enemy.state = EnemyState.Dead;
+      enemy.action = null;
+      return;
+    }
+
+    if (this.player?.dead || this.battle?.active === false) {
+      enemy.action = null;
+      return;
+    }
+
+    if (enemy.targetSelectedEmitted !== true || enemy.targetId !== this.id) {
+      enemy.targetId = this.id;
+      enemy.targetSelectedEmitted = true;
+      this.emit(CombatEventType.EnemyTargetSelected, { enemyId: enemy.id, targetId: enemy.targetId });
+    }
+
+    const beforeCooldown = enemy.cooldownLeft;
+    if (enemy.cooldownLeft > 0) {
+      enemy.cooldownLeft -= 1;
+      if (beforeCooldown > 0 && enemy.cooldownLeft === 0) {
+        this.emit(CombatEventType.EnemyAttackCooldownFinished, { attackId: strike.id, enemyId: enemy.id });
+      }
+    }
+
+    const stage = this.driverCombo?.stage ?? DriverComboStage.None;
+    const controlled = stage === DriverComboStage.Topple || stage === DriverComboStage.Launch;
+    if (controlled) {
+      if (enemy.state !== EnemyState.Controlled) {
+        this.emit(CombatEventType.EnemyControlled, { enemyId: enemy.id, stage, framesLeft: this.driverCombo?.framesLeft ?? 0 });
+      }
+      enemy.state = EnemyState.Controlled;
+
+      if (enemy.action) {
+        const phase = enemy.action.phase;
+        if (phase === ActionPhase.Startup || phase === ActionPhase.Active) {
+          this.emit(CombatEventType.EnemyStrikeInterrupted, { strikeId: strike.id, reason: 'driver_combo', stage, enemyId: enemy.id });
+          enemy.action = null;
+          const before = enemy.cooldownLeft;
+          enemy.cooldownLeft = Math.max(enemy.cooldownLeft, strike.cooldownFrames);
+          if (before <= 0 && enemy.cooldownLeft > 0) {
+            this.emit(CombatEventType.EnemyAttackCooldownStarted, { attackId: strike.id, enemyId: enemy.id, frames: enemy.cooldownLeft });
+          }
+          return;
+        }
+
+        const before = enemy.action.phase;
+        enemy.action.tick(1);
+        const after = enemy.action.phase;
+        if (before !== after) {
+          this.emit(CombatEventType.EnemyAttackPhaseChanged, { attackId: strike.id, before, after, enemyId: enemy.id });
+        }
+
+        if (enemy.action.isFinished()) {
+          this.emit(CombatEventType.EnemyAttackFinished, { attackId: strike.id, enemyId: enemy.id });
+          enemy.action = null;
+          enemy.cooldownLeft = strike.cooldownFrames;
+          if (enemy.cooldownLeft > 0) {
+            this.emit(CombatEventType.EnemyAttackCooldownStarted, { attackId: strike.id, enemyId: enemy.id, frames: enemy.cooldownLeft });
+          }
+        }
+      }
+
+      return;
+    }
+
+    if (enemy.action) {
+      enemy.state = EnemyState.Attacking;
+      const before = enemy.action.phase;
+      enemy.action.tick(1);
+      const after = enemy.action.phase;
+      if (before !== after) {
+        this.emit(CombatEventType.EnemyAttackPhaseChanged, { attackId: strike.id, before, after, enemyId: enemy.id });
+      }
+
+      if (enemy.action.shouldFireHit()) {
+        if (!this.inEnemyStrikeRange()) {
+          this.emit(CombatEventType.EnemyAttackWhiffed, { attackId: strike.id, reason: 'out_of_range', enemyId: enemy.id });
+        } else {
+          const damage = strike.damage ?? strike.actionSpec.damage ?? 0;
+          this.emit(CombatEventType.EnemyAttackHit, { attackId: strike.id, damage, enemyId: enemy.id, targetId: this.id });
+          this.applyDamageToPlayer(damage, { source: 'EnemyStrike', sourceId: strike.id, enemyId: enemy.id });
+        }
+      }
+
+      if (enemy.action.isFinished()) {
+        this.emit(CombatEventType.EnemyAttackFinished, { attackId: strike.id, enemyId: enemy.id });
+        enemy.action = null;
+        enemy.cooldownLeft = strike.cooldownFrames;
+        if (enemy.cooldownLeft > 0) {
+          this.emit(CombatEventType.EnemyAttackCooldownStarted, { attackId: strike.id, enemyId: enemy.id, frames: enemy.cooldownLeft });
+          enemy.state = EnemyState.Cooldown;
+        } else {
+          enemy.state = EnemyState.Idle;
+        }
+      }
+      return;
+    }
+
+    if (enemy.cooldownLeft > 0) {
+      enemy.state = EnemyState.Cooldown;
+      return;
+    }
+
+    if (this.inEnemyStrikeRange()) {
+      enemy.action = new CombatActionInstance(strike.actionSpec);
+      enemy.state = EnemyState.Attacking;
+      this.emit(CombatEventType.EnemyAttackStarted, { attackId: strike.id, enemyId: enemy.id, targetId: enemy.targetId });
+      return;
+    }
+
+    enemy.state = EnemyState.Idle;
   }
 
   tickLocomotionState(input, moveIntent) {

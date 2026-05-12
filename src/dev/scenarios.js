@@ -1,5 +1,6 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
-import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantSpecialReady, waitFrames, waitUntil } from './scenario-runner.js';
+import { EnemyStrikeSpec } from '../core/enemy-strike.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -37,6 +38,41 @@ function setupActorForRoutineOrbScenario(actor, { targetHp = null } = {}) {
 
 function hasEvent(events, type, predicate) {
   return events.some((e) => String(e.type) === String(type) && (!predicate || predicate(e)));
+}
+
+function setupActorForEnemyAttackScenario(actor, {
+  strike = null,
+  playerHp = 100,
+  playerMaxHp = 100,
+  targetHp = 999999,
+} = {}) {
+  actor.resetRuntime();
+  setupActorForScenario(actor);
+  actor.eventLog.clear();
+  actor.autoAttackRange = 0;
+
+  if (actor.player) {
+    actor.player.maxHp = playerMaxHp;
+    actor.player.hp = playerHp;
+    actor.player.dead = false;
+  }
+
+  if (actor.battle) {
+    actor.battle.active = true;
+    actor.battle.result = null;
+  }
+
+  if (actor.target) {
+    actor.target.maxHp = targetHp;
+    actor.target.hp = targetHp;
+    actor.target.dead = false;
+  }
+
+  if (actor.enemy) {
+    if (strike) actor.enemy.strike = strike;
+    actor.enemy.cooldownLeft = 0;
+    actor.enemy.action = null;
+  }
 }
 
 export const scenarios = Object.freeze({
@@ -468,6 +504,275 @@ export const scenarios = Object.freeze({
       assertSnapshot((s) => s.battle?.result === 'Victory', 'Assert battle.result Victory'),
       assertSnapshot((s) => s.target?.dead === true, 'Assert target.dead true'),
       assertSnapshot((s) => s.routineOrb === null, 'Assert routineOrb null'),
+    ],
+  },
+  'enemy-strike-defeat': {
+    name: 'enemy-strike-defeat',
+    maxFrames: 300,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.maxHp = 20;
+      actor.player.hp = 20;
+      actor.player.dead = false;
+      actor.battle.active = true;
+      actor.battle.result = null;
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec({
+          id: 'TestEnemyStrike',
+          startupFrames: 3,
+          activeFrames: 1,
+          recoveryFrames: 1,
+          damage: 25,
+          range: 999,
+          cooldownFrames: 2,
+        });
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+    },
+    steps: [
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackHit), 'Wait EnemyAttackHit'),
+      assertEvent(CombatEventType.EnemyAttackHit, (e) => (e.data?.damage ?? 0) > 0, 'Assert EnemyAttackHit damage>0'),
+      assertEvent(CombatEventType.PlayerDamageApplied, (e) => (e.data?.amount ?? 0) > 0 && e.data?.source === 'EnemyStrike', 'Assert PlayerDamageApplied amount>0'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.PlayerDefeated), 'Wait PlayerDefeated'),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat', 'Assert battle.result Defeat'),
+      assertSnapshot((s) => s.player?.dead === true, 'Assert player.dead true'),
+    ],
+  },
+  'enemy-strike-suppressed-by-driver-combo': {
+    name: 'enemy-strike-suppressed-by-driver-combo',
+    maxFrames: 120,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec({
+          id: 'TestEnemyStrike_CC',
+          startupFrames: 3,
+          activeFrames: 1,
+          recoveryFrames: 1,
+          damage: 1,
+          range: 999,
+          cooldownFrames: 0,
+        });
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+      const ev1 = actor.driverCombo.apply(DriverComboEffect.Break);
+      if (ev1) actor.emit(ev1.type, ev1.data);
+      const ev2 = actor.driverCombo.apply(DriverComboEffect.Topple);
+      if (ev2) actor.emit(ev2.type, ev2.data);
+    },
+    steps: [
+      waitFrames(20, 'Wait 20f under Topple'),
+      assertSnapshot((s, ctx) => !hasEvent(ctx.events, CombatEventType.EnemyAttackStarted), 'Assert no EnemyAttackStarted under Topple'),
+      assertSnapshot((s) => s.enemy?.currentAction === null, 'Assert enemy.currentAction null under Topple'),
+    ],
+  },
+
+  'enemy-starts-attack-when-player-in-range': {
+    name: 'enemy-starts-attack-when-player-in-range',
+    maxFrames: 240,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 12,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 15,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackStarted), 'Wait EnemyAttackStarted', { timeoutFrames: 120 }),
+      assertEvent(CombatEventType.EnemyAttackStarted, (e) => e.data?.attackId === 'EnemyStrike', 'Assert EnemyAttackStarted EnemyStrike'),
+      assertSnapshot((s) => s.enemy?.currentAction?.id === 'EnemyStrike' && s.enemy?.state === 'Attacking', 'Assert enemy Attacking with action'),
+      waitEnemyPhase('Startup', 'Wait enemy phase Startup', { timeoutFrames: 60 }),
+    ],
+  },
+
+  'enemy-attack-hits-player': {
+    name: 'enemy-attack-hits-player',
+    maxFrames: 300,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 10,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 15,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+        playerHp: 100,
+        playerMaxHp: 100,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackHit), 'Wait EnemyAttackHit', { timeoutFrames: 180 }),
+      assertEvent(CombatEventType.EnemyAttackHit, (e) => e.data?.attackId === 'EnemyStrike' && (e.data?.damage ?? 0) > 0, 'Assert EnemyAttackHit damage>0'),
+      assertEvent(CombatEventType.PlayerDamageApplied, (e) => e.data?.source === 'EnemyStrike' && (e.data?.amount ?? 0) > 0, 'Assert PlayerDamageApplied amount>0'),
+      assertEvent(CombatEventType.PlayerHpChanged, (e) => (e.data?.before ?? 0) > (e.data?.after ?? 0), 'Assert PlayerHpChanged down'),
+      assertSnapshot((s) => (s.player?.hp ?? 0) < (s.player?.maxHp ?? 0) && s.player?.dead !== true, 'Assert player damaged but alive'),
+    ],
+  },
+
+  'enemy-attack-whiffs-when-player-out-of-range': {
+    name: 'enemy-attack-whiffs-when-player-out-of-range',
+    maxFrames: 360,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 14,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 15,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+        playerHp: 100,
+        playerMaxHp: 100,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackStarted), 'Wait EnemyAttackStarted', { timeoutFrames: 120 }),
+      waitEnemyPhase('Startup', 'Wait enemy phase Startup', { timeoutFrames: 60 }),
+      setPlayerPosition(0, 0, 'Move player out of range'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackWhiffed, (e) => e.data?.reason === 'out_of_range'), 'Wait EnemyAttackWhiffed out_of_range', { timeoutFrames: 180 }),
+      assertEvent(CombatEventType.EnemyAttackWhiffed, (e) => e.data?.attackId === 'EnemyStrike' && e.data?.reason === 'out_of_range', 'Assert EnemyAttackWhiffed out_of_range'),
+      assertSnapshot((s, ctx) => !hasEvent(ctx.events, CombatEventType.EnemyAttackHit), 'Assert no EnemyAttackHit'),
+      assertSnapshot((s) => (s.player?.hp ?? 0) === (s.player?.maxHp ?? 0), 'Assert player HP unchanged'),
+    ],
+  },
+
+  'enemy-attack-enters-cooldown': {
+    name: 'enemy-attack-enters-cooldown',
+    maxFrames: 800,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 10,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 1,
+          range: 140,
+          cooldownFrames: 24,
+        }),
+        playerHp: 100,
+        playerMaxHp: 100,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackFinished), 'Wait EnemyAttackFinished', { timeoutFrames: 300 }),
+      assertEvent(CombatEventType.EnemyAttackCooldownStarted, (e) => e.data?.attackId === 'EnemyStrike' && (e.data?.frames ?? 0) > 0, 'Assert EnemyAttackCooldownStarted'),
+      assertSnapshot((s) => (s.enemy?.cooldownLeft ?? 0) > 0, 'Assert enemy.cooldownLeft > 0'),
+      setPlayerPosition(0, 0, 'Move player out of range (avoid immediate re-attack)'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackCooldownFinished), 'Wait EnemyAttackCooldownFinished', { timeoutFrames: 200 }),
+      assertSnapshot((s) => (s.enemy?.cooldownLeft ?? 0) === 0 && s.enemy?.currentAction === null, 'Assert cooldown finished and no action'),
+    ],
+  },
+
+  'enemy-cannot-attack-while-toppled': {
+    name: 'enemy-cannot-attack-while-toppled',
+    maxFrames: 180,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 10,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 15,
+          range: 140,
+          cooldownFrames: 0,
+        }),
+      });
+      const ev1 = actor.driverCombo.apply(DriverComboEffect.Break);
+      if (ev1) actor.emit(ev1.type, ev1.data);
+      const ev2 = actor.driverCombo.apply(DriverComboEffect.Topple);
+      if (ev2) actor.emit(ev2.type, ev2.data);
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      waitFrames(30, 'Wait 30f under Topple'),
+      assertSnapshot((s, ctx) => !hasEvent(ctx.events, CombatEventType.EnemyAttackStarted), 'Assert no EnemyAttackStarted under Topple'),
+      assertSnapshot((s) => s.enemy?.currentAction === null, 'Assert enemy.currentAction null under Topple'),
+      assertSnapshot((s) => s.enemy?.state === 'Controlled', 'Assert enemy.state Controlled'),
+    ],
+  },
+
+  'enemy-can-defeat-player': {
+    name: 'enemy-can-defeat-player',
+    maxFrames: 300,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 8,
+          activeFrames: 2,
+          recoveryFrames: 6,
+          damage: 25,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+        playerHp: 20,
+        playerMaxHp: 20,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.PlayerDefeated), 'Wait PlayerDefeated', { timeoutFrames: 180 }),
+      assertEvent(CombatEventType.EnemyAttackHit, (e) => (e.data?.damage ?? 0) > 0, 'Assert EnemyAttackHit damage>0'),
+      assertEvent(CombatEventType.PlayerDamageApplied, (e) => (e.data?.amount ?? 0) > 0 && e.data?.source === 'EnemyStrike', 'Assert PlayerDamageApplied amount>0'),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.player?.dead === true, 'Assert player dead and battle Defeat'),
+    ],
+  },
+
+  'player-can-defeat-attacking-enemy': {
+    name: 'player-can-defeat-attacking-enemy',
+    maxFrames: 600,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 40,
+          activeFrames: 2,
+          recoveryFrames: 8,
+          damage: 15,
+          range: 140,
+          cooldownFrames: 90,
+        }),
+        targetHp: 30,
+      });
+      grantAllArtsReady(actor);
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.EnemyAttackStarted), 'Wait EnemyAttackStarted', { timeoutFrames: 120 }),
+      castArt(0, 'Cast Art1 to defeat enemy'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.TargetDefeated), 'Wait TargetDefeated', { timeoutFrames: 240 }),
+      assertEvent(CombatEventType.TargetDefeated, null, 'Assert TargetDefeated'),
+      assertSnapshot((s, ctx) => !hasEvent(ctx.events, CombatEventType.EnemyAttackHit), 'Assert no EnemyAttackHit before enemy defeated'),
+      assertSnapshot((s) => s.target?.dead === true, 'Assert target.dead true'),
     ],
   },
 });
