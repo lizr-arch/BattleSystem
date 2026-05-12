@@ -40,7 +40,7 @@ export class CanvasRenderer {
     this.lastTokenEventFrame = -1;
     this.smashFlashUntilFrame = 0;
     this.tokenFlashUntilFrame = 0;
-    this.lastEnemyOutcomeEventFrame = -1;
+    this.lastEnemyOutcomeFrame = -1;
     this.enemyOutcomeKind = null;
     this.enemyOutcomeFlashUntilFrame = 0;
   }
@@ -222,22 +222,14 @@ export class CanvasRenderer {
             this.tokenFlashUntilFrame = parsed.frame + 24;
           }
         }
-        if (parsed.frame > this.lastEnemyOutcomeEventFrame) {
-          if (parsed.message.startsWith('EnemyAttackHit') || parsed.message.startsWith('EnemyStrikeHit')) {
-            this.lastEnemyOutcomeEventFrame = parsed.frame;
-            this.enemyOutcomeKind = 'hit';
-            this.enemyOutcomeFlashUntilFrame = parsed.frame + 24;
-          } else if (
-            parsed.message.startsWith('EnemyAttackWhiffed')
-            || parsed.message.startsWith('EnemyStrikeWhiffed')
-            || parsed.message.startsWith('EnemyStrikeInterrupted')
-          ) {
-            this.lastEnemyOutcomeEventFrame = parsed.frame;
-            this.enemyOutcomeKind = 'miss';
-            this.enemyOutcomeFlashUntilFrame = parsed.frame + 24;
-          }
-        }
       }
+    }
+
+    const enemyOutcome = actor.lastEnemyOutcome;
+    if (enemyOutcome && enemyOutcome.frame !== this.lastEnemyOutcomeFrame) {
+      this.lastEnemyOutcomeFrame = enemyOutcome.frame;
+      this.enemyOutcomeKind = enemyOutcome.kind;
+      this.enemyOutcomeFlashUntilFrame = enemyOutcome.frame + 24;
     }
 
     if (frame < this.smashFlashUntilFrame) {

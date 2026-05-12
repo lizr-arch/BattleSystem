@@ -53,6 +53,8 @@ export function formatCombatEvent(type, data = {}) {
       return `EnemyAttackCooldownStarted ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'} ${data.frames ?? data.cooldownFrames ?? 0}f`;
     case CombatEventType.EnemyAttackCooldownFinished:
       return `EnemyAttackCooldownFinished ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'}`;
+    case CombatEventType.EnemyAttackInterrupted:
+      return `EnemyAttackInterrupted ${data.attackId ?? data.strikeId ?? 'EnemyStrike'} reason=${data.reason ?? '?'}`;
     case CombatEventType.EnemyControlled:
       return `EnemyControlled stage=${data.stage ?? '?'} ${data.framesLeft ?? 0}f`;
     case CombatEventType.EnemyStrikeStarted:
@@ -63,6 +65,7 @@ export function formatCombatEvent(type, data = {}) {
       return `EnemyStrikeHit ${data.strikeId ?? 'Unknown'} damage=${data.damage ?? 0}`;
     case CombatEventType.EnemyStrikeWhiffed:
       return `EnemyStrikeWhiffed ${data.strikeId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
+    // deprecated — 已由 EnemyAttackInterrupted 取代
     case CombatEventType.EnemyStrikeInterrupted:
       return `EnemyStrikeInterrupted ${data.strikeId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
     case CombatEventType.EnemyStrikeFinished:

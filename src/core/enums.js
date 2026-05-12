@@ -73,6 +73,7 @@ export const CombatEventType = Object.freeze({
   EnemyAttackFinished: 'EnemyAttackFinished',
   EnemyAttackCooldownStarted: 'EnemyAttackCooldownStarted',
   EnemyAttackCooldownFinished: 'EnemyAttackCooldownFinished',
+  EnemyAttackInterrupted: 'EnemyAttackInterrupted',
   EnemyControlled: 'EnemyControlled',
   EnemyStrikeStarted: 'EnemyStrikeStarted',
   EnemyStrikePhaseChanged: 'EnemyStrikePhaseChanged',

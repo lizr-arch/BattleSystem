@@ -51,11 +51,12 @@ export class EnemyRuntimeState {
     this.targetSelectedEmitted = false;
     this.strike = strike;
     this.cooldownLeft = Math.max(0, Number(cooldownLeft) | 0);
+    this.initialCooldownLeft = this.cooldownLeft;
     this.action = action;
   }
 
   reset() {
-    this.cooldownLeft = 0;
+    this.cooldownLeft = this.initialCooldownLeft;
     this.action = null;
     this.state = EnemyState.Idle;
     this.targetSelectedEmitted = false;

@@ -105,6 +105,11 @@ export function runScenario({
   const recorder = new TraceRecorder({ maxFrames: traceMaxFrames });
   const proof = [];
 
+  const savedPlayerMaxHp = actor.player?.maxHp ?? 0;
+  const savedPlayerHp = actor.player?.hp ?? 0;
+  const savedTargetMaxHp = actor.target?.maxHp ?? 0;
+  const savedTargetHp = actor.target?.hp ?? 0;
+
   if (typeof prepare === 'function') {
     prepare(actor);
   }
@@ -119,6 +124,14 @@ export function runScenario({
   let currentWaitUntilLeft = null;
 
   const fail = (label, details) => {
+    if (actor.player) {
+      actor.player.maxHp = savedPlayerMaxHp;
+      actor.player.hp = savedPlayerHp;
+    }
+    if (actor.target) {
+      actor.target.maxHp = savedTargetMaxHp;
+      actor.target.hp = savedTargetHp;
+    }
     const result = {
       name: scenarioName,
       passed: false,
@@ -299,6 +312,15 @@ export function runScenario({
   if (stepIndex < steps.length) {
     const label = steps[stepIndex]?.label || steps[stepIndex]?.kind || 'Unknown';
     return fail(label, { reason: 'maxFramesReached', maxFrames: limit });
+  }
+
+  if (actor.player) {
+    actor.player.maxHp = savedPlayerMaxHp;
+    actor.player.hp = savedPlayerHp;
+  }
+  if (actor.target) {
+    actor.target.maxHp = savedTargetMaxHp;
+    actor.target.hp = savedTargetHp;
   }
 
   const result = {

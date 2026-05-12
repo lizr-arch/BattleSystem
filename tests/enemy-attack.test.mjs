@@ -158,13 +158,13 @@ function indexOfEvent(timeline, type, predicate = null) {
   actor.driverCombo.stage = DriverComboStage.Launch;
   actor.driverCombo.framesLeft = 60;
 
-  const { timeline } = tickUntil(actor, ({ timeline }) => hasEvent(timeline, CombatEventType.EnemyStrikeInterrupted), { maxTicks: 60 });
+  const { timeline } = tickUntil(actor, ({ timeline }) => hasEvent(timeline, CombatEventType.EnemyAttackInterrupted), { maxTicks: 60 });
 
-  assert.ok(hasEvent(timeline, CombatEventType.EnemyStrikeInterrupted, (e) => e.data?.reason === 'driver_combo'));
+  assert.ok(hasEvent(timeline, CombatEventType.EnemyAttackInterrupted, (e) => e.data?.reason === 'driver_combo'));
   assert.ok(hasEvent(timeline, CombatEventType.EnemyAttackCooldownStarted));
   assert.equal(actor.enemy.action, null);
 
-  const interruptedAt = indexOfEvent(timeline, CombatEventType.EnemyStrikeInterrupted);
+  const interruptedAt = indexOfEvent(timeline, CombatEventType.EnemyAttackInterrupted);
   const hitAfter = indexOfEvent(timeline.slice(interruptedAt + 1), CombatEventType.EnemyAttackHit);
   assert.equal(hitAfter, -1);
 }

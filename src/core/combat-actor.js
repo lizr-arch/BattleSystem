@@ -106,6 +106,7 @@ export class CombatActor {
     };
 
     this.vfx = [];
+    this.lastEnemyOutcome = null;
     this.paused = false;
 
     this.emit(CombatEventType.Init);
@@ -290,6 +291,7 @@ export class CombatActor {
           recoveryFrames: enemyAction.spec.recoveryFrames,
         } : null,
       } : null,
+      lastEnemyOutcome: this.lastEnemyOutcome ? { ...this.lastEnemyOutcome } : null,
     };
   }
 
@@ -553,6 +555,8 @@ export class CombatActor {
     this.frame += 1;
 
     if (this.battle?.active === false) {
+      this.action = null;
+      if (this.enemy) this.enemy.action = null;
       this.tickVfx();
       return;
     }
@@ -567,6 +571,8 @@ export class CombatActor {
       this.emit(CombatEventType.DebuffExpired, { type: exp.type });
     }
     if (this.battle?.active === false) {
+      this.action = null;
+      if (this.enemy) this.enemy.action = null;
       this.tickVfx();
       return;
     }
@@ -661,7 +667,7 @@ export class CombatActor {
       if (enemy.action) {
         const phase = enemy.action.phase;
         if (phase === ActionPhase.Startup || phase === ActionPhase.Active) {
-          this.emit(CombatEventType.EnemyStrikeInterrupted, { strikeId: strike.id, reason: 'driver_combo', stage, enemyId: enemy.id });
+          this.emit(CombatEventType.EnemyAttackInterrupted, { attackId: strike.id, reason: 'driver_combo', stage, enemyId: enemy.id });
           enemy.action = null;
           const before = enemy.cooldownLeft;
           enemy.cooldownLeft = Math.max(enemy.cooldownLeft, strike.cooldownFrames);
@@ -703,9 +709,11 @@ export class CombatActor {
       if (enemy.action.shouldFireHit()) {
         if (!this.inEnemyStrikeRange()) {
           this.emit(CombatEventType.EnemyAttackWhiffed, { attackId: strike.id, reason: 'out_of_range', enemyId: enemy.id });
+          this.lastEnemyOutcome = { kind: 'miss', frame: this.frame };
         } else {
           const damage = strike.damage ?? strike.actionSpec.damage ?? 0;
           this.emit(CombatEventType.EnemyAttackHit, { attackId: strike.id, damage, enemyId: enemy.id, targetId: this.id });
+          this.lastEnemyOutcome = { kind: 'hit', frame: this.frame };
           this.applyDamageToPlayer(damage, { source: 'EnemyStrike', sourceId: strike.id, enemyId: enemy.id });
         }
       }
