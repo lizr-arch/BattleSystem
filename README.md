@@ -65,6 +65,15 @@ V4.1 是设计阶段，不实现复杂 NPC AI（敌人 AI）。它为 V4.2 Enemy
   - Node：`npm test`（包含 enemy-attack/enemy-strike scenarios 与断言）。
   - Browser：右侧 Debug 面板 “Enemy/Player” 区块与 Scenario 按钮可直接复现 hit/whiff/defeat 等场景（不依赖键盘焦点）。
 
+## V4.3 Player Defeat / Battle Failure Polish（设计中）
+
+V4.3 是失败体验打磨阶段，不新增大玩法。目标是把 `BattleEnded Defeat（战斗失败）` 从事件结果打磨成稳定、可观察、可测试、可 reset 的失败体验。
+
+设计文档：
+
+- `docs/player-defeat-polish-design.md`
+- `docs/v4.3-player-defeat-polish-spec.md`
+
 ## V1 目标与边界
 
 这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒（浏览器可跑 + Node 可重复测试）：
@@ -193,5 +202,7 @@ See:
 - `docs/enemy-attack-model.md`
 - `docs/npc-ai-design.md`
 - `docs/v4.2-enemy-attack-mvp-spec.md`
+- `docs/player-defeat-polish-design.md`
+- `docs/v4.3-player-defeat-polish-spec.md`
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
