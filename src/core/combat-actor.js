@@ -349,6 +349,7 @@ export class CombatActor {
     this.routineOrb = null;
     this.debuffs = [];
     this.vfx = [];
+    this.lastEnemyOutcome = null;
     this.paused = false;
     if (this.enemy) {
       this.enemy.reset();
@@ -556,7 +557,10 @@ export class CombatActor {
 
     if (this.battle?.active === false) {
       this.action = null;
-      if (this.enemy) this.enemy.action = null;
+      if (this.enemy) {
+        this.enemy.action = null;
+        this.enemy.state = EnemyState.Idle;
+      }
       this.tickVfx();
       return;
     }
@@ -572,7 +576,10 @@ export class CombatActor {
     }
     if (this.battle?.active === false) {
       this.action = null;
-      if (this.enemy) this.enemy.action = null;
+      if (this.enemy) {
+        this.enemy.action = null;
+        this.enemy.state = EnemyState.Idle;
+      }
       this.tickVfx();
       return;
     }

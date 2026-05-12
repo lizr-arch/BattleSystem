@@ -82,6 +82,10 @@ export function breakRoutineOrb(label = '') {
   return { kind: 'breakRoutineOrb', label: String(label || 'breakRoutineOrb') };
 }
 
+export function resetRuntimeAfterDefeat(label = '') {
+  return { kind: 'resetRuntime', label: String(label || 'resetRuntimeAfterDefeat') };
+}
+
 export function assertSnapshot(predicate, label) {
   return { kind: 'assertSnapshot', predicate, label: String(label) };
 }
@@ -290,6 +294,13 @@ export function runScenario({
       const result = actor.breakRoutineOrb();
       recorder.record(actor, { note: label });
       passStep(label, { result });
+      continue;
+    }
+
+    if (kind === 'resetRuntime') {
+      actor.resetRuntime();
+      recorder.record(actor, { note: label });
+      passStep(label, {});
       continue;
     }
 

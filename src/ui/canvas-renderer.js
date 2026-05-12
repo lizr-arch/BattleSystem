@@ -168,6 +168,9 @@ export class CanvasRenderer {
     }
     if (actor.battle?.result === 'Defeat') {
       this.text('DEFEAT', 600, 120, '#ff4d6d', 42);
+      if (actor.paused) {
+        this.text('Press R to Reset', 600, 172, '#9aa3b2', 16);
+      }
     }
 
     let fill = '#273244';

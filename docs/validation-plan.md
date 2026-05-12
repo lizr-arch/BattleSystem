@@ -241,7 +241,7 @@ V4.2 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Routine Orb MVP：tiles/orb/break/burn tick/击杀闭环（scenarios + tests）。
 - Enemy Attack MVP：EnemyAttack 时序/命中/打空/冷却/被控与 PlayerDefeated（tests + scenarios）。
 
-## 非目标（当前阶段不做：<= V4.2）
+## V4.3 手动验证矩阵（Player Defeat Polish）`n`n| Case | 操作 | 期望结果 |`n| --- | --- | --- |`n| Defeat 后战斗停止 | 运行 scenario player-defeat-stops-combat | 场景 PASS；120 帧内无新战斗事件 |`n| Defeat 后 Reset 恢复 | 运行 scenario reset-after-defeat | 场景 PASS；reset 后 player/target alive |`n| Defeat 后输入被忽略 | 运行 scenario input-ignored-after-defeat | 场景 PASS；输入不触发 ActionStarted |`n| Canvas 显示 DEFEAT | 运行 enemy-can-defeat-player | Canvas 显示 DEFEAT + Press R to Reset |`n| DebugPanel 显示 Defeat | enemy-can-defeat-player 后观察面板 | Battle Result 显示 inactive result=Defeat |`n`n## 非目标（当前阶段不做：<= V4.3）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
