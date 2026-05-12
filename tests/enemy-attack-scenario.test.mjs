@@ -37,6 +37,7 @@ for (const name of required) {
   const { result } = run('enemy-can-defeat-player');
   assert.equal(result.finalSnapshot.battle?.result, 'Defeat');
   assert.equal(result.finalSnapshot.player?.dead, true);
+  assert.equal(result.finalSnapshot.player?.hp, 0);
 }
 
 {
