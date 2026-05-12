@@ -9,6 +9,7 @@ src/core/
   combat-actor.js        State machine owner
   combat-input.js        Input frame and command buffer
   combat-event-log.js    Observable event log
+  enemy-strike.js        EnemyStrike spec and runtime state
   enums.js               State / phase / event enums
   math.js                Small vector helpers
 ```

@@ -65,6 +65,18 @@ export class DebugPanel {
       mvpCastSkill2: this.byId('mvpCastSkill2'),
       mvpCastSkill3: this.byId('mvpCastSkill3'),
       mvpBreakOrb: this.byId('mvpBreakOrb'),
+      epEnemyState: this.byId('epEnemyState'),
+      epEnemyAction: this.byId('epEnemyAction'),
+      epEnemyPhase: this.byId('epEnemyPhase'),
+      epEnemyCooldown: this.byId('epEnemyCooldown'),
+      epEnemyHp: this.byId('epEnemyHp'),
+      epPlayerHp: this.byId('epPlayerHp'),
+      epBattleResult: this.byId('epBattleResult'),
+      epLastEnemyEvent: this.byId('epLastEnemyEvent'),
+      epRunEnemyHit: this.byId('epRunEnemyHit'),
+      epRunEnemyWhiff: this.byId('epRunEnemyWhiff'),
+      epRunPlayerDefeat: this.byId('epRunPlayerDefeat'),
+      epGrantEnemyCooldownReady: this.byId('epGrantEnemyCooldownReady'),
       scFullBattleLoop: this.byId('scFullBattleLoop'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
@@ -76,6 +88,13 @@ export class DebugPanel {
       scBladeInsufficientLevel: this.byId('scBladeInsufficientLevel'),
       scBladeExpire: this.byId('scBladeExpire'),
       scDriverBladeCoexist: this.byId('scDriverBladeCoexist'),
+      scEnemyStart: this.byId('scEnemyStart'),
+      scEnemyHit: this.byId('scEnemyHit'),
+      scEnemyWhiff: this.byId('scEnemyWhiff'),
+      scEnemyCooldown: this.byId('scEnemyCooldown'),
+      scEnemyToppled: this.byId('scEnemyToppled'),
+      scEnemyDefeat: this.byId('scEnemyDefeat'),
+      scEnemyKilled: this.byId('scEnemyKilled'),
       scResult: this.byId('scResult'),
       scProof: this.byId('scProof'),
       dbgGrantReady: this.byId('dbgGrantReady'),
@@ -133,6 +152,18 @@ export class DebugPanel {
     this.refs.scBladeInsufficientLevel.addEventListener('click', () => this.runScenario('insufficient-level-blade-combo'));
     this.refs.scBladeExpire.addEventListener('click', () => this.runScenario('expire-blade-combo'));
     this.refs.scDriverBladeCoexist.addEventListener('click', () => this.runScenario('driver-and-blade-coexist'));
+    this.refs.scEnemyStart.addEventListener('click', () => this.runScenario('enemy-starts-attack-when-player-in-range'));
+    this.refs.scEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
+    this.refs.scEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
+    this.refs.scEnemyCooldown.addEventListener('click', () => this.runScenario('enemy-attack-enters-cooldown'));
+    this.refs.scEnemyToppled.addEventListener('click', () => this.runScenario('enemy-cannot-attack-while-toppled'));
+    this.refs.scEnemyDefeat.addEventListener('click', () => this.runScenario('enemy-can-defeat-player'));
+    this.refs.scEnemyKilled.addEventListener('click', () => this.runScenario('player-can-defeat-attacking-enemy'));
+
+    this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
+    this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
+    this.refs.epRunPlayerDefeat.addEventListener('click', () => this.runScenario('enemy-can-defeat-player'));
+    this.refs.epGrantEnemyCooldownReady.addEventListener('click', () => this.grantEnemyCooldownReady());
 
     this.refs.dbgGrantReady.addEventListener('click', () => this.grantAllArtsReady());
     this.refs.dbgGrantSp1.addEventListener('click', () => this.grantSpecialLevel(1));
@@ -353,6 +384,46 @@ export class DebugPanel {
     this.refs.mvpLastEvent.textContent = lastKey;
   }
 
+  renderEnemyPlayerPanel(snapshot) {
+    const s = snapshot ?? this.actor.getSnapshot();
+    const enemy = s.enemy ?? null;
+
+    const enemyState = enemy?.state ?? '-';
+    this.refs.epEnemyState.textContent = String(enemyState || '-');
+    this.refs.epEnemyAction.textContent = enemy?.currentAction?.id ?? 'None';
+    this.refs.epEnemyPhase.textContent = enemy?.currentAction?.phase ?? 'None';
+
+    const cooldownLeft = Math.max(0, Number(enemy?.cooldownLeft ?? 0)) | 0;
+    const cooldownFrames = Math.max(0, Number(enemy?.attackSpec?.cooldownFrames ?? 0)) | 0;
+    this.refs.epEnemyCooldown.textContent = cooldownFrames > 0 ? `${cooldownLeft}/${cooldownFrames}f` : `${cooldownLeft}f`;
+
+    const enemyHp = Math.max(0, Number(enemy?.hp ?? 0)) | 0;
+    const enemyMaxHp = Math.max(0, Number(enemy?.maxHp ?? 0)) | 0;
+    const enemyDead = enemy?.dead === true;
+    this.refs.epEnemyHp.textContent = enemyMaxHp > 0 ? `${enemyHp}/${enemyMaxHp}${enemyDead ? ' DEAD' : ''}` : '-';
+
+    const playerHp = Math.max(0, Number(s.player?.hp ?? 0)) | 0;
+    const playerMaxHp = Math.max(0, Number(s.player?.maxHp ?? 0)) | 0;
+    const playerDead = s.player?.dead === true;
+    this.refs.epPlayerHp.textContent = playerMaxHp > 0 ? `${playerHp}/${playerMaxHp}${playerDead ? ' DEAD' : ''}` : '-';
+
+    const battleActive = s.battle?.active === false ? 'inactive' : 'active';
+    const battleResult = s.battle?.result ?? '-';
+    this.refs.epBattleResult.textContent = `${battleActive} result=${String(battleResult)}`;
+
+    const keyPrefixes = [
+      'EnemyAttack',
+      'EnemyStrike',
+      'EnemyControlled',
+      'PlayerDamageApplied',
+      'PlayerHpChanged',
+      'PlayerDefeated',
+      'BattleEnded',
+    ];
+    const lastKey = this.findLastEventLine(s.eventLogText, (msg) => keyPrefixes.some((p) => msg.startsWith(p)));
+    this.refs.epLastEnemyEvent.textContent = lastKey;
+  }
+
   runScenario(name) {
     const scenario = getScenario(name);
     const prevAutoAttackRange = this.actor.getSnapshot().autoAttackRange;
@@ -370,6 +441,17 @@ export class DebugPanel {
     this.actor.paused = true;
     this.actor.autoAttackRange = prevAutoAttackRange;
     this.setScenarioResult(result);
+    this.render(this.actor.getSnapshot());
+  }
+
+  grantEnemyCooldownReady() {
+    this.actor.paused = true;
+    if (typeof this.actor.debugGrantEnemyCooldownReady === 'function') {
+      this.actor.debugGrantEnemyCooldownReady({ tickAfter: true });
+    } else {
+      if (this.actor.enemy) this.actor.enemy.cooldownLeft = 0;
+      this.actor.tick(new CombatInputFrame());
+    }
     this.render(this.actor.getSnapshot());
   }
 
@@ -448,5 +530,6 @@ export class DebugPanel {
     this.renderSpecialGauge(s.specialGauge);
     this.renderTokens(s.tokens);
     this.renderSingleDriverMvp(s);
+    this.renderEnemyPlayerPanel(s);
   }
 }

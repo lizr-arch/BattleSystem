@@ -1,4 +1,4 @@
-# V4.0 Event Catalog
+# V4.2 Event Catalog
 
 本文档列出当前所有 `CombatEventType`，并给出其定义位置、发出位置、触发条件、`data` 字段与日志格式。事件名与字段以代码为准（见 `src/core/enums.js` 与 `src/core/combat-events.js`）。
 
@@ -173,16 +173,209 @@
 - 测试覆盖：未做显式断言（由状态机推进间接覆盖）
 - 备注：当前“结束事件”发在 action 清空前。
 
+## EnemyTargetSelected
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：enemy 首次确认/修正目标（当前版本固定为 Player）时发出一次。
+- data 字段：
+  - `enemyId: string`
+  - `targetId: string`
+- 日志格式：`EnemyTargetSelected enemy=<enemyId> target=<targetId>`
+- 相关机制：Enemy Attack（最小 AI：锁定目标并驱动攻击）
+- 测试覆盖：间接（enemy attack tests/scenarios 会触发，但未做显式断言）
+
+## EnemyAttackStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：敌方满足攻击条件（在 EnemyStrike 范围内、冷却为 0、且未处于 Driver Combo 控制）时启动一次 EnemyStrike action。
+- data 字段：
+  - `attackId: string`（当前默认 `EnemyStrike`）
+  - `enemyId: string`
+  - `targetId: string`
+- 日志格式：`EnemyAttackStarted <attackId>`
+- 相关机制：EnemyStrike、DriverCombo control、Battle / HP / Result
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`（显式断言/场景 proof）
+
+## EnemyAttackPhaseChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：EnemyStrike 的 action 相位发生变化（Startup/Active/Recovery/Finished）。
+- data 字段：
+  - `attackId: string`
+  - `before: string`（ActionPhase）
+  - `after: string`（ActionPhase）
+  - `enemyId: string`
+- 日志格式：`EnemyAttackPhaseChanged <attackId> <before>-><after>`
+- 相关机制：Enemy Action Timeline
+- 测试覆盖：`tests/enemy-attack.test.mjs`（断言相位顺序）
+
+## EnemyAttackHit
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：EnemyStrike 命中触发点到达，且玩家仍在 EnemyStrike 范围内。
+- data 字段：
+  - `attackId: string`
+  - `damage: number`
+  - `enemyId: string`
+  - `targetId: string`
+- 日志格式：`EnemyAttackHit <attackId> damage=<damage>`
+- 相关机制：Player Damage / Defeat
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`（显式断言/场景 proof）
+
+## EnemyAttackWhiffed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：EnemyStrike 命中触发点到达，但玩家不在 EnemyStrike 范围内。
+- data 字段：
+  - `attackId: string`
+  - `reason: 'out_of_range' | string`
+  - `enemyId: string`
+- 日志格式：`EnemyAttackWhiffed <attackId> reason=<reason>`
+- 相关机制：EnemyStrike Hit/Whiff
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`（out_of_range 分支）
+
+## EnemyAttackFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：EnemyStrike action 进入 Finished 相位并在本帧完成收尾后发出。
+- data 字段：
+  - `attackId: string`
+  - `enemyId: string`
+- 日志格式：`EnemyAttackFinished <attackId>`
+- 相关机制：EnemyStrike Timeline
+- 测试覆盖：`tests/enemy-attack.test.mjs`（显式断言存在）
+
+## EnemyAttackCooldownStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：一次 EnemyStrike action 结束后进入冷却，且 `cooldownLeft>0` 时发出。
+- data 字段：
+  - `attackId: string`
+  - `enemyId: string`
+  - `frames: number`
+- 日志格式：`EnemyAttackCooldownStarted <attackId> <frames>f`
+- 相关机制：EnemyStrike Cooldown
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`
+
+## EnemyAttackCooldownFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：`cooldownLeft` 从 >0 递减到 0 的那一帧发出。
+- data 字段：
+  - `attackId: string`
+  - `enemyId: string`
+- 日志格式：`EnemyAttackCooldownFinished <attackId>`
+- 相关机制：EnemyStrike Cooldown
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`
+
+## EnemyControlled
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：Driver Combo stage 为 `Topple/Launch` 时，enemy 从非 Controlled 进入 Controlled 的那一帧发出。
+- data 字段：
+  - `enemyId: string`
+  - `stage: string`（DriverComboStage）
+  - `framesLeft: number`
+- 日志格式：`EnemyControlled stage=<stage> <framesLeft>f`
+- 相关机制：DriverCombo control gate（enemy）
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`
+
+## EnemyStrikeStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackStarted` 覆盖）
+- 触发条件：N/A
+- data 字段：
+  - `strikeId: string`
+  - `enemyId: string`
+- 日志格式：`EnemyStrikeStarted <strikeId>`
+- 相关机制：Legacy/兼容事件名（保留枚举值以避免破坏外部引用）
+- 测试覆盖：无
+
+## EnemyStrikePhaseChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackPhaseChanged` 覆盖）
+- 触发条件：N/A
+- data 字段：
+  - `strikeId: string`
+  - `before: string`（ActionPhase）
+  - `after: string`（ActionPhase）
+- 日志格式：`EnemyStrikePhaseChanged <strikeId> <before>-><after>`
+- 相关机制：Legacy/兼容事件名
+- 测试覆盖：无
+
+## EnemyStrikeHit
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackHit` 覆盖）
+- 触发条件：N/A
+- data 字段：
+  - `strikeId: string`
+  - `damage: number`
+  - `enemyId: string`
+- 日志格式：`EnemyStrikeHit <strikeId> damage=<damage>`
+- 相关机制：Legacy/兼容事件名
+- 测试覆盖：无
+
+## EnemyStrikeWhiffed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackWhiffed` 覆盖）
+- 触发条件：N/A
+- data 字段：
+  - `strikeId: string`
+  - `reason: 'out_of_range' | string`
+- 日志格式：`EnemyStrikeWhiffed <strikeId> reason=<reason>`
+- 相关机制：Legacy/兼容事件名
+- 测试覆盖：无
+
+## EnemyStrikeInterrupted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：敌方处于 Driver Combo 控制时，若正在执行 EnemyStrike，则被中断并进入冷却。
+- data 字段：
+  - `strikeId: string`
+  - `reason: 'driver_combo' | string`
+  - `stage: string`（DriverComboStage）
+  - `enemyId: string`
+- 日志格式：`EnemyStrikeInterrupted <strikeId> reason=<reason>`
+- 相关机制：DriverCombo control
+- 测试覆盖：`tests/enemy-attack.test.mjs`（显式断言存在）
+
+## EnemyStrikeFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackFinished` 覆盖）
+- 触发条件：N/A
+- data 字段：
+  - `strikeId: string`
+  - `enemyId: string`
+- 日志格式：`EnemyStrikeFinished <strikeId>`
+- 相关机制：Legacy/兼容事件名
+- 测试覆盖：无
+
 ## DamageApplied
 
 - 定义位置：`src/core/enums.js`
-- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
-- 触发条件：任何来源尝试对 target 扣血（普攻/Art/Special/元素伤害/DoT tick）。
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`、`applyDamageToPlayer`）
+- 触发条件：任何来源尝试对 target 或 player 扣血（普攻/Art/Special/元素伤害/DoT tick/EnemyStrike）。
 - data 字段：
   - `targetId: string`
   - `amount: number`（本次实际扣血；可能为 0）
   - `source: 'AutoAttack' | 'Art' | 'Special' | 'Element' | 'Debuff' | string`
   - `sourceId: string|null`
+  - `enemyId: string|null`（可选：EnemyStrike 相关）
   - `beforeHp: number`
   - `afterHp: number`
 - 日志格式：`DamageApplied target=<targetId> amount=<amount> src=<source>`
@@ -216,13 +409,36 @@
 - 测试覆盖：`tests/routine-orb.test.mjs`、`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`
 - 备注：该事件之后 battle 会结束，tick 仍允许处理 vfx，但不再推进战斗规则。
 
+## PlayerHpChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToPlayer`）
+- 触发条件：player hp 确实发生变化时（before != after）。
+- data 字段：
+  - `before: number`
+  - `after: number`
+  - `maxHp: number`
+- 日志格式：`PlayerHpChanged <before>-><after>/<maxHp>`
+- 相关机制：Battle / HP / Result、EnemyStrike
+- 测试覆盖：`tests/enemy-strike-scenario.test.mjs`（Defeat scenario 间接覆盖）
+
+## PlayerDefeated
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToPlayer`）
+- 触发条件：player hp 归零且此前未 dead。
+- data 字段：无（`{}`）
+- 日志格式：`PlayerDefeated`
+- 相关机制：Battle / HP / Result、EnemyStrike
+- 测试覆盖：`tests/enemy-strike-scenario.test.mjs`
+
 ## BattleEnded
 
 - 定义位置：`src/core/enums.js`
-- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`）
-- 触发条件：battle 结束时（当前仅实现 Victory）。
+- 发出位置：`src/core/combat-actor.js`（`applyDamageToTarget`、`applyDamageToPlayer`）
+- 触发条件：battle 结束时（当前实现 Victory / Defeat）。
 - data 字段：
-  - `result: 'Victory' | string`
+  - `result: 'Victory' | 'Defeat' | string`
 - 日志格式：`BattleEnded result=<result>`
 - 相关机制：Battle / HP / Result
 - 测试覆盖：`tests/routine-orb.test.mjs`、`tests/routine-orb-scenario.test.mjs`、`tests/single-driver-mvp.test.mjs`

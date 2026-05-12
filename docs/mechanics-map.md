@@ -197,27 +197,42 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
 - 输出：`tokens[]`（进入 snapshot）；`TokenCreated` 事件
 - 关键不变量：
   - token 只由 core 创建并持有；UI 不应直接增删 tokens。
-  - 本仓库在 <= V4.0 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
+  - 本仓库在 <= V4.2 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
 - 测试覆盖：`tests/blade-combo-scenario.test.mjs`（TokenCreated 与 snapshot tokens）
 
-## Battle / HP / Result（V4.0）
+## Battle / HP / Result（V4.2）
 
 - 目的：为单驾驶员 MVP 提供“可击杀目标 + 战斗结果”的最小地基，并把扣血路径统一到可审计事件中。
 - 所属层：`src/core`
 - 主要文件：`src/core/combat-actor.js`
-- 输入：来自普攻/Art/Special/元素伤害/DoT tick 的 damage amount
-- 输出：`snapshot.battle/snapshot.target`；事件（DamageApplied/TargetHpChanged/TargetDefeated/BattleEnded）
-- 拥有状态：`CombatActor.battle`、`CombatActor.target`
+- 输入：来自普攻/Art/Special/元素伤害/DoT tick/EnemyStrike 的 damage amount
+- 输出：`snapshot.battle/snapshot.target/snapshot.player`；事件（DamageApplied/TargetHpChanged/TargetDefeated/PlayerHpChanged/PlayerDefeated/BattleEnded）
+- 拥有状态：`CombatActor.battle`、`CombatActor.target`、`CombatActor.player`
 - 发出事件：
   - `BattleStarted`（resetRuntime 后）
   - `DamageApplied`
   - `TargetHpChanged`
   - `TargetDefeated`
+  - `PlayerHpChanged`
+  - `PlayerDefeated`
   - `BattleEnded`
 - 关键不变量：
   - 所有扣血必须走统一通路并产出 `DamageApplied`，避免“偷偷改 hp”。
-  - hp 归零必须触发 `TargetDefeated` 与 `BattleEnded(Victory)`（可由 event log 证明）。
-- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/single-driver-mvp.test.mjs`
+  - hp 归零必须触发 Defeated + BattleEnded（Victory/Defeat）（可由 event log 证明）。
+- 测试覆盖：`tests/routine-orb.test.mjs`、`tests/single-driver-mvp.test.mjs`、`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`、`tests/enemy-strike-scenario.test.mjs`
+
+## Enemy Attack（EnemyStrike，V4.2）
+
+- 目的：为敌方提供最小“主动攻击”闭环（启动/时序/命中/空挥/冷却），并把控制权交给 Driver Combo（被控时不攻击）。
+- 所属层：`src/core`
+- 主要文件：`src/core/enemy-strike.js`、`src/core/combat-actor.js`
+- 输入：每帧 tick；距离判定（player<->target）；Driver Combo stage
+- 输出：`snapshot.enemy`；事件（EnemyTargetSelected/EnemyAttackStarted/EnemyAttackPhaseChanged/EnemyAttackHit/EnemyAttackWhiffed/EnemyAttackFinished/EnemyAttackCooldownStarted/EnemyAttackCooldownFinished/EnemyControlled/EnemyStrikeInterrupted）
+- 拥有状态：`CombatActor.enemy`（cooldownLeft/action/strikeSpec）
+- 关键不变量：
+  - EnemyStrike 只在 battle active、目标未 dead、玩家未 dead 时运行。
+  - 被 Driver Combo 控制时，不应启动 EnemyStrike；若正在执行则中断并进入冷却（可由事件日志证明）。
+- 测试覆盖：`tests/enemy-attack.test.mjs`、`tests/enemy-attack-scenario.test.mjs`、`tests/enemy-strike-scenario.test.mjs`
 
 ## Routine / Skill Trait（V4.0）
 

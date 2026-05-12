@@ -12,9 +12,18 @@ export const ActorState = Object.freeze({
   Art: 'Art',
 });
 
+export const EnemyState = Object.freeze({
+  Idle: 'Idle',
+  Attacking: 'Attacking',
+  Cooldown: 'Cooldown',
+  Controlled: 'Controlled',
+  Dead: 'Dead',
+});
+
 export const ActionKind = Object.freeze({
   AutoAttack: 'AutoAttack',
   Art: 'Art',
+  EnemyStrike: 'EnemyStrike',
 });
 
 export const DriverComboStage = Object.freeze({
@@ -56,9 +65,27 @@ export const CombatEventType = Object.freeze({
   ActionHit: 'ActionHit',
   ActionWhiffed: 'ActionWhiffed',
   ActionFinished: 'ActionFinished',
+  EnemyTargetSelected: 'EnemyTargetSelected',
+  EnemyAttackStarted: 'EnemyAttackStarted',
+  EnemyAttackPhaseChanged: 'EnemyAttackPhaseChanged',
+  EnemyAttackHit: 'EnemyAttackHit',
+  EnemyAttackWhiffed: 'EnemyAttackWhiffed',
+  EnemyAttackFinished: 'EnemyAttackFinished',
+  EnemyAttackCooldownStarted: 'EnemyAttackCooldownStarted',
+  EnemyAttackCooldownFinished: 'EnemyAttackCooldownFinished',
+  EnemyControlled: 'EnemyControlled',
+  EnemyStrikeStarted: 'EnemyStrikeStarted',
+  EnemyStrikePhaseChanged: 'EnemyStrikePhaseChanged',
+  EnemyStrikeHit: 'EnemyStrikeHit',
+  EnemyStrikeWhiffed: 'EnemyStrikeWhiffed',
+  EnemyStrikeInterrupted: 'EnemyStrikeInterrupted',
+  EnemyStrikeFinished: 'EnemyStrikeFinished',
+  PlayerDamageApplied: 'PlayerDamageApplied',
   DamageApplied: 'DamageApplied',
   TargetHpChanged: 'TargetHpChanged',
   TargetDefeated: 'TargetDefeated',
+  PlayerHpChanged: 'PlayerHpChanged',
+  PlayerDefeated: 'PlayerDefeated',
   BattleEnded: 'BattleEnded',
   ArtChargeChanged: 'ArtChargeChanged',
   ArtBecameReady: 'ArtBecameReady',

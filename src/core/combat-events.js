@@ -37,12 +37,48 @@ export function formatCombatEvent(type, data = {}) {
       return `ActionWhiffed ${data.actionId ?? data.artId ?? 'Unknown'}`;
     case CombatEventType.ActionFinished:
       return `ActionFinished ${data.actionId ?? data.artId ?? 'Unknown'}`;
+    case CombatEventType.EnemyTargetSelected:
+      return `EnemyTargetSelected enemy=${data.enemyId ?? data.enemy ?? 'Enemy'} target=${data.targetId ?? data.target ?? 'Player'}`;
+    case CombatEventType.EnemyAttackStarted:
+      return `EnemyAttackStarted ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'}`;
+    case CombatEventType.EnemyAttackPhaseChanged:
+      return `EnemyAttackPhaseChanged ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'} ${data.before ?? '?'}->${data.after ?? '?'}`;
+    case CombatEventType.EnemyAttackHit:
+      return `EnemyAttackHit ${data.attackId ?? data.strikeId ?? 'EnemyStrike'} damage=${data.damage ?? 0}`;
+    case CombatEventType.EnemyAttackWhiffed:
+      return `EnemyAttackWhiffed ${data.attackId ?? data.strikeId ?? 'EnemyStrike'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.EnemyAttackFinished:
+      return `EnemyAttackFinished ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'}`;
+    case CombatEventType.EnemyAttackCooldownStarted:
+      return `EnemyAttackCooldownStarted ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'} ${data.frames ?? data.cooldownFrames ?? 0}f`;
+    case CombatEventType.EnemyAttackCooldownFinished:
+      return `EnemyAttackCooldownFinished ${data.attackId ?? data.strikeId ?? data.actionId ?? 'EnemyStrike'}`;
+    case CombatEventType.EnemyControlled:
+      return `EnemyControlled stage=${data.stage ?? '?'} ${data.framesLeft ?? 0}f`;
+    case CombatEventType.EnemyStrikeStarted:
+      return `EnemyStrikeStarted ${data.strikeId ?? data.actionId ?? 'Unknown'}`;
+    case CombatEventType.EnemyStrikePhaseChanged:
+      return `EnemyStrikePhaseChanged ${data.strikeId ?? data.actionId ?? 'Unknown'} ${data.before ?? '?'}->${data.after ?? '?'}`;
+    case CombatEventType.EnemyStrikeHit:
+      return `EnemyStrikeHit ${data.strikeId ?? 'Unknown'} damage=${data.damage ?? 0}`;
+    case CombatEventType.EnemyStrikeWhiffed:
+      return `EnemyStrikeWhiffed ${data.strikeId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.EnemyStrikeInterrupted:
+      return `EnemyStrikeInterrupted ${data.strikeId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.EnemyStrikeFinished:
+      return `EnemyStrikeFinished ${data.strikeId ?? 'Unknown'}`;
+    case CombatEventType.PlayerDamageApplied:
+      return `PlayerDamageApplied amount=${data.amount ?? 0} src=${data.source ?? '?'}${data.enemyId ? ` enemy=${data.enemyId}` : ''}`;
     case CombatEventType.DamageApplied:
       return `DamageApplied target=${data.targetId ?? 'Unknown'} amount=${data.amount ?? 0} src=${data.source ?? '?'}`;
     case CombatEventType.TargetHpChanged:
       return `TargetHpChanged ${data.before ?? 0}->${data.after ?? 0}/${data.maxHp ?? 0}`;
     case CombatEventType.TargetDefeated:
       return `TargetDefeated target=${data.targetId ?? 'Unknown'}`;
+    case CombatEventType.PlayerHpChanged:
+      return `PlayerHpChanged ${data.before ?? 0}->${data.after ?? 0}/${data.maxHp ?? 0}`;
+    case CombatEventType.PlayerDefeated:
+      return `PlayerDefeated`;
     case CombatEventType.BattleEnded:
       return `BattleEnded result=${data.result ?? '?'}`;
     case CombatEventType.ArtChargeChanged:

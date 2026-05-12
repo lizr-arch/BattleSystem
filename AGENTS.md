@@ -53,7 +53,7 @@ Burn tick 可击杀 => BattleEnded(Victory)
 - Burn：灼烧
 - Chain Attack：连锁攻击（V4.0 延后）
 
-当前阶段：V4.0 Single Driver Routine-Orb MVP 已实现；当前里程碑以“文档同步 + 可观察性验收口径 + audit:map 门禁”为主（不新增玩法实现，除非用户明确要求）。
+当前阶段：V4.2 core enemy attack MVP 已实现；当前里程碑以“文档同步 + 可观察性验收口径 + audit:map 门禁”为主（不新增额外玩法扩展，除非用户明确要求）。
 
 主要目标：
 
@@ -485,16 +485,31 @@ V2 交付物：
 - tests/scenarios/UI：Node 侧 `npm test` 纳入 MVP；浏览器 Debug 面板提供一键 Run 与可视化展示。
 - 明确不包含：Chain Attack / Full Burst / Fusion / 复杂 Orbs cash-out。
 
-### V4.x：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
+### V4.1：Enemy Attack Model Design（完成，仅文档）
+
+- enemy attack model / npc ai design / v4.2 spec 作为实现前置的口径资产：
+  - `docs/enemy-attack-model.md`
+  - `docs/npc-ai-design.md`
+  - `docs/v4.2-enemy-attack-mvp-spec.md`
+- 明确不做复杂 AI（行为树/寻路/多敌人/队友 AI/仇恨系统）；只保留最小可验证闭环的设计口径。
+
+### V4.2：Enemy Attack MVP（完成）
+
+- core：EnemyStrikeSpec + enemy runtime state；敌方 tick（范围/冷却/时序）与命中/打空；玩家扣血与 Defeat；Driver Combo 控制门禁。
+- 可观察性：新增 `EnemyAttack*`、`EnemyControlled`、`PlayerDamageApplied/PlayerHpChanged/PlayerDefeated` 等事件；`getSnapshot()` 扩展 `snapshot.enemy/snapshot.player/snapshot.battle`。
+- tests/scenarios/UI：Node 侧 `npm test` 纳入 enemy-attack tests/scenarios；浏览器 Debug 面板提供 Enemy/Player 区块与 enemy attack scenarios 一键 Run。
+
+### V4.3+：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
 
 - 只允许在 Readiness Review + 拆分计划通过后进入实现（见 `docs/v4-readiness-review.md`）。
 - 必须先落 “文档与验收资产”，再落 “最小原型”，再补 “工具与可视化”。
 
-### 明确不做（当前版本边界：<= V4.0）
+### 明确不做（当前版本边界：<= V4.2）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
 - Token cash-out（当前仅产出 token，用于延迟奖励输入验证；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
+- 敌人复杂 AI（行为树/寻路/追击/多敌人/队友 AI/完整 Aggro 仇恨系统）。
 
 ### 制作人验收结论（截至 V2.1）
 

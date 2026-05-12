@@ -183,10 +183,13 @@ Break -> Topple -> Launch -> Smash
 说明：V4.x 只在完成 Readiness Review 与拆分计划后才允许进入实现阶段；禁止一次性引入大玩法与工程扩张。
 
 - V4.1（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险与拆分里程碑。
-- V4.2（最小原型）：最小闭环 + 可观察性（事件/快照/trace），不做数值平衡与复杂表现。
-- V4.3（工具与可视化）：补齐 Debug UI、场景按钮、proof/trace 体验与覆盖矩阵。
+- V4.2（最小原型，已实现）：EnemyStrike 最小闭环 + 可观察性（事件/快照/scenario/tests/UI），不做数值平衡与复杂表现。
+  - core：EnemyStrikeSpec、敌人 runtime state、敌方 tick（范围/冷却/时序）与 hit/whiff、玩家扣血与 Defeat、DriverCombo 控制门禁。
+  - 可观察性：新增 `EnemyAttack*`、`EnemyControlled`、`PlayerDamageApplied/PlayerHpChanged/PlayerDefeated` 等事件与 formatter；`snapshot.enemy/snapshot.player/snapshot.battle` 扩展。
+  - 验收入口：新增 enemy attack scenarios/tests；浏览器 Debug 面板新增 Enemy/Player 区块与场景一键 Run。
+- V4.3（工具与可视化，未来）：在不扩玩法的前提下补齐更多“可观察性资产”（覆盖矩阵细化、proof/trace 体验优化、Canvas 提示细节等）。
 
-## 明确不做（当前版本边界：<= V4.0）
+## 明确不做（当前版本边界：<= V4.2）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

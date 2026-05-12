@@ -1,4 +1,4 @@
-# V4.0 Test Coverage Map
+# V4.2 Test Coverage Map
 
 本文档盘点 `tests/*.mjs` 的覆盖范围，用于回答：
 
@@ -291,4 +291,80 @@ V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusio
   - 最终 `battle.result=Victory` 且 `target.dead=true` 且 `routineOrb=null`（orb 不残留）。
 - 必须保持通过的原因：
   - 这是 V4.0 交付的“一键可审计验收入口”（Node 侧）。
+
+## tests/enemy-strike-scenario.test.mjs
+
+- 测试目标：跑内置 legacy enemy strike scenarios，验证 “EnemyStrike 造成 Defeat” 与 “DriverCombo 控制门禁（Topple 下不启动攻击）”。
+- 覆盖机制：
+  - Enemy Attack（EnemyStrike spec + `tickEnemy`）
+  - Player Damage / Defeat（`applyDamageToPlayer`）
+  - DriverCombo control（Topple/Launch 下不应启动攻击）
+- 覆盖事件（通过 scenario proof / snapshot 断言）：
+  - `EnemyAttackHit`
+  - `PlayerDamageApplied`
+  - `PlayerDefeated`
+  - `BattleEnded`（Defeat）
+- 关键断言（保护性不变量）：
+  - EnemyStrike 可通过事件日志证明 hit 发生且会导致 Defeat。
+  - Driver Combo 处于 Topple 时不应启动攻击（无 `EnemyAttackStarted` 且 `enemy.currentAction=null`）。
+
+## tests/enemy-attack-scenario.test.mjs
+
+- 测试目标：跑 V4.2 required enemy attack scenarios，验证启动/命中/打空/冷却/被控/Defeat/击杀敌人等关键链路稳定 PASS。
+- 覆盖机制：
+  - Scenario Runner（proof/trace）
+  - Enemy Attack（范围/冷却/相位/命中/打空）
+  - Player Damage / Defeat
+  - Battle / HP / Result
+- 覆盖事件（主要由 scenario steps 的 assertEvent/assertSnapshot 覆盖）：
+  - `EnemyAttackStarted`
+  - `EnemyAttackPhaseChanged`
+  - `EnemyAttackHit`
+  - `EnemyAttackWhiffed`
+  - `EnemyAttackFinished`
+  - `EnemyAttackCooldownStarted`
+  - `EnemyAttackCooldownFinished`
+  - `EnemyControlled`
+  - `PlayerDamageApplied`
+  - `PlayerHpChanged`
+  - `PlayerDefeated`
+  - `TargetDefeated`（player-can-defeat-attacking-enemy）
+  - `BattleEnded`（Defeat）
+- 关键断言（保护性不变量）：
+  - out_of_range 必须 whiff 且不会掉血（无 `PlayerDamageApplied`）。
+  - 进入冷却期间不应再次启动攻击，冷却结束后才允许再次启动。
+  - Topple 下 enemy.state=Controlled 且不应启动攻击。
+
+## tests/enemy-attack.test.mjs
+
+- 测试目标：以 tick 级断言验证 EnemyAttack 相位顺序、命中/打空分支、冷却门禁与 DriverCombo 中断语义。
+- 覆盖机制：
+  - Enemy Action Timeline（Startup/Active/Recovery/Finished）
+  - Range check（hit vs out_of_range whiff）
+  - Cooldown gate
+  - DriverCombo control 与中断（Launch/Topple）
+- 覆盖事件（显式断言存在）：
+  - `EnemyAttackStarted`
+  - `EnemyAttackPhaseChanged`（Startup->Active->Recovery->Finished）
+  - `EnemyAttackHit`
+  - `EnemyAttackWhiffed reason=out_of_range`
+  - `EnemyAttackCooldownStarted`
+  - `EnemyAttackCooldownFinished`
+  - `EnemyControlled`
+  - `EnemyStrikeInterrupted reason=driver_combo`
+  - `PlayerDamageApplied`
+  - `PlayerHpChanged`
+
+## tests/player-defeat.test.mjs
+
+- 测试目标：验证 “PlayerDefeated 与 BattleEnded(Defeat) 同帧发生” 以及 battle ended 后不再产生新事件（战斗冻结）。
+- 覆盖机制：
+  - Player Damage / Defeat
+  - Battle / HP / Result（Defeat）
+- 覆盖事件（显式断言存在）：
+  - `PlayerDefeated`
+  - `BattleEnded result=Defeat`
+- 关键断言（保护性不变量）：
+  - `PlayerDefeated` 必须先于同帧的 `BattleEnded(Defeat)`（事件顺序可审计）。
+  - battle ended 后继续 tick 不应产生新事件。
 

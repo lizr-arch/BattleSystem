@@ -40,6 +40,9 @@ export class CanvasRenderer {
     this.lastTokenEventFrame = -1;
     this.smashFlashUntilFrame = 0;
     this.tokenFlashUntilFrame = 0;
+    this.lastEnemyOutcomeEventFrame = -1;
+    this.enemyOutcomeKind = null;
+    this.enemyOutcomeFlashUntilFrame = 0;
   }
 
   resize() {
@@ -57,6 +60,7 @@ export class CanvasRenderer {
 
     const actor = snapshot;
     const target = actor.target;
+    const enemy = actor.enemy ?? null;
     const frame = Number(actor.frame ?? 0) | 0;
 
     this.circle(target.x, target.y, actor.autoAttackRange, 'rgba(121,183,255,.035)', 'rgba(121,183,255,.25)', 1);
@@ -86,6 +90,29 @@ export class CanvasRenderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(`${hp | 0}/${maxHp | 0}`, anchor.x, anchor.y);
+    }
+
+    const playerHp = Math.max(0, Number(actor.player?.hp ?? 0));
+    const playerMaxHp = Math.max(0, Number(actor.player?.maxHp ?? 0));
+    const playerHpRatio = playerMaxHp > 0 ? Math.max(0, Math.min(1, playerHp / playerMaxHp)) : 0;
+    {
+      const anchor = point(this.canvas, actor.position.x, actor.position.y - actor.radius - 40);
+      const w = 160;
+      const h = 10;
+      const x = anchor.x - w / 2;
+      const y = anchor.y - h / 2;
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+      ctx.fillStyle = 'rgba(255,255,255,.08)';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = actor.player?.dead ? 'rgba(152,162,179,.9)' : 'rgba(121,183,255,.9)';
+      ctx.fillRect(x, y, Math.round(w * playerHpRatio), h);
+      ctx.font = '12px ui-monospace, Consolas, monospace';
+      ctx.fillStyle = '#0d1017';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const deadSuffix = actor.player?.dead ? ' DEAD' : '';
+      ctx.fillText(`${playerHp | 0}/${playerMaxHp | 0}${deadSuffix}`, anchor.x, anchor.y);
     }
 
     const driverStage = actor.driverCombo?.stage ?? DriverComboStage.None;
@@ -132,8 +159,15 @@ export class CanvasRenderer {
     this.text(`TOK ${tokenLabel}`, hudX, 80, '#e8ecf3', 12);
     this.text(`ORB ${orbLabel}`, hudX, 100, '#ff9dff', 12);
     this.text(`BURN ${burnLabel}`, hudX, 120, '#ffd166', 12);
+    this.text(`ENEMY ${String(enemy?.state ?? '-')}`, hudX, 140, '#ff7b7b', 12);
+    if (enemy?.currentAction?.phase === ActionPhase.Startup) {
+      this.text('ENEMY WINDUP', hudX, 160, '#ffd166', 12);
+    }
     if (actor.battle?.result === 'Victory') {
       this.text('VICTORY', 600, 120, '#7fd88d', 42);
+    }
+    if (actor.battle?.result === 'Defeat') {
+      this.text('DEFEAT', 600, 120, '#ff4d6d', 42);
     }
 
     let fill = '#273244';
@@ -188,6 +222,21 @@ export class CanvasRenderer {
             this.tokenFlashUntilFrame = parsed.frame + 24;
           }
         }
+        if (parsed.frame > this.lastEnemyOutcomeEventFrame) {
+          if (parsed.message.startsWith('EnemyAttackHit') || parsed.message.startsWith('EnemyStrikeHit')) {
+            this.lastEnemyOutcomeEventFrame = parsed.frame;
+            this.enemyOutcomeKind = 'hit';
+            this.enemyOutcomeFlashUntilFrame = parsed.frame + 24;
+          } else if (
+            parsed.message.startsWith('EnemyAttackWhiffed')
+            || parsed.message.startsWith('EnemyStrikeWhiffed')
+            || parsed.message.startsWith('EnemyStrikeInterrupted')
+          ) {
+            this.lastEnemyOutcomeEventFrame = parsed.frame;
+            this.enemyOutcomeKind = 'miss';
+            this.enemyOutcomeFlashUntilFrame = parsed.frame + 24;
+          }
+        }
       }
     }
 
@@ -200,6 +249,13 @@ export class CanvasRenderer {
       const left = Math.max(0, this.tokenFlashUntilFrame - frame);
       const a = Math.max(0, Math.min(1, left / 24));
       this.text('TOKEN!', target.x, target.y - target.radius - 140, rgba('#ff9dff', a), 26);
+    }
+    if (frame < this.enemyOutcomeFlashUntilFrame && this.enemyOutcomeKind) {
+      const left = Math.max(0, this.enemyOutcomeFlashUntilFrame - frame);
+      const a = Math.max(0, Math.min(1, left / 24));
+      const label = this.enemyOutcomeKind === 'hit' ? 'HIT!' : 'MISS';
+      const color = this.enemyOutcomeKind === 'hit' ? '#ffd166' : '#98a2b3';
+      this.text(label, actor.position.x, actor.position.y - actor.radius - 72, rgba(color, a), 26);
     }
 
     for (const fx of actor.vfx) {

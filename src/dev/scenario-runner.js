@@ -43,6 +43,41 @@ export function grantSpecialReady(charge = 300, label = '') {
   return { kind: 'grantSpecialReady', charge: clampInt(charge), label: String(label || `grantSpecialReady(${String(charge)})`) };
 }
 
+export function setPlayerPosition(x, y, label = '') {
+  return {
+    kind: 'setPlayerPosition',
+    x: Number(x),
+    y: Number(y),
+    label: String(label || `setPlayerPosition(${String(x)},${String(y)})`)
+  };
+}
+
+export function setEnemyPosition(x, y, label = '') {
+  return {
+    kind: 'setEnemyPosition',
+    x: Number(x),
+    y: Number(y),
+    label: String(label || `setEnemyPosition(${String(x)},${String(y)})`)
+  };
+}
+
+export function grantEnemyCooldownReady(label = '') {
+  return { kind: 'grantEnemyCooldownReady', label: String(label || 'grantEnemyCooldownReady') };
+}
+
+export function tickEnemyUntil(predicate, label, { timeoutFrames } = {}) {
+  return waitUntil(predicate, String(label || 'tickEnemyUntil'), { timeoutFrames });
+}
+
+export function waitEnemyPhase(phase, label, { timeoutFrames } = {}) {
+  const expected = String(phase);
+  return waitUntil(
+    (s) => String(s?.enemy?.currentAction?.phase ?? '') === expected,
+    String(label || `waitEnemyPhase(${expected})`),
+    { timeoutFrames }
+  );
+}
+
 export function breakRoutineOrb(label = '') {
   return { kind: 'breakRoutineOrb', label: String(label || 'breakRoutineOrb') };
 }
@@ -186,6 +221,42 @@ export function runScenario({
       framesElapsed += 1;
       recorder.record(actor, { note: label });
       passStep(label, { slot: clampInt(step.slot) });
+      continue;
+    }
+
+    if (kind === 'setPlayerPosition') {
+      const x = Number(step.x);
+      const y = Number(step.y);
+      actor.x = Number.isFinite(x) ? x : 0;
+      actor.y = Number.isFinite(y) ? y : 0;
+      recorder.record(actor, { note: label });
+      passStep(label, { x: actor.x, y: actor.y });
+      continue;
+    }
+
+    if (kind === 'setEnemyPosition') {
+      const x = Number(step.x);
+      const y = Number(step.y);
+      if (actor.target) {
+        actor.target.x = Number.isFinite(x) ? x : 0;
+        actor.target.y = Number.isFinite(y) ? y : 0;
+      }
+      recorder.record(actor, { note: label });
+      passStep(label, { x: actor.target?.x ?? null, y: actor.target?.y ?? null });
+      continue;
+    }
+
+    if (kind === 'grantEnemyCooldownReady') {
+      if (typeof actor.debugGrantEnemyCooldownReady === 'function') {
+        actor.debugGrantEnemyCooldownReady({ tickAfter: false });
+      } else if (actor.enemy) {
+        actor.enemy.cooldownLeft = 0;
+        if (actor.enemy.action === null && actor.enemy.state === 'Cooldown') {
+          actor.enemy.state = 'Idle';
+        }
+      }
+      recorder.record(actor, { note: label });
+      passStep(label, { cooldownLeft: actor.enemy?.cooldownLeft ?? null });
       continue;
     }
 

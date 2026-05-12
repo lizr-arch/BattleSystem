@@ -32,7 +32,21 @@ Arts 命中（映射为套路技能）
 Burn tick 可击杀 => BattleEnded(Victory)
 ```
 
-明确边界：<= V4.0 不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现。
+V4.2 额外闭环（Enemy Attack MVP）：
+
+```text
+敌人在范围内
+  ↓
+发动 EnemyStrike（敌人普通攻击）
+  ↓
+Startup / Active / Recovery（动作阶段）
+  ↓
+EnemyAttackHit => PlayerDamageApplied（玩家掉血）
+  ↓
+PlayerDefeated + BattleEnded(Defeat)（可失败）
+```
+
+明确边界：<= V4.2 不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；Enemy 仅实现单敌人、单技能（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
 如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划（见 `docs/v4-readiness-review.md`），且不得在同一里程碑中同时引入“大玩法 + 工程扩张”。
 
 ## V4.1 Enemy Attack Model Design（敌人攻击模型设计）
@@ -42,6 +56,14 @@ V4.1 是设计阶段，不实现复杂 NPC AI（敌人 AI）。它为 V4.2 Enemy
 - `docs/enemy-attack-model.md`
 - `docs/npc-ai-design.md`
 - `docs/v4.2-enemy-attack-mvp-spec.md`
+
+## V4.2 Enemy Attack MVP（已实现）
+
+- core：新增 EnemyStrike 配置与 enemy runtime state；敌人按距离与冷却自动发起攻击；命中可让玩家掉血并触发 Defeat。
+- 可观察性：新增 `EnemyAttack*`、`PlayerDamageApplied/PlayerHpChanged/PlayerDefeated` 等事件；`getSnapshot()` 扩展 `snapshot.enemy/snapshot.player/snapshot.battle`。
+- 一键验证入口：
+  - Node：`npm test`（包含 enemy-attack/enemy-strike scenarios 与断言）。
+  - Browser：右侧 Debug 面板 “Enemy/Player” 区块与 Scenario 按钮可直接复现 hit/whiff/defeat 等场景（不依赖键盘焦点）。
 
 ## V1 目标与边界
 
