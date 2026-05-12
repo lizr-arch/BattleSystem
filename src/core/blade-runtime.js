@@ -32,6 +32,7 @@ export class BladeRuntime {
     });
   }
 
+  // V5.1: Blade follows Driver; attack range measured from Driver position (actor.x/actor.y)
   tick({ target, actor } = {}) {
     const events = [];
     const dist = target ? distance({ x: actor.x, y: actor.y }, target) : Infinity;

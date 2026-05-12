@@ -14,6 +14,13 @@ export function resolveLoadout({
     return { activeBlades: [], errors };
   }
 
+  const defs = itemDefinitions ?? null;
+
+  function getDef(id) {
+    if (defs && defs[id]) return defs[id];
+    return getItemDefinition(id);
+  }
+
   const validationGrid = createBackpackGrid({ width: backpackGrid.width, height: backpackGrid.height });
 
   const placedItems = [...(backpackGrid.items ?? [])];
@@ -42,7 +49,7 @@ export function resolveLoadout({
   for (const placed of bladeItems) {
     if (activeBlades.length >= maxActive) break;
 
-    const definition = getItemDefinition(placed.itemId);
+    const definition = getDef(placed.itemId);
     if (!definition || definition.type !== 'Blade') {
       errors.push(`item ${placed.instanceId}: unknown or non-blade item ${placed.itemId}`);
       continue;
@@ -65,7 +72,7 @@ export function resolveLoadout({
 
     const internalEq = definition.internalEquipment;
     if (internalEq && internalEq.slotModule) {
-      const slotModuleDef = getItemDefinition(internalEq.slotModule);
+      const slotModuleDef = getDef(internalEq.slotModule);
       if (slotModuleDef && slotModuleDef.type === 'BladeSlotModule') {
         for (const sock of (slotModuleDef.generatedSockets ?? [])) {
           if (sock.x < 0 || sock.y < 0 ||
@@ -90,7 +97,7 @@ export function resolveLoadout({
 
           const assignment = socketAssignments[`${placed.instanceId}:${sock.socketId}`];
           if (assignment) {
-            const coreDef = getItemDefinition(assignment);
+            const coreDef = getDef(assignment);
             if (coreDef && coreDef.type === 'ElementCore' && sock.accepts.includes('ElementCore')) {
               socketInfo.itemId = coreDef.id;
               socketInfo.itemType = coreDef.type;
