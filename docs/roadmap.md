@@ -4,30 +4,13 @@ BattleSystem 会从“浏览器验证沙盒”逐步长成可复用的战斗核�
 
 ## V0：普攻 + 武技闭环（完成）
 
-状态：完成（基础闭环已验证）
+状态：完成。
 
-范围：
-
-- 浏览器单页验证沙盒。
-- 固定帧模拟（60 FPS）。
-- 移动意图输入。
-- 普攻链：`AA1 -> AA2 -> AA3`。
-- 统一动作阶段：`Startup / Active / Recovery / Finished`。
-- 武技充能与消费。
-- 输入缓冲。
-- 后摇取消（到移动 / 到武技）。
-- Cancel Bonus 窗口。
-- 事件日志 + Debug UI。
-
-验收：
-
-- `index.html` 可直接在浏览器运行（无构建步骤）。
-- 玩家可对着木桩复现闭环节奏。
-- 关键转移能通过事件日志被证明。
+范围：固定帧模拟、移动意图、普攻链、动作阶段、武技充能与消费、输入缓冲、后摇取消、Cancel Bonus（取消奖励）、事件日志 + Debug UI。
 
 ## V1：模块化战斗核心（完成）
 
-状态：完成（模块拆分已落地）
+状态：完成。
 
 范围：
 
@@ -38,166 +21,106 @@ src/ui/     浏览器输入/渲染/调试 UI
 tests/      Node 可重复测试
 ```
 
-目标：
+## V2：Driver Combo（驱动者连击）原型（完成）
 
-- 保持战斗规则与浏览器壳解耦。
-- 增加可重复回放/时序边界相关测试。
-- 让数值与动作参数由配置驱动。
-
-## V2：Driver Combo 原型（完成）
-
-状态：完成（状态模型 + 事件 + 最小 UI/测试已落地）
-
-新增控制链层（通过武技命中推进）：
+状态：完成。
 
 ```text
-Break -> Topple -> Launch -> Smash
+Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击）
 ```
 
-范围：
+## V2.1：Observability Validation Harness（可观察性验证工具）（完成）
 
-- core 层实现 Driver Combo 状态机（stage + 剩余帧数）。
-- Art 命中时挂载 effect（`Break/Topple/Launch/Smash`）推进状态。
-- 每次推进/失败/超时/完成均产生日志事件，便于验证。
-- 浏览器 Debug 面板展示当前 stage 与剩余时间；Smash 成功有显式提示。
+状态：完成。
 
-验收：
+范围：Scenario Runner（脚本化场景运行器）、Trace Recorder（逐帧追踪记录器）、一键 Run 按钮、PASS/FAIL + proof（证明链）。
 
-- 通过 `1/2/3/4` 的顺序输入可稳定推进并完成 Smash。
-- 错序输入产出 `DriverComboFailed`，且不改变 stage（可通过日志证明）。
-- 超时产出 `DriverComboExpired`，stage 回到 None（可通过日志证明）。
-- `npm test` 覆盖并通过 Driver Combo 的关键不变量。
+## V2.2：System Map and Mechanic Inventory（系统地图与机制盘点）（完成）
 
-## V2.1：Observability Validation Harness（完成）
+状态：完成。
 
-状态：完成（scenario runner + trace + Debug UI 按钮已落地）
+交付物：system map、mechanics map、event catalog、test coverage map、V3 readiness review。
 
-背景：
+## V3：Special / Blade Combo / Token（必杀技 / 异刃连击 / 延迟奖励资源）原型（完成）
 
-- 浏览器里用键盘 `1/2/3/4` 验证 Driver Combo 在自动化/AI 环境下不稳定（焦点、one-shot、buffer 窗口、Recovery 消费窗口等）。
+状态：完成。
 
-范围：
-
-- 新增纯逻辑 `scenario runner`（不依赖 DOM/Canvas），用 `tick(CombatInputFrame)` 驱动并输出 proof + trace。
-- 内置 scenarios：full-driver-combo / wrong-order-smash / expire-break / expire-topple。
-- Debug UI 增加一键 Run 按钮与 PASS/FAIL + proof 摘要展示；提供 Debug Input（Grant Ready / Cast Art1~4 / Step To Recovery），不依赖键盘焦点。
-- Node 测试覆盖 scenario runner 与 Driver Combo scenarios（`npm test` 通过）。
-
-验收：
-
-- core deterministic tests 是主验收；scenario runner 是机制链路验收；browser smoke 是 UI/加载验收；键盘 playtest 仅补充。
-- 点击 Run Full Combo 可稳定 PASS，且 proof/日志能解释每一次推进/失败/过期/完成。
-
-## V2.1.1：UI polish（完成）
-
-状态：完成（Driver Combo 面板绑定与 Scenario 观察体验已补强）
-
-范围：
-
-- Driver Combo Stage/Timer 面板绑定与刷新保持稳定。
-- Scenario Run 后保持 paused，便于观察画布状态。
-- 文档路线图状态与实现保持同步。
-
-验收：
-
-- 浏览器中一键 Run scenarios 后，画布停留在可观察状态（paused）。
-- Driver Combo stage/timer 与事件日志保持一致（可通过面板与日志共同证明）。
-
-## V2.2：System Map and Mechanic Inventory（完成）
-
-状态：完成（系统地图/机制盘点/事件目录/测试覆盖图/Readiness Review 已落地）
-
-目标：
-
-- 在进入 V3 前完成架构审计与系统资产盘点。
-- 明确当前机制、事件、状态、测试覆盖与未来接入点，形成可审计文档。
-
-交付物：
-
-- `docs/system-map.md`
-- `docs/mechanics-map.md`
-- `docs/event-catalog.md`
-- `docs/test-coverage-map.md`
-- `docs/v3-readiness-review.md`
-
-## V3：Special / Blade Combo / Token 原型（完成）
-
-状态：完成（core + events + scenarios/tests + 最小 UI 可观察性）
-
-范围：
-
-- Special Gauge（资源条）：
-  - Arts 命中会按配置为 gauge 充能（示例默认：Art1~4 分别 +25/+25/+30/+40）。
-  - 阈值：100/200/300，对应 readyLevel：L1/L2/L3。
-- Special（必杀）：
-  - 释放时检查等级是否足够；不足会失败并记录原因；足够会消耗并进入动作时序。
-  - 命中会产出 `SpecialHit`，并作为 Blade Combo 的推进输入。
-- Blade Combo（路线链）：
-  - Specials 命中推进路线（示例默认路线：`Fire(L1) -> Water(L2) -> Fire(L3)`）。
-  - 错元素/等级不足会失败但不推进；倒计时归零会过期回 None。
-- Token（延迟奖励输入）：
-  - 路线完成会产出一个 Token 并记录 `TokenCreated`（当前仅“产出与可观察性验证”，不含兑现机制）。
-- 验收入口：
-  - Node：`npm test`（包含 Special/Blade/Token 相关 tests 与 scenarios）。
-  - Browser：右侧 Debug 面板展示 gauge/route/tokens，并提供一键 Run scenarios 与 debug buttons（不依赖键盘焦点）。
+范围：Special Gauge（必杀技计量）、Special（必杀技）、Blade Combo（异刃连击路线）、TokenCreated（延迟奖励资源创建）。
 
 ## V3.1：文档同步 + 可观察性验收口径（完成）
 
-状态：完成（不新增玩法实现）
+状态：完成。
 
-范围：
+范围：完整链路 scenario、V4 readiness 文档、验收口径同步。
 
-- README / AGENTS / docs 的路线图、验证计划、机制图、测试覆盖图保持一致。
-- 明确 V4 的预研入口与拆分规则（先文档与验收资产，后最小原型）。
-- 新增 `docs/v4-readiness-review.md`（V4 的唯一入口文档）。
+## V4.0：Single Driver Routine-Orb MVP（单人驱动者 + 套路挂球 MVP）（完成）
 
-验收：
+状态：完成。
 
-- 文档之间不互相矛盾（边界、非目标、路线阶段一致）。
-- `npm test` 仍通过；浏览器入口不受影响。
+范围：Battle/HP/Result（战斗/生命/结果）、RoutineTile（套路牌）、RoutineOrb（套路球）、Break RoutineOrb（削球）、Burn（燃烧）、Victory（胜利）。
 
-## V4.0：Single Driver Routine-Orb MVP（完成）
+明确不包含：Chain Attack（连锁攻击阶段）、Full Burst（最终爆发）、Fusion Combo（融合连击）、复杂属性球兑现。
 
-说明：V4.0 以“单驾驶员·套路球（Routine Orb）”作为最小可玩闭环，目标是用最少规则验证：可击杀目标、破球结算、DoT tick、胜利判定与全链路可观察性。
+## V4.1：Enemy Attack Model Design（敌人攻击模型设计）（完成）
 
-范围：
+状态：完成。
 
-- Battle / HP / Result：统一扣血通路与 `Victory` 结束判定（事件可审计）。
-- Routine（套路）：
-  - Art1/2/3 命中记录为 tiles（最多 3 张）。
-  - 3 张同 Routine 自动生成 orb（仅 1 个 active）。
-- Orb Break（破球）：
-  - `breakRoutineOrb()` 触发元素伤害 + Burn（灼烧）debuff。
-  - Burn tick 可击杀并结束战斗。
-- 验收入口：
-  - Node：`npm test`（包含 routine-orb 与 single-driver-mvp tests/scenarios）。
-  - Browser：Debug 面板提供 “Single Driver MVP” 展示与 scenarios 一键 Run。
+范围：只做设计文档，不实现敌人 AI（敌人自动战斗逻辑）。
 
-明确不包含：
+交付物：
 
-- Chain Attack（连锁攻击）/ Full Burst / Fusion。
-- 复杂属性球系统（多球、堆叠、计数与 cash-out）。
+- `docs/enemy-attack-model.md`
+- `docs/npc-ai-design.md`
+- `docs/v4.2-enemy-attack-mvp-spec.md`
 
-## V4.x：Chain Attack / Orbs cash-out / Full Burst / Fusion（未来，必须拆分）
+## V4.2：Enemy Attack MVP Implementation（敌人攻击最小实现）（完成）
 
-说明：V4.x 只在完成 Readiness Review 与拆分计划后才允许进入实现阶段；禁止一次性引入大玩法与工程扩张。
+状态：完成。
 
-- V4.1（文档与验收资产）：机制拆解、事件目录草案、tests/scenarios 计划、风险与拆分里程碑。
-- V4.2（最小原型，已实现）：EnemyStrike 最小闭环 + 可观察性（事件/快照/scenario/tests/UI），不做数值平衡与复杂表现。
-  - core：EnemyStrikeSpec、敌人 runtime state、敌方 tick（范围/冷却/时序）与 hit/whiff、玩家扣血与 Defeat、DriverCombo 控制门禁。
-  - 可观察性：新增 `EnemyAttack*`、`EnemyControlled`、`PlayerDamageApplied/PlayerHpChanged/PlayerDefeated` 等事件与 formatter；`snapshot.enemy/snapshot.player/snapshot.battle` 扩展。
-  - 验收入口：新增 enemy attack scenarios/tests；浏览器 Debug 面板新增 Enemy/Player 区块与场景一键 Run。
-- V4.3（工具与可视化，未来）：在不扩玩法的前提下补齐更多“可观察性资产”（覆盖矩阵细化、proof/trace 体验优化、Canvas 提示细节等）。
+范围：EnemyAttackSpec（敌人攻击配置）、Enemy Runtime State（敌人运行时状态）、EnemyAttackHit（敌人攻击命中）、PlayerDamageApplied（玩家受到伤害）、PlayerDefeated（玩家被击败）、BattleEnded Defeat（战斗失败）。
 
-## 明确不做（当前版本边界：<= V4.2）
+不做：复杂行为树、寻路、多敌人、队友 AI、完整 Aggro（仇恨）系统、Chain Attack（连锁攻击阶段）、Full Burst（最终爆发）、Fusion Combo（融合连击）。
 
-- Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x，必须按 Readiness Review 拆分里程碑推进）。
-- 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
-- Token cash-out（当前只验证 token 的产出与可观察性；兑现/破碎/消耗等 payoff 机制需等待 V4 拆分评审）。
+## V4.2.1：Enemy Combat Polish（敌人战斗打磨）（进行中 / 待合并）
+
+状态：进行中。
+
+范围：敌人事件命名收敛、Canvas（画布）结构化读取 enemy outcome（敌人命中/打空结果）、Defeat（失败）后 stale action（残留动作）清理、scenario finalSnapshot（场景最终快照）修复。
+
+## V4.3：Player Defeat / Battle Failure Polish（玩家失败与战斗失败打磨）（设计中）
+
+状态：设计中。
+
+交付物：
+
+- `docs/player-defeat-polish-design.md`
+- `docs/v4.3-player-defeat-polish-spec.md`
+
+目标：把 `BattleEnded Defeat（战斗失败）` 从事件结果打磨成稳定、可观察、可测试、可 reset（重置）的失败体验。
+
+## V5：Single Driver + Blade Production Flow（单人驱动者 + 异刃正式流程）（未来）
+
+状态：未来。
+
+范围：Driver（驱动者）与 Blade（异刃）的正式数据关系、activeBlade（当前异刃）、Blade specials（异刃必杀）、非 debug 的异刃连击入口。
+
+## V6：Party Battle（队伍战斗）（未来）
+
+状态：未来。
+
+范围：队友 AI、多个 Driver（驱动者）、多个 Blade（异刃）、Aggro（仇恨）、治疗、坦克、多人协作连击。
+
+## V7+：高级结算机制（未来，延后）
+
+状态：未来。
+
+范围：Chain Attack（连锁攻击阶段）、Full Burst（最终爆发）、Fusion Combo（融合连击）、复杂属性球兑现。
+
+这些机制必须在单人战斗 + 敌人攻击 + 失败体验稳定 + 队伍基础之后再做。
 
 ## 工程原则
 
-- 战斗规则不允许“黑盒魔法”，必须可解释。
-- 任何重要状态变化必须可被观察（日志/快照/可视化）。
-- 动作时序与取消权限由数据驱动，而不是 UI 特判。
-- 先做浏览器验证，再做生产级动画与表现扩展。
+- 战斗规则必须可解释。
+- 关键状态变化必须可观察：日志、Snapshot（状态快照）、Scenario proof（场景证明链）。
+- 动作时序与取消权限由数据驱动，不由 UI 特判。
+- 文档设计由制作/架构负责；本地大模型主要负责按 SPEC（规格）编程实现。
