@@ -1,12 +1,12 @@
-# 验证计划（V1-V4.2）
+# 验证计划（V1-V4.3）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
 ## 目标
 
-在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token、V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环），以及 V4.2 的 Enemy Attack MVP（敌人最小攻击闭环）验证清楚，并保证行为可解释、可复现。
+在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token、V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）、V4.2 的 Enemy Attack MVP（敌人最小攻击闭环），以及 V4.3 的 Player Defeat Polish（玩家失败打磨）验证清楚，并保证行为可解释、可复现。
 
-明确边界：在 <= V4.2 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小闭环，不实现追击/寻路/行为树/仇恨系统。
+明确边界：在 <= V4.3 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
 如进入后续 V4.x，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
 
 核心闭环（V1）：
@@ -65,6 +65,20 @@ EnemyAttackStarted / EnemyAttackPhaseChanged
 EnemyAttackHit => PlayerDamageApplied（玩家掉血）
   ↓
 PlayerDefeated + BattleEnded(Defeat)（可失败）
+```
+
+失败体验打磨（V4.3）：
+
+```text
+PlayerDefeated
+  ↓
+BattleEnded(Defeat)
+  ↓
+战斗规则停止
+  ↓
+输入被忽略
+  ↓
+Reset 后恢复可战斗状态
 ```
 
 ## 手动验证矩阵（V1：基础闭环）
@@ -132,6 +146,16 @@ PlayerDefeated + BattleEnded(Defeat)（可失败）
 | 敌人可击败玩家 | 运行 scenario `enemy-can-defeat-player` | 出现 `PlayerDefeated` 与 `BattleEnded result=Defeat`；Enemy/Player 面板显示 battle inactive |
 | 玩家可击杀正在攻击的敌人 | 运行 scenario `player-can-defeat-attacking-enemy` | 出现 `TargetDefeated`（Victory）；在敌人被击杀前不应出现 `EnemyAttackHit` |
 
+## 手动验证矩阵（V4.3：Player Defeat Polish）
+
+| Case | 操作 | 期望结果 |
+| --- | --- | --- |
+| Defeat 后战斗停止 | 运行 scenario `player-defeat-stops-combat` | 场景 PASS；120 帧内无新的战斗事件 |
+| Defeat 后 Reset 恢复 | 运行 scenario `reset-after-defeat` | 场景 PASS；reset 后 player / target alive，battle active |
+| Defeat 后输入被忽略 | 运行 scenario `input-ignored-after-defeat` | 场景 PASS；输入不触发 `ActionStarted` / `InputConsumed` |
+| Canvas 显示 DEFEAT | 运行 scenario `enemy-can-defeat-player` 或 `player-defeat-stops-combat` | Canvas 显示 `DEFEAT`，暂停时显示 `Press R to Reset` |
+| DebugPanel 显示 Defeat | 运行 defeat 相关 scenario 后观察面板 | Battle Result 显示 `inactive result=Defeat`，Player HP 显示 0/dead |
+
 ## Debug 信号（浏览器侧）
 
 使用右侧 Debug 面板与事件日志检查：
@@ -193,12 +217,14 @@ PlayerHpChanged 100->85/100
 EnemyAttackFinished EnemyStrike
 EnemyAttackCooldownStarted EnemyStrike 90f
 EnemyControlled stage=Topple 60f
-EnemyStrikeInterrupted EnemyStrike reason=driver_combo
+EnemyAttackInterrupted EnemyStrike reason=driver_combo
 PlayerDefeated
 BattleEnded result=Defeat
+Reset
+BattleStarted target=Dummy hp=999999/999999
 ```
 
-## 验收标准（V1-V4.2）
+## 验收标准（V1-V4.3）
 
 - core deterministic tests（Node）：主验收证据，验证不变量与规则边界。
 - scenario runner（Node/UI）：机制链路验收证据，验证完整流程与失败原因（不依赖键盘焦点）。
@@ -209,17 +235,18 @@ BattleEnded result=Defeat
 - `src/core` 保持纯逻辑，不依赖 DOM / Canvas。
 - `npm test` 在 Node 下通过。
 - `npm run audit:map` PASS（文档盘点门禁）。
-- 上述 V1~V3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
-- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出、EnemyAttack 命中/打空/冷却/被控、Player Damage/Defeat）。
+- 上述 V1~V4.3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
+- 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出、EnemyAttack 命中/打空/冷却/被控、Player Damage/Defeat、Reset after Defeat）。
 
-## 文档一致性验收（V4.2）
+## 文档一致性验收（V4.3）
 
-V4.2 验收以“口径一致 + 可追溯 + 一键可复现”为主：
+V4.3 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 
 - README / AGENTS / docs 路线图不互相矛盾（版本命名、边界、非目标一致）。
 - `docs/mechanics-map.md` 与 `docs/test-coverage-map.md` 保持同步（机制与测试覆盖口径一致）。
 - `docs/routine-orb-system.md` 与事件目录/模型/测试覆盖口径一致。
 - Enemy Attack 相关文档（`docs/enemy-attack-model.md` / `docs/npc-ai-design.md` / `docs/v4.2-enemy-attack-mvp-spec.md`）与实现/事件目录/测试覆盖口径一致。
+- Player Defeat 相关文档（`docs/player-defeat-polish-design.md` / `docs/v4.3-player-defeat-polish-spec.md`）与实现/事件目录/测试覆盖口径一致。
 - 后续 V4.x 预研只能通过 `docs/v4-readiness-review.md` 进入，且必须拆分里程碑。
 
 ## 自动化测试（Node）
@@ -240,8 +267,9 @@ V4.2 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Battle / HP / Result：DamageApplied/TargetHpChanged/TargetDefeated/BattleEnded 的链路可审计。
 - Routine Orb MVP：tiles/orb/break/burn tick/击杀闭环（scenarios + tests）。
 - Enemy Attack MVP：EnemyAttack 时序/命中/打空/冷却/被控与 PlayerDefeated（tests + scenarios）。
+- Player Defeat Polish：Defeat 后停止、Defeat 后输入被忽略、Reset 后恢复、finalSnapshot 保留真实 Defeat 状态。
 
-## 非目标（当前阶段不做：<= V4.2）
+## 非目标（当前阶段不做：<= V4.3）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。

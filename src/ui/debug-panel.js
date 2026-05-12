@@ -95,6 +95,9 @@ export class DebugPanel {
       scEnemyToppled: this.byId('scEnemyToppled'),
       scEnemyDefeat: this.byId('scEnemyDefeat'),
       scEnemyKilled: this.byId('scEnemyKilled'),
+      scDefeatStopsCombat: this.byId('scDefeatStopsCombat'),
+      scResetAfterDefeat: this.byId('scResetAfterDefeat'),
+      scInputIgnoredDefeat: this.byId('scInputIgnoredDefeat'),
       scResult: this.byId('scResult'),
       scProof: this.byId('scProof'),
       dbgGrantReady: this.byId('dbgGrantReady'),
@@ -159,6 +162,9 @@ export class DebugPanel {
     this.refs.scEnemyToppled.addEventListener('click', () => this.runScenario('enemy-cannot-attack-while-toppled'));
     this.refs.scEnemyDefeat.addEventListener('click', () => this.runScenario('enemy-can-defeat-player'));
     this.refs.scEnemyKilled.addEventListener('click', () => this.runScenario('player-can-defeat-attacking-enemy'));
+    this.refs.scDefeatStopsCombat.addEventListener('click', () => this.runScenario('player-defeat-stops-combat'));
+    this.refs.scResetAfterDefeat.addEventListener('click', () => this.runScenario('reset-after-defeat'));
+    this.refs.scInputIgnoredDefeat.addEventListener('click', () => this.runScenario('input-ignored-after-defeat'));
 
     this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
     this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));

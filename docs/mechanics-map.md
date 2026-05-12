@@ -3,7 +3,7 @@
 本文档列出 BattleSystem 当前机制地图（Mechanic Inventory）。机制本身以代码与测试为准；本文档提供“机制→文件→输入/输出/事件/不变量/测试”的可追溯索引。
 V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）” 相关机制，并要求文档与 README/验证计划/测试覆盖图口径一致。
 
-## Deferred (V4.x, not implemented)
+## Deferred (V4.3 (completed; V4.x+ future))
 
 - 未来可能评审的 payoff 机制：Chain Attack（连锁攻击）/ Full Burst / Fusion / 更完整的 Orbs cash-out（不在 V4.0 实现范围）。
 - 进入实现前必须先完成 Readiness Review 与拆分计划：`docs/v4-readiness-review.md`。
@@ -200,7 +200,7 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
   - 本仓库在 <= V4.2 只验证“产出与可观察性”；cash-out/Chain Attack 等 payoff 机制需等待 V4 Readiness Review 与拆分评审（见 `docs/v4-readiness-review.md`）。
 - 测试覆盖：`tests/blade-combo-scenario.test.mjs`（TokenCreated 与 snapshot tokens）
 
-## Battle / HP / Result（V4.2）
+## Battle / HP / Result(V4.3 updated)
 
 - 目的：为单驾驶员 MVP 提供“可击杀目标 + 战斗结果”的最小地基，并把扣血路径统一到可审计事件中。
 - 所属层：`src/core`

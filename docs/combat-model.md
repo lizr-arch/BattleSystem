@@ -240,9 +240,9 @@ V4.2 把“木桩目标”升级为“可主动攻击玩家的简单敌人”：
 | Special Gauge | 0..300（阈值 100/200/300） |
 | Blade Combo Route | FireWaterFire（240f） |
 
-## 当前暂不实现（<= V4.2）
+## 当前暂不实现（<= V4.3）
 
-当前阶段暂不实现（当前版本边界：<= V4.2；如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
+当前阶段暂不实现（当前版本边界：<= V4.3；如进入后续 V4.x，必须先完成 Readiness Review 与拆分计划，见 `docs/v4-readiness-review.md`）：
 
 - 敌人复杂 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
 - 仇恨系统。

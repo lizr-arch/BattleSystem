@@ -1,6 +1,6 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
 import { EnemyStrikeSpec } from '../core/enemy-strike.js';
-import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -773,6 +773,116 @@ export const scenarios = Object.freeze({
       assertEvent(CombatEventType.TargetDefeated, null, 'Assert TargetDefeated'),
       assertSnapshot((s, ctx) => !hasEvent(ctx.events, CombatEventType.EnemyAttackHit), 'Assert no EnemyAttackHit before enemy defeated'),
       assertSnapshot((s) => s.target?.dead === true, 'Assert target.dead true'),
+    ],
+  },
+
+  'player-defeat-stops-combat': {
+    name: 'player-defeat-stops-combat',
+    maxFrames: 600,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 8,
+          activeFrames: 2,
+          recoveryFrames: 6,
+          damage: 25,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+        playerHp: 20,
+        playerMaxHp: 20,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait BattleEnded Defeat', { timeoutFrames: 300 }),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.battle?.active === false && s.player?.dead === true && s.player?.hp === 0, 'Assert Defeat snapshot'),
+      waitFrames(120, 'Wait 120f after Defeat'),
+      assertSnapshot((s, ctx) => {
+        const defeatEv = ctx.events.find((e) => String(e.type) === 'PlayerDefeated');
+        if (!defeatEv) return false;
+        const afterDefeat = ctx.events.filter((e) => (e.frame ?? 0) > (defeatEv.frame ?? 0));
+        return !afterDefeat.some((e) => {
+          const t = String(e.type);
+          return t === 'EnemyAttackStarted' || t === 'EnemyAttackHit' || t === 'PlayerDamageApplied' || t === 'ActionStarted' || t === 'InputConsumed';
+        });
+      }, 'No new combat events after Defeat'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.player?.hp === 0 && s.player?.dead === true && s.enemy?.currentAction === null, 'Assert final Defeat state stable'),
+    ],
+  },
+
+  'reset-after-defeat': {
+    name: 'reset-after-defeat',
+    maxFrames: 600,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 8,
+          activeFrames: 2,
+          recoveryFrames: 6,
+          damage: 25,
+          range: 140,
+          cooldownFrames: 180,
+        }),
+        playerHp: 20,
+        playerMaxHp: 999999,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait BattleEnded Defeat', { timeoutFrames: 300 }),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.battle?.active === false && s.player?.hp === 0 && s.player?.dead === true, 'Assert in Defeat state'),
+      resetRuntimeAfterDefeat('Reset after Defeat'),
+      assertSnapshot((s) => s.battle?.active === true && s.battle?.result === null, 'Assert battle active after reset'),
+      assertSnapshot((s) => s.player?.dead === false && s.player?.hp > 1000, 'Assert player alive with high HP'),
+      assertSnapshot((s) => s.target?.dead === false && s.target?.hp === s.target?.maxHp, 'Assert target alive with full HP'),
+      assertSnapshot((s) => s.enemy?.currentAction === null && s.enemy?.state === 'Idle', 'Assert enemy idle after reset'),
+      waitFrames(10, 'Tick 10f after reset'),
+      assertSnapshot((s) => s.battle?.active === true, 'Assert still active after tick'),
+    ],
+  },
+
+  'input-ignored-after-defeat': {
+    name: 'input-ignored-after-defeat',
+    maxFrames: 600,
+    prepare(actor) {
+      setupActorForEnemyAttackScenario(actor, {
+        strike: new EnemyStrikeSpec({
+          id: 'EnemyStrike',
+          startupFrames: 8,
+          activeFrames: 2,
+          recoveryFrames: 6,
+          damage: 25,
+          range: 140,
+          cooldownFrames: 30,
+        }),
+        playerHp: 20,
+        playerMaxHp: 20,
+      });
+    },
+    steps: [
+      grantEnemyCooldownReady('Grant enemy cooldown ready'),
+      tickEnemyUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait BattleEnded Defeat', { timeoutFrames: 300 }),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat', 'Assert battle Defeat'),
+      castArt(0, 'Try Cast Art1 after Defeat'),
+      castArt(1, 'Try Cast Art2 after Defeat'),
+      waitFrames(20, 'Wait 20f after input attempts'),
+      assertSnapshot((s, ctx) => {
+        const defeatEv = ctx.events.find((e) => String(e.type) === 'PlayerDefeated');
+        if (!defeatEv) return false;
+        const afterDefeat = ctx.events.filter((e) => (e.frame ?? 0) > (defeatEv.frame ?? 0));
+        return !afterDefeat.some((e) => {
+          const t = String(e.type);
+          return t === 'ActionStarted' || t === 'InputConsumed' || t === 'EnemyAttackStarted' || t === 'EnemyAttackHit' || t === 'PlayerDamageApplied';
+        });
+      }, 'No combat events triggered after Defeat input'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.player?.hp === 0, 'Assert still Defeat after input'),
     ],
   },
 });

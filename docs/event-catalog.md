@@ -30,7 +30,7 @@
 - data 字段：无（`{}`）
 - 日志格式：`Reset`
 - 相关机制：Browser Debug UI（Reset 按钮）、Scenario Runner（prepare 中会 reset）
-- 测试覆盖：间接（scenarios 的 prepare 会调用）
+- 测试覆盖：间接（scenarios 的 prepare 会调用）、`tests/player-defeat-polish.test.mjs`
 - 备注：`resetRuntime({ keepLog:false })` 默认会清空 eventLog 后再 emit Reset。
 
 ## BattleStarted
@@ -339,18 +339,33 @@
 - 相关机制：Legacy/兼容事件名
 - 测试覆盖：无
 
-## EnemyStrikeInterrupted
+## EnemyStrikeInterrupted (deprecated) — 已由 EnemyAttackInterrupted 取代
 
 - 定义位置：`src/core/enums.js`
-- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
-- 触发条件：敌方处于 Driver Combo 控制时，若正在执行 EnemyStrike，则被中断并进入冷却。
+- 发出位置：无（当前实现未使用；已由 `EnemyAttackInterrupted` 覆盖）
+- 触发条件：N/A（deprecated，保留以兼容外部引用）
 - data 字段：
   - `strikeId: string`
   - `reason: 'driver_combo' | string`
   - `stage: string`（DriverComboStage）
   - `enemyId: string`
 - 日志格式：`EnemyStrikeInterrupted <strikeId> reason=<reason>`
-- 相关机制：DriverCombo control
+- 相关机制：Legacy/兼容事件名
+- 测试覆盖：无（deprecated）
+- 备注：deprecated — 后续代码请使用 `EnemyAttackInterrupted`（`attackId=EnemyStrike`）。
+
+## EnemyAttackInterrupted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`tickEnemy`）
+- 触发条件：敌方处于 Driver Combo 控制（Topple/Launch）时，若正在执行 EnemyStrike 且处于 Startup/Active 阶段，则被中断并进入冷却。
+- data 字段：
+  - `attackId: string`（当前默认 `EnemyStrike`）
+  - `reason: 'driver_combo' | string`
+  - `stage: string`（DriverComboStage）
+  - `enemyId: string`
+- 日志格式：`EnemyAttackInterrupted <attackId> reason=<reason>`
+- 相关机制：DriverCombo control gate（enemy）
 - 测试覆盖：`tests/enemy-attack.test.mjs`（显式断言存在）
 
 ## EnemyStrikeFinished

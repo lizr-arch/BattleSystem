@@ -1,6 +1,8 @@
 # Player Defeat Polish Design（玩家失败体验打磨设计）
 
-> 本文是 V4.3 Player Defeat / Battle Failure Polish（玩家失败与战斗失败打磨）的设计文档。V4.3 的目标不是扩大战斗玩法，而是把 V4.2 已经实现的 `BattleEnded Defeat（战斗失败）` 从“事件结果”打磨成完整、可观察、可测试、可复位的失败体验。
+> 本文是 V4.3 Player Defeat / Battle Failure Polish（玩家失败与战斗失败打磨）的设计文档。V4.3 的目标不是扩大战斗玩法，而是把 V4.2 已经实现的 `BattleEnded Defeat（战斗失败）` 从"事件结果"打磨成完整、可观察、可测试、可复位的失败体验。
+
+**状态：已实现（V4.3 completed）**
 
 ## 1. 背景
 

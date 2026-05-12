@@ -368,3 +368,27 @@ V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusio
   - `PlayerDefeated` 必须先于同帧的 `BattleEnded(Defeat)`（事件顺序可审计）。
   - battle ended 后继续 tick 不应产生新事件。
 
+
+
+## tests/player-defeat-polish.test.mjs
+
+- 测试目标：验证 V4.3 Defeat Polish 的所有不变量。
+- 覆盖机制：
+  - Defeat 后战斗规则停止（无新 EnemyAttack/Action/PlayerDamage 事件）。
+  - Defeat 后输入被忽略（无 ActionStarted/InputConsumed）。
+  - Reset after Defeat 恢复干净状态（battle/player/target/enemy 全量）。
+  - finalSnapshot 保留真实 Defeat 状态（player.hp=0, dead=true, enemy.action=null）。
+  - lastEnemyOutcome 在 resetRuntime 后清零。
+- 覆盖事件（显式断言存在）：
+  - `PlayerDefeated`
+  - `BattleEnded result=Defeat`
+  - `Reset`
+  - `BattleStarted`
+- 关键断言（保护性不变量）：
+  - Defeat 后 120 帧无 EnemyAttackStarted/EnemyAttackHit/PlayerDamageApplied/ActionStarted。
+  - Defeat 后 Art 输入不触发 ActionStarted。
+  - resetRuntime 后 battle.active=true, result=null, player/target alive, enemy idle。
+  - reset 后 battle 可继续运行（tick 60 帧仍 active）。
+  - 3 个新 scenarios 通过 scenario runner。
+  - V4.0 Routine-Orb 旧测试不回归。
+  - V4.2 Enemy Attack 旧测试不回归。
