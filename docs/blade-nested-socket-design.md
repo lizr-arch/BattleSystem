@@ -256,3 +256,5 @@ V5.1 不做：
 - Blade 内部装备 UI。
 - 背包拖拽 UI。
 - 装备成长/强化。
+
+> V5.1 已实现。核心文件: `src/core/backpack-items.js`、`src/core/loadout-resolver.js`、`src/core/blade-runtime.js`。

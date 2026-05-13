@@ -166,6 +166,28 @@ export function formatCombatEvent(type, data = {}) {
       return `DebuffTickDamage ${data.type ?? '?'} amount=${data.amount ?? 0}`;
     case CombatEventType.DebuffExpired:
       return `DebuffExpired ${data.type ?? '?'}`;
+    case CombatEventType.BackpackResolved:
+      return `BackpackResolved activeBlades=${data.activeBladeCount ?? 0}`;
+    case CombatEventType.BackpackInvalid:
+      return `BackpackInvalid errors=${data.errorCount ?? 0}`;
+    case CombatEventType.BladeLinked:
+      return `BladeLinked blade=${data.bladeId ?? 'Unknown'} role=${data.role ?? '?'}`;
+    case CombatEventType.BladeSocketResolved:
+      return `BladeSocketResolved blade=${data.bladeId ?? 'Unknown'} element=${data.element ?? 'Neutral'}`;
+    case CombatEventType.BladeAttackStarted:
+      return `BladeAttackStarted blade=${data.bladeId ?? 'Unknown'}`;
+    case CombatEventType.BladeAttackPhaseChanged:
+      return `BladeAttackPhaseChanged blade=${data.bladeId ?? 'Unknown'} ${data.before ?? '?'}->${data.after ?? '?'}`;
+    case CombatEventType.BladeAttackHit:
+      return `BladeAttackHit blade=${data.bladeId ?? 'Unknown'} element=${data.element ?? '?'} damage=${data.damage ?? 0}`;
+    case CombatEventType.BladeAttackWhiffed:
+      return `BladeAttackWhiffed blade=${data.bladeId ?? 'Unknown'} reason=${data.reason ?? '?'}`;
+    case CombatEventType.BladeAttackFinished:
+      return `BladeAttackFinished blade=${data.bladeId ?? 'Unknown'}`;
+    case CombatEventType.BladeAttackCooldownStarted:
+      return `BladeAttackCooldownStarted blade=${data.bladeId ?? 'Unknown'} ${data.frames ?? 0}f`;
+    case CombatEventType.BladeAttackCooldownFinished:
+      return `BladeAttackCooldownFinished blade=${data.bladeId ?? 'Unknown'}`;
     default:
       return String(type);
   }

@@ -78,6 +78,12 @@ export class DebugPanel {
       epRunPlayerDefeat: this.byId('epRunPlayerDefeat'),
       epGrantEnemyCooldownReady: this.byId('epGrantEnemyCooldownReady'),
       scFullBattleLoop: this.byId('scFullBattleLoop'),
+      scBackpackBladeMVP: this.byId('scBackpackBladeMVP'),
+      scBladeFireCore: this.byId('scBladeFireCore'),
+      scMultipleBladesLimit: this.byId('scMultipleBladesLimit'),
+      blBackpackSize: this.byId('blBackpackSize'),
+      blActiveBlades: this.byId('blActiveBlades'),
+      blLastBladeEvent: this.byId('blLastBladeEvent'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
       scExpireBreak: this.byId('scExpireBreak'),
@@ -165,6 +171,9 @@ export class DebugPanel {
     this.refs.scDefeatStopsCombat.addEventListener('click', () => this.runScenario('player-defeat-stops-combat'));
     this.refs.scResetAfterDefeat.addEventListener('click', () => this.runScenario('reset-after-defeat'));
     this.refs.scInputIgnoredDefeat.addEventListener('click', () => this.runScenario('input-ignored-after-defeat'));
+    this.refs.scBackpackBladeMVP.addEventListener('click', () => this.runScenario('backpack-valid-blade-placement'));
+    this.refs.scBladeFireCore.addEventListener('click', () => this.runScenario('blade-socket-resolves-fire-core'));
+    this.refs.scMultipleBladesLimit.addEventListener('click', () => this.runScenario('multiple-blades-limit-two-active'));
 
     this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
     this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
@@ -537,5 +546,28 @@ export class DebugPanel {
     this.renderTokens(s.tokens);
     this.renderSingleDriverMvp(s);
     this.renderEnemyPlayerPanel(s);
+    this.renderBackpackBlade(s);
+  }
+
+  renderBackpackBlade(s) {
+    const backpack = s.backpack;
+    const loadout = s.resolvedLoadout;
+    const runtimes = s.bladeRuntimes ?? [];
+
+    if (this.refs.blBackpackSize) {
+      this.refs.blBackpackSize.textContent = backpack ? `${backpack.width}x${backpack.height}` : '-';
+    }
+
+    if (this.refs.blActiveBlades) {
+      const lines = (loadout?.activeBlades ?? []).map((b, i) => {
+        const rt = runtimes[i];
+        return `${b.bladeId} | ${b.role} | ${b.element} | ${rt?.state ?? '-'} | cd:${rt?.cooldownLeft ?? '-'}`;
+      });
+      this.refs.blActiveBlades.textContent = lines.join('\n') || '-';
+    }
+
+    if (this.refs.blLastBladeEvent) {
+      this.refs.blLastBladeEvent.textContent = this.findLastEventLine(s.eventLogText, (msg) => msg.startsWith('Blade'));
+    }
   }
 }

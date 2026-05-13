@@ -1014,3 +1014,138 @@
 - 相关机制：Debuffs（Burn）
 - 测试覆盖：间接（当前 MVP 场景主要验证击杀闭环；到期事件保留用于 future 验证）
 
+## V5.1 Backpack / Blade Events
+
+### BackpackResolved
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/loadout-resolver.js`（`resolveLoadout`）
+- 触发条件：背包布局合法，解析成功时。
+- data 字段：
+  - `activeBladeCount: number`
+- 日志格式：`BackpackResolved activeBlades=N`
+- 相关机制：Backpack / Loadout Resolver
+- 测试覆盖：`tests/loadout-resolver.test.mjs`、`tests/backpack-blade-scenario.test.mjs`
+
+### BackpackInvalid
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/loadout-resolver.js`（`resolveLoadout`）
+- 触发条件：背包存在越界/重叠错误时。
+- data 字段：
+  - `errorCount: number`
+- 日志格式：`BackpackInvalid errors=N`
+- 相关机制：Backpack / Loadout Resolver
+- 测试覆盖：`tests/loadout-resolver.test.mjs`、`tests/backpack-blade-scenario.test.mjs`
+
+### BladeLinked
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`linkBlade`）
+- 触发条件：从 resolvedBlade 创建 BladeRuntime 并加入战斗时。
+- data 字段：
+  - `bladeId: string`
+  - `role: string`
+- 日志格式：`BladeLinked blade=X role=Y`
+- 相关机制：Backpack / Blade Runtime
+- 测试覆盖：`tests/backpack-blade-scenario.test.mjs`
+
+### BladeSocketResolved
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/combat-actor.js`（`linkBlade`）
+- 触发条件：Blade 内部 socket 插入了 ElementCore 时。
+- data 字段：
+  - `bladeId: string`
+  - `element: string`
+- 日志格式：`BladeSocketResolved blade=X element=Y`
+- 相关机制：Nested Socket / Element Core
+- 测试覆盖：`tests/backpack-blade-scenario.test.mjs`
+
+### BladeAttackStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 状态从 Idle 进入 Attacking 时。
+- data 字段：
+  - `bladeId: string`
+- 日志格式：`BladeAttackStarted blade=X`
+- 相关机制：Blade Runtime / Auto Attack
+- 测试覆盖：`tests/blade-runtime.test.mjs`、`tests/backpack-blade-scenario.test.mjs`
+
+### BladeAttackPhaseChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 动作阶段发生变化（None→Startup→Active→Recovery→Finished）。
+- data 字段：
+  - `bladeId: string`
+  - `before: string`
+  - `after: string`
+- 日志格式：`BladeAttackPhaseChanged blade=X A->B`
+- 相关机制：Blade Runtime / Action Timeline
+- 测试覆盖：间接（blade-runtime.test 通过 tick 验证）
+
+### BladeAttackHit
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 在 Active 帧且 target 在 range 内。
+- data 字段：
+  - `bladeId: string`
+  - `element: string`
+  - `damage: number`
+- 日志格式：`BladeAttackHit blade=X element=Y damage=Z`
+- 相关机制：Blade Runtime / Damage
+- 测试覆盖：`tests/blade-runtime.test.mjs`、`tests/backpack-blade-scenario.test.mjs`
+
+### BladeAttackWhiffed
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 在 Active 帧但 target 不在 range 内。
+- data 字段：
+  - `bladeId: string`
+  - `reason: 'out_of_range'`
+- 日志格式：`BladeAttackWhiffed blade=X reason=Y`
+- 相关机制：Blade Runtime / Range Check
+- 测试覆盖：`tests/blade-runtime.test.mjs`、`tests/backpack-blade-scenario.test.mjs`
+
+### BladeAttackFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 动作进入 Finished 阶段。
+- data 字段：
+  - `bladeId: string`
+- 日志格式：`BladeAttackFinished blade=X`
+- 相关机制：Blade Runtime / Action Timeline
+- 测试覆盖：间接（blade-runtime.test 通过 tick 进入 cooldown 验证）
+
+### BladeAttackCooldownStarted
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 动作结束后进入冷却，cooldownLeft > 0。
+- data 字段：
+  - `bladeId: string`
+  - `frames: number`
+- 日志格式：`BladeAttackCooldownStarted blade=X Nf`
+- 相关机制：Blade Runtime / Cooldown
+- 测试覆盖：`tests/blade-runtime.test.mjs`
+
+### BladeAttackCooldownFinished
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime cooldownLeft 递减到 0。
+- data 字段：
+  - `bladeId: string`
+- 日志格式：`BladeAttackCooldownFinished blade=X`
+- 相关机制：Blade Runtime / Cooldown
+- 测试覆盖：`tests/blade-runtime.test.mjs`
+
+## 事件总览更新
+
+截至 V5.1，`CombatEventType` 共 85 个事件值。V5.1 新增 11 个 Blade/Backpack 事件。
+

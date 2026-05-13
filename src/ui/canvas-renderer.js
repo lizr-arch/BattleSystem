@@ -263,6 +263,19 @@ export class CanvasRenderer {
       this.text(fx.text, fx.x, fx.y, color, size);
     }
 
+    const bladeRuntimes = Array.isArray(actor.bladeRuntimes) ? actor.bladeRuntimes : [];
+    for (const br of bladeRuntimes) {
+      const bx = actor.position.x + 30 + (bladeRuntimes.indexOf(br) * 30);
+      const by = actor.position.y + 40;
+      this.circle(bx, by, 8, 'rgba(255,178,100,.25)', '#ffb264', 2);
+      if (br.element !== 'Neutral') {
+        this.text(br.element, bx, by - 16, '#ff9d78', 11);
+      }
+      if (br.cooldownLeft > 0) {
+        this.text(String(br.cooldownLeft), bx + 12, by + 4, '#98a2b3', 10);
+      }
+    }
+
     if (actor.paused) {
       ctx.fillStyle = 'rgba(0,0,0,.45)';
       ctx.fillRect(0, 0, rect.width, rect.height);

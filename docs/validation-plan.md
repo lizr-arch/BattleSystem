@@ -268,13 +268,25 @@ V4.3 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Routine Orb MVP：tiles/orb/break/burn tick/击杀闭环（scenarios + tests）。
 - Enemy Attack MVP：EnemyAttack 时序/命中/打空/冷却/被控与 PlayerDefeated（tests + scenarios）。
 - Player Defeat Polish：Defeat 后停止、Defeat 后输入被忽略、Reset 后恢复、finalSnapshot 保留真实 Defeat 状态。
+- Backpack Blade MVP：backpack-grid/loadout-resolver/blade-runtime 测试（4 个新测试文件 + 6 个内置 scenarios）。
 
-## 非目标（当前阶段不做：<= V4.3）
+## 浏览器手动验收（V5.1 Backpack / Blades）
+
+1. 打开 `index.html`，在 Debug 面板找到 "Backpack / Blades" 区块。
+2. 确认 Backpack Size 显示背包尺寸。
+3. 确认 Active Blades 列表显示 BladeId、role、element、state、cooldown。
+4. 点击 "Run Backpack Blade MVP" → Scenario Result 显示 PASS。
+5. 点击 "Run Blade Fire Core" → Scenario Result 显示 PASS。
+6. 点击 "Run Multiple Blades Limit" → Scenario Result 显示 PASS。
+7. Canvas 上在 Player 周围显示橙色 BladeRuntime 标记（element 名称 + cooldown 数字）。
+
+## 非目标（当前阶段不做：<= V5.1）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
-- 队友 AI。
-- Chain Attack / Full Burst / Fusion（V4.0 延后；如未来进入 V4.x，按 Readiness Review 拆分推进）。
-- 复杂属性球系统与连锁兑现（V4.0 仅实现 Routine Orb 最小闭环）。
-- Token cash-out（兑现/破碎/消费；需等待 V4 拆分评审）。
+- Chain Attack / Full Burst / Fusion（延后；按 Readiness Review 拆分推进）。
+- 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
+- Token cash-out（兑现/破碎/消费；延后）。
+- 背包拖拽 UI / 物品旋转 / 复杂形状。
+- Blade 独立寻路 / Blade 复杂 AI / Blade 自己挂 RoutineOrb。
 - 完整伤害公式与数值平衡。

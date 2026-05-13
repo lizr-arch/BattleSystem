@@ -12,6 +12,9 @@ import { getRoutineSkillByArtId } from './routine.js';
 import { addRoutineTile, canCreateRoutineOrbFromTiles, createRoutineOrbFromTiles } from './routine-orb.js';
 import { SpecialGaugeState } from './special-gauge.js';
 import { createToken } from './token.js';
+import { BladeRuntime } from './blade-runtime.js';
+import { resolveLoadout } from './loadout-resolver.js';
+import { getItemDefinition } from './backpack-items.js';
 
 export class CombatActor {
   constructor({
@@ -34,6 +37,8 @@ export class CombatActor {
     cancelBonusDamageMultiplier = 1.2,
     enemyStrike = null,
     enemyStrikeInitialCooldown = 0,
+    backpackGrid = null,
+    resolvedLoadout = null,
     eventLog = new CombatEventLog()
   }) {
     if (!autoAttackChain) throw new Error('CombatActor requires autoAttackChain.');
@@ -108,6 +113,28 @@ export class CombatActor {
     this.vfx = [];
     this.lastEnemyOutcome = null;
     this.paused = false;
+
+    this.backpackGrid = backpackGrid;
+    this.resolvedLoadout = resolvedLoadout ?? { activeBlades: [], errors: [] };
+    this.bladeRuntimes = [];
+
+    if (this.backpackGrid) {
+      const resolved = resolveLoadout({
+        backpackGrid: this.backpackGrid,
+        socketAssignments: {},
+      });
+      this.resolvedLoadout = resolved;
+      if (resolved.event) {
+        this.emit(resolved.event.type, resolved.event.data);
+      }
+      for (const blade of resolved.activeBlades) {
+        this.linkBlade(blade);
+      }
+    } else if (this.resolvedLoadout?.activeBlades?.length) {
+      for (const blade of this.resolvedLoadout.activeBlades) {
+        this.linkBlade(blade);
+      }
+    }
 
     this.emit(CombatEventType.Init);
     this.emit(CombatEventType.BattleStarted, {
@@ -292,6 +319,12 @@ export class CombatActor {
         } : null,
       } : null,
       lastEnemyOutcome: this.lastEnemyOutcome ? { ...this.lastEnemyOutcome } : null,
+      backpack: this.backpackGrid ? this.backpackGrid.getSnapshot() : null,
+      resolvedLoadout: this.resolvedLoadout ? {
+        activeBlades: (this.resolvedLoadout.activeBlades ?? []).map((b) => ({ ...b })),
+        errors: [...(this.resolvedLoadout.errors ?? [])],
+      } : null,
+      bladeRuntimes: (this.bladeRuntimes ?? []).map((br) => br.getSnapshot()),
     };
   }
 
@@ -351,6 +384,12 @@ export class CombatActor {
     this.vfx = [];
     this.lastEnemyOutcome = null;
     this.paused = false;
+    this.bladeRuntimes = [];
+    if (this.resolvedLoadout?.activeBlades?.length) {
+      for (const blade of this.resolvedLoadout.activeBlades) {
+        this.linkBlade(blade);
+      }
+    }
     if (this.enemy) {
       this.enemy.reset();
     }
@@ -523,6 +562,50 @@ export class CombatActor {
     return { ok: true, cooldownLeft: this.enemy.cooldownLeft | 0 };
   }
 
+  linkBlade(bladeSpec) {
+    const def = getItemDefinition(bladeSpec.bladeId);
+    const autoAttackSpec = bladeSpec.autoAttackSpec ?? def?.autoAttack ?? null;
+
+    const runtime = new BladeRuntime({
+      bladeInstanceId: bladeSpec.bladeInstanceId,
+      bladeId: bladeSpec.bladeId,
+      role: bladeSpec.role,
+      element: bladeSpec.element ?? 'Neutral',
+      damageBonus: bladeSpec.damageBonus ?? 0,
+      autoAttackSpec,
+    });
+    this.bladeRuntimes.push(runtime);
+    this.emit(CombatEventType.BladeLinked, {
+      bladeId: bladeSpec.bladeId,
+      role: bladeSpec.role,
+    });
+    if (bladeSpec.sockets && bladeSpec.sockets.length > 0) {
+      this.emit(CombatEventType.BladeSocketResolved, {
+        bladeId: bladeSpec.bladeId,
+        element: bladeSpec.element,
+      });
+    }
+    return runtime;
+  }
+
+  tickBladeRuntimes() {
+    if (!this.bladeRuntimes || this.bladeRuntimes.length === 0) return;
+    if (this.battle?.active === false) return;
+    if (this.target?.dead) return;
+
+    for (const runtime of this.bladeRuntimes) {
+      const result = runtime.tick({ target: this.target, actor: this });
+      for (const ev of (result.events ?? [])) {
+        this.emit(ev.type, ev.data);
+      }
+      if (result.damageToApply) {
+        this.applyDamageToTarget(result.damageToApply.amount, {
+          source: result.damageToApply.source,
+          sourceId: result.damageToApply.sourceId,
+        });
+      }
+    }
+  }
   breakRoutineOrb() {
     if (!this.routineOrb) {
       this.emit(CombatEventType.RoutineOrbBreakFailed, { reason: 'no_orb' });
@@ -619,6 +702,7 @@ export class CombatActor {
 
     if (this.battle?.active !== false) {
       this.tickEnemy();
+      this.tickBladeRuntimes();
     }
 
     this.tickVfx();

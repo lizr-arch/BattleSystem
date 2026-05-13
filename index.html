@@ -205,6 +205,12 @@
       <div class="small">说明：Run* 按钮通过 scenarios 执行；Grant 按钮通过 core debug 方法解除冷却并 tick 1 帧。</div>
     </div>
     <div class="section">
+      <h2>Backpack / Blades</h2>
+      <div class="row"><span>Backpack Size</span><span id="blBackpackSize" class="pill">-</span></div>
+      <div class="row"><span>Active Blades</span><pre id="blActiveBlades">-</pre></div>
+      <div class="row"><span>Last Blade Event</span><span id="blLastBladeEvent" class="pill">-</span></div>
+    </div>
+    <div class="section">
       <h2>Scenario</h2>
       <div class="buttons">
         <button id="scFullBattleLoop">Run Full Battle Loop</button>
@@ -232,6 +238,11 @@
         <button id="scDefeatStopsCombat">Defeat Stops Combat</button>
         <button id="scResetAfterDefeat">Reset After Defeat</button>
         <button id="scInputIgnoredDefeat">Input Ignored After Defeat</button>
+      </div>
+      <div class="buttons" style="margin-top:8px">
+        <button id="scBackpackBladeMVP">Run Backpack Blade MVP</button>
+        <button id="scBladeFireCore">Run Blade Fire Core</button>
+        <button id="scMultipleBladesLimit">Run Multiple Blades Limit</button>
       </div>
       <div class="row"><span>Result</span><span id="scResult" class="pill">-</span></div>
       <pre id="scProof"></pre>
