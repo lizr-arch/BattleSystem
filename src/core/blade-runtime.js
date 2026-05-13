@@ -2,61 +2,82 @@ import { CombatActionInstance, CombatActionSpec } from './action.js';
 import { ActionKind, ActionPhase, CombatEventType } from './enums.js';
 import { distance } from './math.js';
 
+const DEFAULT_HIDDEN_PROFILE = Object.freeze({
+  hpMultiplier: 1,
+  damageMultiplier: 1,
+  speedMultiplier: 1,
+  cooldownMultiplier: 1,
+  skillBudget: 0,
+});
+
 export class BladeRuntime {
-  constructor({
-    bladeInstanceId,
-    bladeId,
-    role,
-    element = 'Neutral',
-    damageBonus = 0,
-    autoAttackSpec,
-    hiddenProfile = null,
-    individualTrait = null,
-    species = null,
-    lineage = null,
-    rarity = null,
-    lifeSkills = null,
-  }) {
-    this.bladeInstanceId = bladeInstanceId;
-    this.bladeId = bladeId;
-    this.role = role;
-    this.element = element;
-    this.damageBonus = damageBonus;
-    this.autoAttackSpec = autoAttackSpec;
-    this.hiddenProfile = hiddenProfile ?? { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 };
-    this.individualTrait = individualTrait ?? null;
-    this.species = species ?? null;
-    this.lineage = lineage ?? null;
-    this.rarity = rarity ?? null;
-    this.lifeSkills = lifeSkills ?? null;
+  constructor(opts = {}) {
+    let resolvedBlade = opts.resolvedBlade ?? null;
+
+    if (!resolvedBlade) {
+      resolvedBlade = {
+        bladeInstanceId: opts.bladeInstanceId,
+        bladeId: opts.bladeId,
+        role: opts.role,
+        element: opts.element ?? 'Neutral',
+        damageBonus: opts.damageBonus ?? 0,
+        hiddenProfile: opts.hiddenProfile ?? DEFAULT_HIDDEN_PROFILE,
+        individualTrait: opts.individualTrait ?? null,
+        species: opts.species ?? null,
+        lineage: opts.lineage ?? null,
+        rarity: opts.rarity ?? null,
+        lifeSkills: opts.lifeSkills ?? null,
+      };
+    }
+
+    if (!resolvedBlade.hiddenProfile) {
+      resolvedBlade.hiddenProfile = DEFAULT_HIDDEN_PROFILE;
+    }
+    if (resolvedBlade.element == null) resolvedBlade.element = 'Neutral';
+    if (resolvedBlade.damageBonus == null) resolvedBlade.damageBonus = 0;
+
+    this.resolvedBlade = resolvedBlade;
+    this.autoAttackSpec = opts.autoAttackSpec;
     this.state = 'Idle';
     this.action = null;
     this.cooldownLeft = 0;
     this._traitActivated = false;
     this._actionSpec = new CombatActionSpec({
-      id: `BladeAuto_${bladeInstanceId}`,
+      id: `BladeAuto_${resolvedBlade.bladeInstanceId}`,
       kind: ActionKind.AutoAttack,
-      startupFrames: autoAttackSpec.startupFrames,
-      activeFrames: autoAttackSpec.activeFrames,
-      recoveryFrames: autoAttackSpec.recoveryFrames,
-      damage: autoAttackSpec.damage,
+      startupFrames: this.autoAttackSpec.startupFrames,
+      activeFrames: this.autoAttackSpec.activeFrames,
+      recoveryFrames: this.autoAttackSpec.recoveryFrames,
+      damage: this.autoAttackSpec.damage,
       cancelRecoveryToMovement: false,
       cancelRecoveryToArt: false,
     });
   }
 
-  // V5.1: Blade follows Driver; attack range measured from Driver position (actor.x/actor.y)
+  get bladeInstanceId() { return this.resolvedBlade.bladeInstanceId; }
+  get bladeId() { return this.resolvedBlade.bladeId; }
+  get role() { return this.resolvedBlade.role; }
+  get element() { return this.resolvedBlade.element; }
+  get damageBonus() { return this.resolvedBlade.damageBonus; }
+  get hiddenProfile() { return this.resolvedBlade.hiddenProfile; }
+  get individualTrait() { return this.resolvedBlade.individualTrait; }
+  get species() { return this.resolvedBlade.species; }
+  get lineage() { return this.resolvedBlade.lineage; }
+  get rarity() { return this.resolvedBlade.rarity; }
+  get lifeSkills() { return this.resolvedBlade.lifeSkills; }
+
   tick({ target, actor } = {}) {
     const events = [];
     const dist = target ? distance({ x: actor.x, y: actor.y }, target) : Infinity;
     const inRange = dist <= (this.autoAttackSpec.range ?? 0);
+    const rb = this.resolvedBlade;
 
     if (this.cooldownLeft > 0) {
       this.cooldownLeft -= 1;
       if (this.cooldownLeft === 0) {
         events.push({
           type: CombatEventType.BladeAttackCooldownFinished,
-          data: { bladeId: this.bladeId },
+          data: { bladeId: rb.bladeId },
         });
         this.state = 'Idle';
       }
@@ -68,11 +89,11 @@ export class BladeRuntime {
       this.state = 'Attacking';
       events.push({
         type: CombatEventType.BladeAttackStarted,
-        data: { bladeId: this.bladeId },
+        data: { bladeId: rb.bladeId },
       });
       events.push({
         type: CombatEventType.BladeAttackPhaseChanged,
-        data: { bladeId: this.bladeId, before: ActionPhase.None, after: ActionPhase.Startup },
+        data: { bladeId: rb.bladeId, before: ActionPhase.None, after: ActionPhase.Startup },
       });
     }
 
@@ -84,22 +105,22 @@ export class BladeRuntime {
       if (before !== after) {
         events.push({
           type: CombatEventType.BladeAttackPhaseChanged,
-          data: { bladeId: this.bladeId, before, after },
+          data: { bladeId: rb.bladeId, before, after },
         });
       }
 
       if (this.action.shouldFireHit()) {
         if (inRange) {
           const baseDamage = this.autoAttackSpec.damage ?? 0;
-          let finalDamage = Math.round(baseDamage * this.hiddenProfile.damageMultiplier * (1 + this.damageBonus));
-          if (this.individualTrait === 'Fierce') {
+          let finalDamage = Math.round(baseDamage * rb.hiddenProfile.damageMultiplier * (1 + rb.damageBonus));
+          if (rb.individualTrait === 'Fierce') {
             finalDamage = Math.round(finalDamage * 1.1);
             if (!this._traitActivated) {
               this._traitActivated = true;
               events.push({
                 type: CombatEventType.BladeTraitActivated,
                 data: {
-                  bladeId: this.bladeId,
+                  bladeId: rb.bladeId,
                   trait: 'Fierce',
                   effect: 'damage_multiplier',
                 },
@@ -109,8 +130,8 @@ export class BladeRuntime {
           events.push({
             type: CombatEventType.BladeAttackHit,
             data: {
-              bladeId: this.bladeId,
-              element: this.element,
+              bladeId: rb.bladeId,
+              element: rb.element,
               damage: finalDamage,
             },
           });
@@ -119,13 +140,13 @@ export class BladeRuntime {
             damageToApply: {
               amount: finalDamage,
               source: 'Blade',
-              sourceId: this.bladeId,
+              sourceId: rb.bladeId,
             },
           };
         } else {
           events.push({
             type: CombatEventType.BladeAttackWhiffed,
-            data: { bladeId: this.bladeId, reason: 'out_of_range' },
+            data: { bladeId: rb.bladeId, reason: 'out_of_range' },
           });
         }
       }
@@ -133,16 +154,16 @@ export class BladeRuntime {
       if (this.action.isFinished()) {
         events.push({
           type: CombatEventType.BladeAttackFinished,
-          data: { bladeId: this.bladeId },
+          data: { bladeId: rb.bladeId },
         });
         this.action = null;
         const baseCooldown = this.autoAttackSpec.cooldownFrames ?? 0;
-        this.cooldownLeft = Math.round(baseCooldown * this.hiddenProfile.cooldownMultiplier);
+        this.cooldownLeft = Math.round(baseCooldown * rb.hiddenProfile.cooldownMultiplier);
         this.state = 'Cooldown';
         if (this.cooldownLeft > 0) {
           events.push({
             type: CombatEventType.BladeAttackCooldownStarted,
-            data: { bladeId: this.bladeId, frames: this.cooldownLeft },
+            data: { bladeId: rb.bladeId, frames: this.cooldownLeft },
           });
         } else {
           this.state = 'Idle';
@@ -154,11 +175,12 @@ export class BladeRuntime {
   }
 
   getSnapshot() {
+    const rb = this.resolvedBlade;
     return {
-      bladeInstanceId: this.bladeInstanceId,
-      bladeId: this.bladeId,
-      role: this.role,
-      element: this.element,
+      bladeInstanceId: rb.bladeInstanceId,
+      bladeId: rb.bladeId,
+      role: rb.role,
+      element: rb.element,
       state: this.state,
       currentAction: this.action ? {
         id: this.action.spec.id,
@@ -166,12 +188,12 @@ export class BladeRuntime {
         elapsedFrames: this.action.elapsedFrames,
       } : null,
       cooldownLeft: this.cooldownLeft,
-      species: this.species,
-      lineage: this.lineage,
-      rarity: this.rarity,
-      individualTrait: this.individualTrait,
-      hiddenProfile: this.hiddenProfile ? { ...this.hiddenProfile } : null,
-      lifeSkills: this.lifeSkills ? [...this.lifeSkills] : null,
+      species: rb.species,
+      lineage: rb.lineage,
+      rarity: rb.rarity,
+      individualTrait: rb.individualTrait,
+      hiddenProfile: rb.hiddenProfile ? { ...rb.hiddenProfile } : null,
+      lifeSkills: rb.lifeSkills ? [...rb.lifeSkills] : null,
     };
   }
 }
