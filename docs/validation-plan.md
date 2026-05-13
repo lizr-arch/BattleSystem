@@ -1,4 +1,4 @@
-# 验证计划（V1-V4.3）
+# 验证计划（V1-V5.4）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
@@ -6,7 +6,7 @@
 
 在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token、V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）、V4.2 的 Enemy Attack MVP（敌人最小攻击闭环），以及 V4.3 的 Player Defeat Polish（玩家失败打磨）验证清楚，并保证行为可解释、可复现。
 
-明确边界：在 <= V4.3 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
+明确边界：在 <= V5.4 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
 如进入后续 V4.x，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
 
 核心闭环（V1）：
@@ -169,6 +169,7 @@ Reset 后恢复可战斗状态
 - Tokens：当前 tokens 列表（id/element/route/createdFrame）。
 - Single Driver MVP：target HP、tiles/orb、burn、最后一条 MVP 相关事件。
 - Enemy/Player：enemy state/action/phase/cooldown/hp；player hp；battle result；最后一条敌人相关事件。
+- Bond：Trust / TrustLevel / Mood / Sync（Backpack / Blades 区块）。
 
 期望事件示例（非穷举）：
 
@@ -224,7 +225,7 @@ Reset
 BattleStarted target=Dummy hp=999999/999999
 ```
 
-## 验收标准（V1-V4.3）
+## 验收标准（V1-V5.4）
 
 - core deterministic tests（Node）：主验收证据，验证不变量与规则边界。
 - scenario runner（Node/UI）：机制链路验收证据，验证完整流程与失败原因（不依赖键盘焦点）。
@@ -235,12 +236,12 @@ BattleStarted target=Dummy hp=999999/999999
 - `src/core` 保持纯逻辑，不依赖 DOM / Canvas。
 - `npm test` 在 Node 下通过。
 - `npm run audit:map` PASS（文档盘点门禁）。
-- 上述 V1~V4.3 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
+- 上述 V1~V5.4 关键用例能通过日志与 scenario proof 被解释（键盘复现仅作补充）。
 - 关键决策点均能通过事件日志被证明（输入缓冲/消费、命中/打空、取消、Driver Combo、Special、Blade Combo、Token 产出、EnemyAttack 命中/打空/冷却/被控、Player Damage/Defeat、Reset after Defeat）。
 
-## 文档一致性验收（V4.3）
+## 文档一致性验收（V5.4）
 
-V4.3 验收以“口径一致 + 可追溯 + 一键可复现”为主：
+V5.4 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 
 - README / AGENTS / docs 路线图不互相矛盾（版本命名、边界、非目标一致）。
 - `docs/mechanics-map.md` 与 `docs/test-coverage-map.md` 保持同步（机制与测试覆盖口径一致）。
@@ -248,6 +249,7 @@ V4.3 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Enemy Attack 相关文档（`docs/enemy-attack-model.md` / `docs/npc-ai-design.md` / `docs/v4.2-enemy-attack-mvp-spec.md`）与实现/事件目录/测试覆盖口径一致。
 - Player Defeat 相关文档（`docs/player-defeat-polish-design.md` / `docs/v4.3-player-defeat-polish-spec.md`）与实现/事件目录/测试覆盖口径一致。
 - 后续 V4.x 预研只能通过 `docs/v4-readiness-review.md` 进入，且必须拆分里程碑。
+- Bond 相关文档（`docs/blade-bond-system-design.md` / `docs/event-catalog.md`）与实现/事件目录/测试覆盖口径一致。
 
 ## 自动化测试（Node）
 
@@ -300,3 +302,29 @@ V5.3.1 为纯结构性重构（BladeRuntime 构造函数参数收敛为 `resolve
 - 4 个 blade 相关测试文件通过：`blade-runtime.test.mjs`、`beast-blade-archetype.test.mjs`、`beast-blade-runtime.test.mjs`、`backpack-blade-scenario.test.mjs`。
 - `CombatActor.getSnapshot()` 输出的 blade 相关字段与 V5.3 完全兼容，无字段缺失或结构变更。
 - 所有 V5.1/V5.3 scenarios 不回归。
+
+## 浏览器手动验收（V5.4：Bond System）
+
+1. 打开 `index.html`，在 Debug 面板找到 "Backpack / Blades" 区块。
+2. 确认 Active Blades 列表中显示 Bond 数据：Trust、TrustLevel、Mood、Sync。
+3. 点击 "Run bond-blade-hit-gains-sync" → Scenario Result 显示 PASS，验证 `BondSyncChanged` 事件存在。
+4. 点击 "Run bond-sync-triggered" → Scenario Result 显示 PASS，验证 `BondSyncTriggered` 事件存在。
+5. 点击 "Run bond-victory-gains-trust" → Scenario Result 显示 PASS，验证 Trust + Mood 增加。
+6. 点击 "Run bond-defeat-lowers-mood" → Scenario Result 显示 PASS，验证 Mood 下降但 Trust 不变。
+7. Canvas 上在 BladeRuntime 标记旁显示 Trust 等级标记（如 "Lv1"）。
+
+## 手动验证矩阵（V5.4：Bond System MVP）
+
+| Case | 操作 | 期望结果 |
+| --- | --- | --- |
+| Hit gains Sync | 点击 Run Bond Hit Sync | 出现 BondSyncChanged，blade bond.sync > 0 |
+| Sync Trigger | 点击 Run Bond Trigger | 出现 BondSyncTriggered，bond.sync 清零 |
+| Victory gains Trust/Mood | 点击 Run Bond Victory | 出现 BondTrustChanged 与 BondMoodChanged reason=victory |
+| Defeat lowers Mood | 点击 Run Bond Defeat | 出现 BondMoodChanged reason=defeat，Trust 不下降 |
+| Loyal gains more Trust | 点击 Run Bond Loyal | Loyal 异刃 Trust 增长更多 |
+| Proud gains more Sync less Trust | 点击 Run Bond Proud | Proud 异刃 Sync 增长更多，Trust 增长较少 |
+
+V5.4 Bond 约束：
+- DebugPanel 应显示 Trust / TrustLevel / Mood / Sync。
+- V5.4 MVP 中 Sync 达阈值后清零（sync=0）。
+- overflow 只作为 `BondSyncTriggered` 事件数据记录，不保留到 `bond.sync`。
