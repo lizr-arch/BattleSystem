@@ -1,80 +1,66 @@
-# V5 Backpack + Blade Design Index（背包 + 异刃设计索引）
+# V5 Backpack + Beast Blade Design Index（背包 + 兽型异刃设计索引）
 
-> 本索引是 V5 阶段入口。V5 的核心方向：Driver（驱动者）通过 Backpack Loadout（背包构筑）携带多个 Blade（异刃）。Blade 本体占 Driver Backpack（驱动者背包）格子；Blade 自己有 Internal Equipment（内部装备界面）；内部装备可以在 Blade footprint（异刃占地）内生成 Socket（嵌入槽位）。
+V5 的核心方向：Driver（驱动者）通过 Backpack Loadout（背包构筑）携带多个 Blade（异刃）。Blade 本体占 Driver Backpack（驱动者背包）格子；Blade 自己有 Internal Equipment（内部装备界面）；内部装备可以在 Blade footprint（异刃占地）内生成 Socket（嵌入槽位）。
 
-## 1. 当前主线状态
+V5.2 之后，Blade 不再只是“职业插件”，而是 Beast Blade（兽型异刃）：有物种、品系、个体特质、羁绊、战斗技能和生活技能。
 
-截至 V4.3，系统已完成：
-
-- Single Driver Routine-Orb MVP（单人驱动者 + 套路挂球 MVP）。
-- Enemy Attack MVP（敌人攻击最小实现）。
-- Player Defeat Polish（玩家失败体验打磨）。
-
-V5 不继续扩 Chain Attack（连锁攻击阶段）、Full Burst（最终爆发）、Fusion Combo（融合连击）。V5 先解决“角色如何通过背包构筑携带多个异刃，并让异刃作为战斗单位参与攻击”。
-
-## 2. 阅读顺序
+## 阅读顺序
 
 1. `docs/backpack-loadout-design.md`
-   - Driver Backpack（驱动者背包）、9×9 网格、物品占格、合法放置、Loadout Resolver（构筑解析器）。
 2. `docs/blade-nested-socket-design.md`
-   - Blade Item（异刃物品）、Blade Internal Equipment（异刃内部装备）、Slot Module（槽位扩展装备）、Generated Socket（生成插槽）。
 3. `docs/v5.1-backpack-blade-mvp-spec.md`
-   - 给本地开发模型执行的 V5.1 Backpack Blade MVP（背包异刃最小实现）规格。
+4. `docs/beast-blade-archetype-design.md`
+5. `docs/blade-bond-system-design.md`
+6. `docs/beast-blade-life-skills-design.md`
+7. `docs/v5.2-beast-blade-archetype-spec.md`
 
-## 3. 核心术语
-
-| Term | 中文 | 说明 |
-| --- | --- | --- |
-| Driver Backpack | 驱动者背包 | 9×9 主构筑空间。 |
-| Backpack Item | 背包物品 | 放入背包并占格的物品。 |
-| Blade Item | 异刃物品 | 放在背包里的异刃本体，占 2×2、3×2、3×3 等空间。 |
-| Blade Runtime | 异刃战斗单位 | 战斗开始后由 Blade Item 解析出的可攻击单位。 |
-| Blade Role | 异刃定位 | MVP 只做 Tank（肉）/ DPS（输出）。 |
-| Blade Internal Equipment | 异刃内部装备 | 异刃自己界面里的装备，不直接占 Driver Backpack 格子。 |
-| Slot Module | 槽位扩展装备 | 异刃内部装备之一，用于在异刃占地内生成 socket。 |
-| Generated Socket | 生成插槽 | 由 Slot Module 在 Blade footprint 内生成的可插入格。 |
-| Socket Item | 插槽物品 | 放入 Generated Socket 的小物品，如 Core（核心）、Rune（符文）。 |
-| Loadout Resolver | 构筑解析器 | 把背包布局解析成战斗可用的 ResolvedLoadout（解析后构筑）。 |
-
-## 4. 架构原则
+## 核心原则
 
 - Combat（战斗）不应每帧扫描 9×9 背包。
-- 战斗只读取 `ResolvedLoadout（解析后构筑）`。
-- Blade（异刃）本体不自带 Element（属性）。
-- Blade 的 Element（属性）来自 Blade 内部装备 / socket 中的 Core（核心）。
-- Driver Backpack（驱动者背包）只放 Blade 本体与其他大物品；Blade 内部装备不直接占 Driver Backpack 格子。
-- Socket（嵌入槽）必须完全位于 Blade footprint（异刃占地）内部。
-- V5.1 不做拖拽 UI、不做旋转、不做复杂形状、不做复杂多异刃 AI。
+- Combat 只读取 ResolvedLoadout（解析后构筑）。
+- Blade 本体不自带 Element（属性）。
+- Element 来自 Blade 内部 socket 中的 ElementCore（元素核心）。
+- Driver Backpack 只放 Blade 本体与其他大物品；Blade 内部装备不直接占 Driver Backpack 格子。
+- Socket 必须完全位于 Blade footprint 内。
+- 玩家不直接看到完整隐藏属性点。
+- 玩家看到的是动物、性格、习性、技能倾向、生活特长、羁绊状态。
+- 稀有度提高的是构筑可能性、特殊机制和成长空间，不是单纯数值碾压。
 
-## 5. 推荐里程碑
+## 推荐里程碑
 
-### V5.0 Design（当前）
-
-只提交设计文档，不改玩法代码。
-
-### V5.1 Backpack Blade MVP（完成）
+### V5.1 Backpack Blade MVP
 
 - 9×9 背包数据结构。
 - BladeItem（异刃物品）占格。
-- SlotModule（槽位模块）在异刃占地内生成 1×1 socket。
-- Socket 插入 ElementCore（元素核心）。
-- LoadoutResolver 输出 activeBlades（激活异刃）。
+- SlotModule 在异刃占地内生成 1×1 socket。
+- ElementCore 赋予异刃 element。
+- LoadoutResolver 输出 activeBlades。
 - BladeRuntime 自动攻击。
-- BladeAttackHit 带 element（属性）并造成伤害。
 
-已实现，见 PR #17。
+### V5.2 Beast Blade Archetype Design
 
-### V5.2 Blade Role Polish（未来）
+- 设计狼、熊、虎、龟、鹰、蛇等物种。
+- 设计同物种不同品系。
+- 设计个体特质、稀有度和隐藏属性模板。
+- 设计战斗技能池与生活技能池。
+- 设计羁绊系统边界。
 
-- Tank Blade（肉异刃）降低玩家受到的伤害。
-- DPS Blade（输出异刃）提高异刃输出。
+### V5.3 Beast Blade Archetype MVP
 
-### V5.3 Backpack Synergy（未来）
+- 实现少量物种和品系。
+- 隐藏属性影响 BladeRuntime。
+- 基础个体特质影响简单触发。
+- 不做复杂养成和生活系统。
 
-- 更多 socket 形状。
-- 更多异刃类型。
-- 背包邻接/范围加成。
+### V5.4 Bond System MVP
 
-## 6. 明确不做
+- Trust（信任）。
+- Mood（心情）。
+- Sync（战斗默契）。
+- 战斗事件提高羁绊。
+- 羁绊等级解锁 socket 或技能触发。
 
-V5.0 / V5.1 不做：复杂拖拽 UI、物品旋转、多背包页、异刃寻路、异刃复杂 AI、异刃自己挂 RoutineOrb（套路球）、Chain Attack（连锁攻击阶段）、Full Burst（最终爆发）、Fusion Combo（融合连击）。
+### V5.5 Life Skill Hook
+
+- 只做标签与等级接口。
+- 不实现完整采集、狩猎、挖矿玩法。
