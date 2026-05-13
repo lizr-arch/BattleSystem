@@ -119,11 +119,38 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 新增文件：`src/core/backpack-grid.js`、`src/core/backpack-items.js`、`src/core/loadout-resolver.js`、`src/core/blade-runtime.js`。新增 11 个 Blade/Backpack 事件、6 个 scenarios、4 个测试文件。
 
-## V5.2：Blade Role Polish（异刃定位打磨）（未来）
+## V5.2：Beast Blade Archetype Design（兽型异刃原型设计文档集成）（完成）
+
+状态：完成。
+
+范围：仅设计文档，不实现代码。
+
+交付物：
+
+- `docs/beast-blade-archetype-design.md`
+- `docs/blade-bond-system-design.md`
+- `docs/beast-blade-life-skills-design.md`
+- `docs/v5.2-beast-blade-archetype-spec.md`
+
+明确不做：不写任何 gameplay code，不改 src/core / src/ui / tests，不实现兽型异刃/羁绊/生活技能代码。
+
+## V5.3：Beast Blade Archetype MVP（未来）
 
 状态：未来。
 
-范围：Tank Blade（肉异刃）减伤、DPS Blade（输出异刃）伤害加成精调。
+范围：Wolf/Bear/Tiger 三种物种各 1-2 品系；隐藏属性影响 BladeRuntime；个体特质影响简单触发；LifeSkills 出现在 resolvedLoadout；element 仍来自 ElementCore。
+
+## V5.4：Bond System MVP（未来）
+
+状态：未来。
+
+范围：Trust/Mood/Sync 三维度实现；战斗事件驱动羁绊提升；羁绊等级解锁 socket 或技能触发。
+
+## V5.5：Life Skill Hook（未来）
+
+状态：未来。
+
+范围：LifeSkillTag + LifeSkillLevel + resolvedLoadout.activeLifeSkills。不做完整采集/狩猎/挖矿玩法。
 
 ## V6：Party Battle（队伍战斗）（未来）
 
