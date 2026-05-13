@@ -97,6 +97,22 @@ V5.2 是纯设计文档里程碑，不实现代码。将 Beast Blade（兽型异
 - `docs/v5.2-beast-blade-archetype-spec.md`：V5.2/V5.3/V5.4/V5.5 后续规格草案
 
 核心设计原则：异刃是动物型战斗伙伴（Beast Blade），不是单纯职业插件。稀有度提高构筑可能性与特殊机制，非简单数值碾压。element 仍来自 ElementCore。羁绊改变行为而非纯数值加成。
+
+## V5.3 Beast Blade Archetype MVP（已实现）
+
+V5.3 实现兽型异刃的最小原型，让 Blade 具备物种/品系/稀有度/个体特质/隐藏属性/生活技能：
+
+- 新增 `src/core/beast-blade.js`：Species（Wolf/Bear/Tiger）× Lineage（GreyWolf/MoonWolf/BrownBear/BengalTiger）× Rarity（Common/Uncommon/Rare/Legendary）× IndividualTrait（Loyal/Fierce/Proud）→ HiddenStatProfile 解析
+- 新增 `src/core/life-skills.js`：LifeSkillTag/LifeSkillEntry/mergeLifeSkills（不消费）
+- 新增 4 种 Beast Blade 物品定义（GreyWolf/MoonWolf/BrownBear/BengalTiger），保留 V5.1 CrimsonBlade/GuardianBlade
+- LoadoutResolver 扩展：resolvedBlade 新增 species/lineage/rarity/individualTrait/hiddenProfile/lifeSkills；resolvedLoadout 新增 activeLifeSkills
+- BladeRuntime 扩展：damageMultiplier 影响伤害、cooldownMultiplier 影响冷却、Fierce trait 伤害 +10%
+- 新增事件：BladeSpeciesResolved / BladeTraitActivated
+- 可观察性：新增 3 个测试文件（archetype 17 + runtime 8 + scenario 6 项） + 6 个 beast-blade scenarios
+  - Node：`npm test` PASS（26 suites）
+  - Browser：Debug Panel 显示 species/lineage/rarity/trait/element/lifeSkills/hiddenProfile；Canvas 显示物种简写
+- 明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
+
 =======
 ## 设计原型：Routine-Orb（套路挂球）
 

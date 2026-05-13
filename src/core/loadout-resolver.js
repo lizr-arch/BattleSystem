@@ -1,6 +1,8 @@
 import { createBackpackGrid } from './backpack-grid.js';
 import { getItemDefinition } from './backpack-items.js';
 import { CombatEventType } from './enums.js';
+import { resolveBeastBladeProfile } from './beast-blade.js';
+import { mergeLifeSkills } from './life-skills.js';
 
 export function resolveLoadout({
   backpackGrid,
@@ -11,7 +13,7 @@ export function resolveLoadout({
 
   if (!backpackGrid) {
     errors.push('no backpack grid provided');
-    return { activeBlades: [], errors };
+    return { activeBlades: [], activeLifeSkills: [], errors, events: [] };
   }
 
   const defs = itemDefinitions ?? null;
@@ -44,6 +46,7 @@ export function resolveLoadout({
 
   const bladeItems = validationGrid.getBladeItems();
   const activeBlades = [];
+  const events = [];
   const maxActive = 2;
 
   for (const placed of bladeItems) {
@@ -61,6 +64,12 @@ export function resolveLoadout({
       role: definition.role,
       element: 'Neutral',
       damageBonus: 0,
+      species: definition.species ?? null,
+      lineage: definition.lineage ?? null,
+      rarity: definition.rarity ?? null,
+      individualTrait: definition.individualTrait ?? null,
+      hiddenProfile: null,
+      lifeSkills: definition.lifeSkills ? [...definition.lifeSkills] : [],
       footprint: {
         x: placed.x,
         y: placed.y,
@@ -111,13 +120,35 @@ export function resolveLoadout({
       }
     }
 
+    if (definition.species && definition.lineage && definition.rarity) {
+      resolved.hiddenProfile = resolveBeastBladeProfile({
+        species: definition.species,
+        lineage: definition.lineage,
+        rarity: definition.rarity,
+      });
+      events.push({
+        type: CombatEventType.BladeSpeciesResolved,
+        data: {
+          bladeId: definition.id,
+          species: definition.species,
+          lineage: definition.lineage,
+          rarity: definition.rarity,
+          individualTrait: definition.individualTrait ?? '?',
+        },
+      });
+    }
+
     activeBlades.push(resolved);
   }
+
+  const activeLifeSkills = mergeLifeSkills(activeBlades.map((b) => b.lifeSkills));
 
   if (errors.length > 0) {
     return {
       activeBlades: [],
+      activeLifeSkills: [],
       errors,
+      events,
       event: {
         type: CombatEventType.BackpackInvalid,
         data: { errorCount: errors.length },
@@ -127,7 +158,9 @@ export function resolveLoadout({
 
   return {
     activeBlades,
+    activeLifeSkills,
     errors,
+    events,
     event: {
       type: CombatEventType.BackpackResolved,
       data: { activeBladeCount: activeBlades.length },

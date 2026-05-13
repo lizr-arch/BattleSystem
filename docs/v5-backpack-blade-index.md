@@ -37,30 +37,30 @@ V5.2 之后，Blade 不再只是“职业插件”，而是 Beast Blade（兽型
 - LoadoutResolver 输出 activeBlades。
 - BladeRuntime 自动攻击。
 
-### V5.2 Beast Blade Archetype Design
+### V5.2 Beast Blade Archetype Design（仅文档 — 已完成）
 
-- 设计狼、熊、虎、龟、鹰、蛇等物种。
-- 设计同物种不同品系。
-- 设计个体特质、稀有度和隐藏属性模板。
-- 设计战斗技能池与生活技能池。
-- 设计羁绊系统边界。
+- 设计 Bear/Tiger/Wolf/Turtle/Eagle/Snake 六种物种。
+- 设计 Wolf 四种品系（GreyWolf/SnowWolf/RedWolf/MoonWolf）。
+- 设计 6 种个体特质、4 级稀有度、隐藏属性模板。
+- 设计战斗技能池与生活技能池（15 种 LifeSkillTag）。
+- 设计羁绊系统三维度边界（Trust/Mood/Sync）。
+- 交付物：`docs/beast-blade-archetype-design.md`、`docs/blade-bond-system-design.md`、`docs/beast-blade-life-skills-design.md`、`docs/v5.2-beast-blade-archetype-spec.md`
 
-### V5.3 Beast Blade Archetype MVP
+### V5.3 Beast Blade Archetype MVP（未来）
 
-- 实现少量物种和品系。
+- 实现 Wolf / Bear / Tiger 三种物种各 1-2 品系。
 - 隐藏属性影响 BladeRuntime。
-- 基础个体特质影响简单触发。
-- 不做复杂养成和生活系统。
+- 个体特质影响简单触发。
+- LifeSkills 出现在 resolvedLoadout。
+- element 仍来自 ElementCore，不来自 species。
 
-### V5.4 Bond System MVP
+### V5.4 Bond System MVP（未来）
 
-- Trust（信任）。
-- Mood（心情）。
-- Sync（战斗默契）。
-- 战斗事件提高羁绊。
+- Trust / Mood / Sync 三维度实现。
+- 战斗事件驱动羁绊提升。
 - 羁绊等级解锁 socket 或技能触发。
 
-### V5.5 Life Skill Hook
+### V5.5 Life Skill Hook（未来）
 
-- 只做标签与等级接口。
+- LifeSkillTag / LifeSkillLevel / resolvedLoadout.activeLifeSkills。
 - 不实现完整采集、狩猎、挖矿玩法。

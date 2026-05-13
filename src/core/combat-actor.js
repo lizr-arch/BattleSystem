@@ -323,6 +323,7 @@ export class CombatActor {
       resolvedLoadout: this.resolvedLoadout ? {
         activeBlades: (this.resolvedLoadout.activeBlades ?? []).map((b) => ({ ...b })),
         errors: [...(this.resolvedLoadout.errors ?? [])],
+        activeLifeSkills: this.resolvedLoadout.activeLifeSkills ? [...this.resolvedLoadout.activeLifeSkills] : [],
       } : null,
       bladeRuntimes: (this.bladeRuntimes ?? []).map((br) => br.getSnapshot()),
     };
@@ -573,6 +574,12 @@ export class CombatActor {
       element: bladeSpec.element ?? 'Neutral',
       damageBonus: bladeSpec.damageBonus ?? 0,
       autoAttackSpec,
+      hiddenProfile: bladeSpec.hiddenProfile ?? null,
+      individualTrait: bladeSpec.individualTrait ?? null,
+      species: bladeSpec.species ?? null,
+      lineage: bladeSpec.lineage ?? null,
+      rarity: bladeSpec.rarity ?? null,
+      lifeSkills: bladeSpec.lifeSkills ?? null,
     });
     this.bladeRuntimes.push(runtime);
     this.emit(CombatEventType.BladeLinked, {

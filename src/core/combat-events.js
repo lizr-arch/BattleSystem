@@ -188,6 +188,10 @@ export function formatCombatEvent(type, data = {}) {
       return `BladeAttackCooldownStarted blade=${data.bladeId ?? 'Unknown'} ${data.frames ?? 0}f`;
     case CombatEventType.BladeAttackCooldownFinished:
       return `BladeAttackCooldownFinished blade=${data.bladeId ?? 'Unknown'}`;
+    case CombatEventType.BladeSpeciesResolved:
+      return `BladeSpeciesResolved blade=${data.bladeId ?? 'Unknown'} species=${data.species ?? '?'} lineage=${data.lineage ?? '?'} rarity=${data.rarity ?? '?'} trait=${data.individualTrait ?? '?'}`;
+    case CombatEventType.BladeTraitActivated:
+      return `BladeTraitActivated blade=${data.bladeId ?? 'Unknown'} trait=${data.trait ?? '?'} effect=${data.effect ?? '?'}`;
     default:
       return String(type);
   }

@@ -1145,7 +1145,35 @@
 - 相关机制：Blade Runtime / Cooldown
 - 测试覆盖：`tests/blade-runtime.test.mjs`
 
+### BladeSpeciesResolved
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/loadout-resolver.js`（`resolveLoadout`）
+- 触发条件：解析一个 Beast Blade（有 species/lineage/rarity 字段）时。
+- data 字段：
+  - `bladeId: string`
+  - `species: string`
+  - `lineage: string`
+  - `rarity: string`
+  - `individualTrait: string`
+- 日志格式：`BladeSpeciesResolved blade=X species=Y lineage=Z rarity=W trait=V`
+- 相关机制：Beast Blade Archetype / LoadoutResolver
+- 测试覆盖：`tests/beast-blade-archetype.test.mjs`
+
+### BladeTraitActivated
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/blade-runtime.js`（`tick`）
+- 触发条件：BladeRuntime 首次命中且 individualTrait='Fierce' 时。
+- data 字段：
+  - `bladeId: string`
+  - `trait: string`
+  - `effect: string`
+- 日志格式：`BladeTraitActivated blade=X trait=Y effect=Z`
+- 相关机制：Beast Blade Archetype / IndividualTrait / BladeRuntime
+- 测试覆盖：`tests/beast-blade-runtime.test.mjs`
+
 ## 事件总览更新
 
-截至 V5.1，`CombatEventType` 共 85 个事件值。V5.1 新增 11 个 Blade/Backpack 事件。
+截至 V5.3，`CombatEventType` 共 87 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件。
 

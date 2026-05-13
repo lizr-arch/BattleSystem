@@ -271,6 +271,9 @@ export class CanvasRenderer {
       if (br.element !== 'Neutral') {
         this.text(br.element, bx, by - 16, '#ff9d78', 11);
       }
+      if (br.species) {
+        this.text(br.species, bx + 14, by - 8, '#ffe066', 9);
+      }
       if (br.cooldownLeft > 0) {
         this.text(String(br.cooldownLeft), bx + 12, by + 4, '#98a2b3', 10);
       }

@@ -81,8 +81,14 @@ export class DebugPanel {
       scBackpackBladeMVP: this.byId('scBackpackBladeMVP'),
       scBladeFireCore: this.byId('scBladeFireCore'),
       scMultipleBladesLimit: this.byId('scMultipleBladesLimit'),
+      scBeastWolfProfile: this.byId('scBeastWolfProfile'),
+      scBeastElementCore: this.byId('scBeastElementCore'),
+      scBeastLifeSkills: this.byId('scBeastLifeSkills'),
+      scBeastFierceDamage: this.byId('scBeastFierceDamage'),
       blBackpackSize: this.byId('blBackpackSize'),
       blActiveBlades: this.byId('blActiveBlades'),
+      blBeastInfo: this.byId('blBeastInfo'),
+      blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
@@ -174,6 +180,10 @@ export class DebugPanel {
     this.refs.scBackpackBladeMVP.addEventListener('click', () => this.runScenario('backpack-valid-blade-placement'));
     this.refs.scBladeFireCore.addEventListener('click', () => this.runScenario('blade-socket-resolves-fire-core'));
     this.refs.scMultipleBladesLimit.addEventListener('click', () => this.runScenario('multiple-blades-limit-two-active'));
+    this.refs.scBeastWolfProfile.addEventListener('click', () => this.runScenario('beast-blade-wolf-profile'));
+    this.refs.scBeastElementCore.addEventListener('click', () => this.runScenario('beast-blade-element-still-from-core'));
+    this.refs.scBeastLifeSkills.addEventListener('click', () => this.runScenario('beast-blade-life-skills-resolve'));
+    this.refs.scBeastFierceDamage.addEventListener('click', () => this.runScenario('beast-blade-fierce-increases-damage'));
 
     this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
     this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
@@ -564,6 +574,28 @@ export class DebugPanel {
         return `${b.bladeId} | ${b.role} | ${b.element} | ${rt?.state ?? '-'} | cd:${rt?.cooldownLeft ?? '-'}`;
       });
       this.refs.blActiveBlades.textContent = lines.join('\n') || '-';
+    }
+
+    if (this.refs.blBeastInfo) {
+      const lines = (loadout?.activeBlades ?? []).map((b) => {
+        const species = b.species ?? '-';
+        const lineage = b.lineage ?? '-';
+        const rarity = b.rarity ?? '-';
+        const trait = b.individualTrait ?? '-';
+        const hidden = b.hiddenProfile
+          ? `hp:${b.hiddenProfile.hpMultiplier} dmg:${b.hiddenProfile.damageMultiplier} spd:${b.hiddenProfile.speedMultiplier} cd:${b.hiddenProfile.cooldownMultiplier}`
+          : '-';
+        return `${b.bladeId}: ${species}/${lineage}/${rarity} [${trait}] | ${hidden}`;
+      });
+      this.refs.blBeastInfo.textContent = lines.join('\n') || '-';
+    }
+
+    if (this.refs.blActiveLifeSkills) {
+      const skills = loadout?.activeLifeSkills ?? [];
+      const text = skills.length > 0
+        ? skills.map((sk) => `${sk.tag} Lv${sk.level}`).join(', ')
+        : '-';
+      this.refs.blActiveLifeSkills.textContent = text;
     }
 
     if (this.refs.blLastBladeEvent) {

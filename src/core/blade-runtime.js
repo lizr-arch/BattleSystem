@@ -10,6 +10,12 @@ export class BladeRuntime {
     element = 'Neutral',
     damageBonus = 0,
     autoAttackSpec,
+    hiddenProfile = null,
+    individualTrait = null,
+    species = null,
+    lineage = null,
+    rarity = null,
+    lifeSkills = null,
   }) {
     this.bladeInstanceId = bladeInstanceId;
     this.bladeId = bladeId;
@@ -17,9 +23,16 @@ export class BladeRuntime {
     this.element = element;
     this.damageBonus = damageBonus;
     this.autoAttackSpec = autoAttackSpec;
+    this.hiddenProfile = hiddenProfile ?? { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 };
+    this.individualTrait = individualTrait ?? null;
+    this.species = species ?? null;
+    this.lineage = lineage ?? null;
+    this.rarity = rarity ?? null;
+    this.lifeSkills = lifeSkills ?? null;
     this.state = 'Idle';
     this.action = null;
     this.cooldownLeft = 0;
+    this._traitActivated = false;
     this._actionSpec = new CombatActionSpec({
       id: `BladeAuto_${bladeInstanceId}`,
       kind: ActionKind.AutoAttack,
@@ -78,7 +91,21 @@ export class BladeRuntime {
       if (this.action.shouldFireHit()) {
         if (inRange) {
           const baseDamage = this.autoAttackSpec.damage ?? 0;
-          const finalDamage = Math.round(baseDamage * (1 + this.damageBonus));
+          let finalDamage = Math.round(baseDamage * this.hiddenProfile.damageMultiplier * (1 + this.damageBonus));
+          if (this.individualTrait === 'Fierce') {
+            finalDamage = Math.round(finalDamage * 1.1);
+            if (!this._traitActivated) {
+              this._traitActivated = true;
+              events.push({
+                type: CombatEventType.BladeTraitActivated,
+                data: {
+                  bladeId: this.bladeId,
+                  trait: 'Fierce',
+                  effect: 'damage_multiplier',
+                },
+              });
+            }
+          }
           events.push({
             type: CombatEventType.BladeAttackHit,
             data: {
@@ -109,7 +136,8 @@ export class BladeRuntime {
           data: { bladeId: this.bladeId },
         });
         this.action = null;
-        this.cooldownLeft = this.autoAttackSpec.cooldownFrames ?? 0;
+        const baseCooldown = this.autoAttackSpec.cooldownFrames ?? 0;
+        this.cooldownLeft = Math.round(baseCooldown * this.hiddenProfile.cooldownMultiplier);
         this.state = 'Cooldown';
         if (this.cooldownLeft > 0) {
           events.push({
@@ -138,6 +166,12 @@ export class BladeRuntime {
         elapsedFrames: this.action.elapsedFrames,
       } : null,
       cooldownLeft: this.cooldownLeft,
+      species: this.species,
+      lineage: this.lineage,
+      rarity: this.rarity,
+      individualTrait: this.individualTrait,
+      hiddenProfile: this.hiddenProfile ? { ...this.hiddenProfile } : null,
+      lifeSkills: this.lifeSkills ? [...this.lifeSkills] : null,
     };
   }
 }
