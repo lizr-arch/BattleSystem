@@ -86,6 +86,7 @@ V5.1 实现最小 Backpack（背包）+ Blade（异刃）+ Nested Socket（嵌�
 
 不做：拖拽 UI、物品旋转、Blade 独立寻路、Blade 复杂 AI、Chain Attack / Full Burst / Fusion Combo。
 
+
 ## V5.2 Beast Blade Archetype Design（兽型异刃原型设计 — 仅文档）
 
 V5.2 是纯设计文档里程碑，不实现代码。将 Beast Blade（兽型异刃）的设计框架正式进入仓库，为后续 V5.3~V5.5 实现提供策划口径与架构约束：
@@ -96,6 +97,15 @@ V5.2 是纯设计文档里程碑，不实现代码。将 Beast Blade（兽型异
 - `docs/v5.2-beast-blade-archetype-spec.md`：V5.2/V5.3/V5.4/V5.5 后续规格草案
 
 核心设计原则：异刃是动物型战斗伙伴（Beast Blade），不是单纯职业插件。稀有度提高构筑可能性与特殊机制，非简单数值碾压。element 仍来自 ElementCore。羁绊改变行为而非纯数值加成。
+=======
+## 设计原型：Routine-Orb（套路挂球）
+
+后续 Single Driver MVP（单人驱动者最小可玩版本）的核心设计参考：
+
+- `docs/design/routine-orb-combat-prototype.md`
+
+该文档把挂球定义为“麻将式套路牌组合”：Skill（技能）命中会生成 Routine Tile（套路牌），三张同 Routine（武功套路）形成 Routine Orb（套路球），削球时结算 Element Damage（套路属性伤害）与 Debuff（负面状态）。
+
 
 ## V1 目标与边界
 
@@ -234,3 +244,4 @@ See:
 - `docs/v5.2-beast-blade-archetype-spec.md`
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
+- `docs/design/routine-orb-combat-prototype.md`
