@@ -233,6 +233,24 @@ export class BladeRuntime {
     return { events, damageToApply: null };
   }
 
+  exportBondSnapshot({ resetBattleTransient = false } = {}) {
+    const bs = this.bondState;
+    if (resetBattleTransient) {
+      return {
+        trust: bs.trust,
+        trustLevel: bs.trustLevel,
+        mood: 50,
+        sync: 0,
+      };
+    }
+    return {
+      trust: bs.trust,
+      trustLevel: bs.trustLevel,
+      mood: bs.mood,
+      sync: bs.sync,
+    };
+  }
+
   getSnapshot() {
     const rb = this.resolvedBlade;
     const bs = this.bondState;

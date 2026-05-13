@@ -1,6 +1,6 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
 import { EnemyStrikeSpec } from '../core/enemy-strike.js';
-import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, resetRuntime, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
 import { createBackpackGrid } from '../core/backpack-grid.js';
 import { resolveLoadout } from '../core/loadout-resolver.js';
 import { CombatInputFrame } from '../core/combat-input.js';
@@ -1408,6 +1408,111 @@ export const scenarios = Object.freeze({
       waitFrames(55, 'Wait for blade hit'),
       assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
       assertEvent(CombatEventType.BondSyncChanged, (e) => e.data?.after === 18, 'BondSyncChanged after=18 (Proud 15*1.2)'),
+    ],
+  },
+
+  'bond-reset-keeps-trust': {
+    name: 'bond-reset-keeps-trust',
+    maxFrames: 600,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade hit to accumulate trust'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondTrustChanged, (e) => e.data?.after > 0, 'BondTrustChanged after>0'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.trust ?? 0) > 0, 'Assert trust > 0 before reset'),
+      resetRuntime('Reset runtime'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.trust ?? 0) > 0, 'Assert trust > 0 survives reset'),
+    ],
+  },
+
+  'bond-reset-clears-sync': {
+    name: 'bond-reset-clears-sync',
+    maxFrames: 600,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade hit to accumulate sync'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondSyncChanged, (e) => e.data?.after > 0, 'BondSyncChanged after>0'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.sync ?? 0) > 0, 'Assert sync > 0 before reset'),
+      resetRuntime('Reset runtime'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.sync ?? -1) === 0, 'Assert sync === 0 after reset'),
+    ],
+  },
+
+  'bond-reset-normalizes-mood': {
+    name: 'bond-reset-normalizes-mood',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 1;
+      actor.player.maxHp = 1;
+      actor.player.dead = false;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.enemy) {
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.state = 'Idle';
+      }
+    },
+    steps: [
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait Defeat'),
+      assertEvent(CombatEventType.BondMoodChanged, (e) => e.data?.reason === 'defeat' && e.data?.after < e.data?.before, 'Mood lowered by defeat'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.mood ?? 50) < 50, 'Assert mood < 50 after defeat'),
+      resetRuntime('Reset runtime'),
+      assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.mood ?? -1) === 50, 'Assert mood === 50 after reset'),
     ],
   },
 });

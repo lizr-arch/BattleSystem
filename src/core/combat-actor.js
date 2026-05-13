@@ -386,6 +386,7 @@ export class CombatActor {
     this.vfx = [];
     this.lastEnemyOutcome = null;
     this.paused = false;
+    this.commitBladeBondStates({ resetBattleTransient: true });
     this.bladeRuntimes = [];
     if (this.resolvedLoadout?.activeBlades?.length) {
       for (const blade of this.resolvedLoadout.activeBlades) {
@@ -566,6 +567,18 @@ export class CombatActor {
     return { ok: true, cooldownLeft: this.enemy.cooldownLeft | 0 };
   }
 
+  commitBladeBondStates({ resetBattleTransient = false } = {}) {
+    if (!this.bladeRuntimes || !this.bladeRuntimes.length) return;
+    const blades = this.resolvedLoadout?.activeBlades ?? [];
+    for (const runtime of this.bladeRuntimes) {
+      const blade = blades.find((b) => b.bladeInstanceId === runtime.bladeInstanceId);
+      if (!blade) continue;
+      const snapshot = runtime.exportBondSnapshot({ resetBattleTransient });
+      blade.bond = blade.bond ?? {};
+      Object.assign(blade.bond, snapshot);
+    }
+  }
+
   linkBlade(bladeSpec) {
     const def = getItemDefinition(bladeSpec.bladeId);
     const autoAttackSpec = bladeSpec.autoAttackSpec ?? def?.autoAttack ?? null;
@@ -629,6 +642,7 @@ export class CombatActor {
         reason: moodResult.reason,
       });
     }
+    this.commitBladeBondStates({ resetBattleTransient: false });
   }
 
   _applyBondDefeat() {
@@ -643,6 +657,7 @@ export class CombatActor {
         reason: moodResult.reason,
       });
     }
+    this.commitBladeBondStates({ resetBattleTransient: false });
   }
 
   breakRoutineOrb() {

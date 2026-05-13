@@ -506,3 +506,20 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
   - bond-loyal-trait：Loyal Blade Trust 增长更快。
   - bond-proud-trait：Proud Blade Sync 增长更快但 Trust 增长更慢。
 
+## V5.4.1 Bond Persistence 测试
+
+### tests/bond-persistence.test.mjs
+
+- 测试目标：验证 Bond 三维度在 resetRuntime 时的生命周期语义。
+- 覆盖机制：Bond（V5.4.1）
+- 覆盖事件：BondTrustChanged、BondMoodChanged、BondSyncChanged、BattleEnded（间接）
+- 测试数量：9（6 个直接测试 + 3 个新场景 runner 测试）
+- 关键断言：
+  - Trust survives resetRuntime：BladeAttackHit 后 resetRuntime，新 BladeRuntime 保留原有 Trust。
+  - Sync clears on resetRuntime：accumulated sync > 0，resetRuntime 后 sync === 0。
+  - Mood resets to 50 on resetRuntime：mood !== 50 时 resetRuntime，mood 回到 50。
+  - Victory commit preserves Trust：Victory 后 activeBlade.bond.trust > 0 且与 runtime trust 同步。
+  - Defeat lowers Mood but NOT Trust：Defeat 仅降低 Mood，Trust 不受影响；resetRuntime 后 mood 回 50。
+  - V5.4 6 个 bond scenarios 不回归。
+  - 3 个新 scenarios（bond-reset-keeps-trust、bond-reset-clears-sync、bond-reset-normalizes-mood）通过 scenario runner。
+

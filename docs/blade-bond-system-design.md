@@ -1,10 +1,26 @@
 # 异刃羁绊系统设计（Blade Bond System Design）
 
-**V5.4 实现状态**: Bond System MVP 已实现。Trust/Mood/Sync 三维度、BladeAttackHit/Victory/Defeat 事件挂钩、Loyal/Proud trait 影响已落地。详细实现见 `src/core/bond.js` 与 `src/core/blade-runtime.js`。
+**V5.4.1 实现状态**: Bond System MVP 已实现。Trust/Mood/Sync 三维度、BladeAttackHit/Victory/Defeat 事件挂钩、Loyal/Proud trait 影响已落地。V5.4.1 新增 Bond 生命周期语义：Trust 跨 resetRuntime 保留、Mood 在 resetRuntime 后回到 50、Sync 在 resetRuntime 后清零。详细实现见 `src/core/bond.js` 与 `src/core/blade-runtime.js`。
 
 注意：BondSkillUnlocked/BondSocketUnlocked/BondMilestoneReached/BondAssistActivated 仍未实现。
 
 **V5.4 明确不做**：送礼系统、喂食系统、羁绊剧情/事件、多异刃好感竞争、异刃离队、Life Skill gameplay。
+
+## Bond 生命周期（V5.4.1）
+
+V5.4.1 明确了 Bond 三维度在 resetRuntime 时的行为：
+
+- **Trust（信任）**：长期值，`resetRuntime()` 后不丢失。BladeRuntime 创建时从 `resolvedBlade.bond.trust` 恢复。
+- **Mood（心情）**：短期值，`resetRuntime()` 后回到中性值 50。
+- **Sync（战斗默契）**：战斗内值，`resetRuntime()` 后清零。
+
+实现细节：
+- `BladeRuntime.exportBondSnapshot({ resetBattleTransient })` 导出 bond 状态
+- `CombatActor.commitBladeBondStates({ resetBattleTransient })` 将 runtime bond 同步回 resolvedLoadout
+- `resetRuntime()` 在清空 bladeRuntimes 前调用 `commitBladeBondStates({ resetBattleTransient: true })`，将 Mood/Sync 重置后写回
+- Victory/Defeat 后也调用 `commitBladeBondStates({ resetBattleTransient: false })`，确保 Trust 持久化
+
+V5.4.1 不做：送礼/喂食/羁绊剧情/多异刃好感竞争/异刃离队/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo。
 
 ## 1. 设计目标
 
