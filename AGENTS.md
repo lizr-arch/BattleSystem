@@ -287,6 +287,11 @@ SPEC -> PLAN -> DO -> VERIFY -> REPORT
 - docs/routine-orb-system.md
 - docs/v3-readiness-review.md
 - docs/v4-readiness-review.md
+- docs/v5-backpack-blade-index.md
+- docs/beast-blade-archetype-design.md
+- docs/blade-bond-system-design.md
+- docs/beast-blade-life-skills-design.md
+- docs/v5.2-beast-blade-archetype-spec.md
 
 进入 V4 前额外要求：
 
@@ -514,7 +519,17 @@ V2 交付物：
 - 可观察性：新增 11 个 Blade/Backpack 事件；`getSnapshot()` 扩展。
 - tests/scenarios/UI：Node 侧 `npm test` 纳入 4 个新测试文件；浏览器 Debug 面板提供 Backpack/Blades 区块与一键 Run。
 
-### 明确不做（当前版本边界：<= V5.1）
+### V5.2：Beast Blade Archetype Design（完成，仅文档）
+
+- 纯设计文档里程碑，不实现代码。
+- 交付物：
+  - `docs/beast-blade-archetype-design.md`
+  - `docs/blade-bond-system-design.md`
+  - `docs/beast-blade-life-skills-design.md`
+  - `docs/v5.2-beast-blade-archetype-spec.md`
+- 明确不做：不写 gameplay code，不改 src/core / src/ui / tests，不实现兽型异刃/羁绊/生活技能代码。
+
+### 明确不做（当前版本边界：<= V5.2）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。
