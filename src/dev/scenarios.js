@@ -1186,7 +1186,6 @@ export const scenarios = Object.freeze({
     maxFrames: 500,
     prepare(actor) {
       actor.resetRuntime();
-      setupActorForScenario(actor);
       actor.eventLog.clear();
       actor.autoAttackRange = 0;
       actor.target.x = 200;
@@ -1194,6 +1193,7 @@ export const scenarios = Object.freeze({
       actor.target.hp = 999999;
       actor.target.maxHp = 999999;
       actor.target.dead = false;
+      setupActorForScenario(actor);
       const grid = createBackpackGrid({ width: 9, height: 9 });
       grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
       const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
