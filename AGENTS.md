@@ -544,7 +544,22 @@ V2 交付物：
 - Canvas 显示物种简写（Wolf/Bear/Tiger）
 - 明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
 
-### 明确不做（当前版本边界：<= V5.3）
+### V5.4：Bond System MVP（完成）
+
+实现羁绊三维的最小原型：
+
+- Trust / Mood / Sync 三维数据模型
+- BladeAttackHit 增加 Sync / Trust
+- Sync 达阈值触发 BondSyncTriggered
+- Victory 增加 Trust / Mood（参与 blades）
+- Defeat 降低 Mood（Trust 不变）
+- Loyal / Proud trait 对 Bond 有可测影响
+- Debug Panel / Canvas / scenarios 可观察
+- 新增 4 个 Bond 事件、6 个 scenarios、3 个测试文件
+
+明确不做：送礼/喂食/羁绊剧情/多异刃好感竞争/异刃离队/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
+
+### 明确不做（当前版本边界：<= V5.4）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

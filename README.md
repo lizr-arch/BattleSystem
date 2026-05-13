@@ -113,6 +113,19 @@ V5.3 实现兽型异刃的最小原型，让 Blade 具备物种/品系/稀有度
   - Browser：Debug Panel 显示 species/lineage/rarity/trait/element/lifeSkills/hiddenProfile；Canvas 显示物种简写
 - 明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
 
+## V5.4 Bond System MVP（已实现）
+
+V5.4 实现羁绊三维（Trust / Mood / Sync）的最小原型，让 Blade 与 Driver 之间建立关系：
+
+- 新增 `src/core/bond.js`：BondState / BondConfig 三维数据模型，信任等级 5 级阈值，Mood 0-100，Sync 0-100
+- BladeAttackHit 增加 Sync / Trust 增长；Sync 达 75 阈值触发 BondSyncTriggered 并重置
+- Victory 增加参与异刃的 Trust / Mood；Defeat 降低 Mood（Trust 不变）
+- Loyal trait：Trust 增益 2x（默认 1→2，Victory 额外 +5）；Proud trait：Sync 增益 1.2x（15→18），Trust 增益 0.8x
+- 新增 4 个 Bond 事件：BondTrustChanged / BondMoodChanged / BondSyncChanged / BondSyncTriggered
+- 可观察性：新增 3 个测试文件（bond-state 16 + bond-runtime 10 + bond-scenario 6）+ 6 个 scenarios
+  - Debug Panel 显示 Trust/TrustLevel/Mood/Sync；Canvas 显示 Trust 等级标记
+- 明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
+
 =======
 ## 设计原型：Routine-Orb（套路挂球）
 
