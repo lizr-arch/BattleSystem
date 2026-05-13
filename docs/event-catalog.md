@@ -1232,5 +1232,7 @@
 - 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
 - 备注：V5.4 MVP 中 Sync 达阈值后清零（sync=0）；overflow 仅作为事件数据记录，不保留到 bond.sync。后续版本可能改为保留溢出值。
 
+## 事件总览更新
+
 截至 V5.4，`CombatEventType` 共 91 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件；V5.4 新增 4 个 Bond 事件。
 
