@@ -290,3 +290,13 @@ V4.3 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - 背包拖拽 UI / 物品旋转 / 复杂形状。
 - Blade 独立寻路 / Blade 复杂 AI / Blade 自己挂 RoutineOrb。
 - 完整伤害公式与数值平衡。
+
+## V5.3.1 验收标准（BladeRuntime Constructor Cleanup）
+
+V5.3.1 为纯结构性重构（BladeRuntime 构造函数参数收敛为 `resolvedBlade` 对象），不引入新玩法。验收要求：
+
+- `npm test` PASS（26 suites 全部通过）。
+- `npm run audit:map` PASS。
+- 4 个 blade 相关测试文件通过：`blade-runtime.test.mjs`、`beast-blade-archetype.test.mjs`、`beast-blade-runtime.test.mjs`、`backpack-blade-scenario.test.mjs`。
+- `CombatActor.getSnapshot()` 输出的 blade 相关字段与 V5.3 完全兼容，无字段缺失或结构变更。
+- 所有 V5.1/V5.3 scenarios 不回归。

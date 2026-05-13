@@ -152,6 +152,14 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
 
+## V5.3.1：BladeRuntime Constructor Cleanup（完成）
+
+状态：完成。
+
+范围：纯结构性重构，无新玩法。将 BladeRuntime 构造函数的 11 个扁平参数收敛为单个 `resolvedBlade` 对象，消除参数顺序耦合，为 V5.4 Bond System 接入做准备。
+
+不做：任何玩法变更。
+
 ## V5.4：Bond System MVP（未来）
 
 状态：未来。

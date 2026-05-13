@@ -451,3 +451,13 @@ V4.0 已落地 Single Driver Routine-Orb MVP；Chain Attack / Full Burst / Fusio
   - whiff 后无 DamageApplied source=Blade。
   - 3 Blade 时 bladeRuntimes.length === 2。
 
+## V5.3.1 备注（BladeRuntime Constructor Cleanup）
+
+V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平参数收敛为单个 `resolvedBlade` 对象。不改变测试覆盖矩阵的覆盖范围。
+
+影响的测试文件（仅适配新构造函数签名，断言逻辑不变）：
+- `tests/blade-runtime.test.mjs`
+- `tests/beast-blade-runtime.test.mjs`
+
+其余 blade 相关测试（`backpack-blade-scenario.test.mjs`、`beast-blade-archetype.test.mjs`）通过 LoadoutResolver/ScenarioRunner 间接使用 BladeRuntime，无需修改即可通过。
+

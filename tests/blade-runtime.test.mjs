@@ -14,11 +14,13 @@ function createDummyActor(x = 100, y = 200) {
 // Test 1: BladeRuntime 创建后初始状态 Idle, cooldown=0
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0.1,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0.1,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 45 },
   });
   assert.strictEqual(b.state, 'Idle');
@@ -32,11 +34,13 @@ function createDummyActor(x = 100, y = 200) {
 // Test 2: 在范围内自动攻击启动
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0.1,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0.1,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 45 },
   });
   const result = b.tick({ target: createDummyTarget(), actor: createDummyActor() });
@@ -49,11 +53,13 @@ function createDummyActor(x = 100, y = 200) {
 // Test 3: 不在范围内不启动攻击
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0.1,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0.1,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 10, cooldownFrames: 45 },
   });
   const result = b.tick({ target: createDummyTarget(200, 200), actor: createDummyActor(0, 0) });
@@ -64,25 +70,24 @@ function createDummyActor(x = 100, y = 200) {
 // Test 4: 冷却期间不启动攻击
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 5 },
   });
-  // Start attack, tick through to cooldown
   const target = createDummyTarget();
   const actor = createDummyActor();
-  b.tick({ target, actor }); // Idle -> Attacking
-  // Tick through startup+active+recovery
+  b.tick({ target, actor });
   const totalAction = 18 + 2 + 28;
   for (let i = 0; i < totalAction; i++) {
     b.tick({ target, actor });
   }
   assert.strictEqual(b.state, 'Cooldown');
   assert.ok(b.cooldownLeft > 0);
-  // Tick during cooldown
   b.tick({ target, actor });
   assert.strictEqual(b.state, 'Cooldown');
   console.log('PASS: Blade stays in cooldown during cooldown period');
@@ -91,18 +96,18 @@ function createDummyActor(x = 100, y = 200) {
 // Test 5: 命中产生伤害
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0.1,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0.1,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 45 },
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
-  // Start
   b.tick({ target, actor });
-  // Tick through startup (17 more ticks) - hit fires inside this loop
   let hitResult = null;
   for (let i = 1; i < 18; i++) {
     const r = b.tick({ target, actor });
@@ -111,10 +116,9 @@ function createDummyActor(x = 100, y = 200) {
   if (!hitResult) {
     hitResult = b.tick({ target, actor });
   }
-  // This tick should be Active -> hit fires
   const hasHit = (hitResult?.events ?? []).some((e) => e.type === CombatEventType.BladeAttackHit);
   assert.ok(hasHit, 'should produce BladeAttackHit');
-  const expectedDmg = Math.round(24 * 1.1); // 26.4 -> 26
+  const expectedDmg = Math.round(24 * 1.1);
   assert.ok(hitResult.damageToApply, 'should have damage to apply');
   assert.strictEqual(hitResult.damageToApply.amount, expectedDmg);
   assert.strictEqual(hitResult.damageToApply.source, 'Blade');
@@ -124,21 +128,20 @@ function createDummyActor(x = 100, y = 200) {
 // Test 6: 打空（out of range at active frame）
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0,
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 45 },
   });
   const target = { x: 200, y: 200, radius: 38, hp: 999999, maxHp: 999999, dead: false };
-  const actor = { x: 100, y: 200 }; // close enough to start
-  // Start attack
+  const actor = { x: 100, y: 200 };
   b.tick({ target, actor });
-  // Move target far away during startup
   target.x = 999;
   target.y = 999;
-  // Tick through startup to active
   let whiffResult = null;
   for (let i = 1; i < 18; i++) {
     const r = b.tick({ target, actor });
@@ -156,20 +159,22 @@ function createDummyActor(x = 100, y = 200) {
 // Test 7: 冷却结束后回到 Idle
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0,
+    },
     autoAttackSpec: { startupFrames: 1, activeFrames: 1, recoveryFrames: 1, damage: 1, range: 190, cooldownFrames: 1 },
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
-  b.tick({ target, actor }); // Idle -> Attacking (startup=1)
-  b.tick({ target, actor }); // Active
-  b.tick({ target, actor }); // Recovery -> Finished -> Cooldown
+  b.tick({ target, actor });
+  b.tick({ target, actor });
+  b.tick({ target, actor });
   assert.strictEqual(b.state, 'Cooldown');
-  b.tick({ target, actor }); // Cooldown decrement -> 0 -> Idle
+  b.tick({ target, actor });
   assert.strictEqual(b.state, 'Idle');
   console.log('PASS: Blade returns to Idle after cooldown');
 }

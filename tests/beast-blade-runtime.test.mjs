@@ -16,13 +16,15 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 1: damageMultiplier 影响 BladeAttackHit 伤害
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'GreyWolfBlade',
-    role: 'DPS',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'GreyWolfBlade',
+      role: 'DPS',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.3, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
+    },
     autoAttackSpec: defaultSpec,
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.3, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
@@ -33,7 +35,7 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
     if (r.damageToApply) { hitResult = r; break; }
   }
   assert.ok(hitResult, 'should produce a hit');
-  const expectedDmg = Math.round(24 * 1.3 * 1.0); // 31.2 -> 31
+  const expectedDmg = Math.round(24 * 1.3 * 1.0);
   assert.strictEqual(hitResult.damageToApply.amount, expectedDmg);
   console.log('PASS: damageMultiplier 1.3 produces damage=' + expectedDmg + ' (vs base 24)');
 }
@@ -41,19 +43,21 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 2: cooldownMultiplier 影响冷却时间
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'BearBlade',
-    role: 'Tank',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'BearBlade',
+      role: 'Tank',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.8, skillBudget: 0 },
+    },
     autoAttackSpec: { startupFrames: 1, activeFrames: 1, recoveryFrames: 1, damage: 1, range: 190, cooldownFrames: 10 },
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.8, skillBudget: 0 },
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
-  b.tick({ target, actor }); // Idle -> Attacking (1f startup)
-  b.tick({ target, actor }); // Active -> hit -> Recovery
-  b.tick({ target, actor }); // Recovery -> Finished -> Cooldown
+  b.tick({ target, actor });
+  b.tick({ target, actor });
+  b.tick({ target, actor });
   assert.strictEqual(b.state, 'Cooldown');
   assert.strictEqual(b.cooldownLeft, Math.round(10 * 1.8), 'cooldown should be 18 (=10*1.8)');
   console.log('PASS: cooldownMultiplier 1.8 makes cooldown ' + b.cooldownLeft + ' (base 10)');
@@ -62,14 +66,16 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 3: Fierce trait 增加伤害
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'GreyWolfBlade',
-    role: 'DPS',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'GreyWolfBlade',
+      role: 'DPS',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.0, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
+      individualTrait: 'Fierce',
+    },
     autoAttackSpec: defaultSpec,
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.0, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
-    individualTrait: 'Fierce',
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
@@ -80,7 +86,6 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
     if (r.damageToApply) { hitResult = r; break; }
   }
   assert.ok(hitResult, 'should produce a hit');
-  // base 24 * damageMultiplier 1.0 * (1+0) * Fierce 1.1 = 26.4 -> 26
   assert.strictEqual(hitResult.damageToApply.amount, Math.round(24 * 1.1));
   console.log('PASS: Fierce trait increases damage by 1.1x');
 }
@@ -88,14 +93,16 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 4: Fierce trait 触发 BladeTraitActivated 事件
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'GreyWolfBlade',
-    role: 'DPS',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'GreyWolfBlade',
+      role: 'DPS',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.0, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
+      individualTrait: 'Fierce',
+    },
     autoAttackSpec: defaultSpec,
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1.0, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
-    individualTrait: 'Fierce',
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
@@ -115,11 +122,13 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 5: 无 hiddenProfile 时使用默认值（不崩溃，伤害不变）
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'CrimsonBlade',
-    role: 'DPS',
-    element: 'Fire',
-    damageBonus: 0.1,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'CrimsonBlade',
+      role: 'DPS',
+      element: 'Fire',
+      damageBonus: 0.1,
+    },
     autoAttackSpec: defaultSpec,
   });
   assert.strictEqual(b.state, 'Idle');
@@ -135,7 +144,6 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
     const r = b.tick({ target, actor });
     if (r.damageToApply) { hitResult = r; break; }
   }
-  // Should match V5.1 behavior: 24 * 1 * 1.1 = 26.4 -> 26
   assert.strictEqual(hitResult.damageToApply.amount, Math.round(24 * 1.1));
   console.log('PASS: BladeRuntime with no hiddenProfile uses defaults (no crash, same damage)');
 }
@@ -144,18 +152,20 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 {
   const lifeSkillsSample = [{ tag: 'Tracking', level: 2 }];
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'GreyWolfBlade',
-    role: 'DPS',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'GreyWolfBlade',
+      role: 'DPS',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 0.9, damageMultiplier: 1.3, speedMultiplier: 1.4, cooldownMultiplier: 0.9, skillBudget: 6 },
+      individualTrait: 'Fierce',
+      species: 'Wolf',
+      lineage: 'GreyWolf',
+      rarity: 'Common',
+      lifeSkills: lifeSkillsSample,
+    },
     autoAttackSpec: defaultSpec,
-    hiddenProfile: { hpMultiplier: 0.9, damageMultiplier: 1.3, speedMultiplier: 1.4, cooldownMultiplier: 0.9, skillBudget: 6 },
-    individualTrait: 'Fierce',
-    species: 'Wolf',
-    lineage: 'GreyWolf',
-    rarity: 'Common',
-    lifeSkills: lifeSkillsSample,
   });
   const snap = b.getSnapshot();
   assert.strictEqual(snap.species, 'Wolf');
@@ -171,19 +181,20 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 7: Fierce trait 只在首次命中触发一次事件（不重复）
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'GreyWolfBlade',
-    role: 'DPS',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'GreyWolfBlade',
+      role: 'DPS',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
+      individualTrait: 'Fierce',
+    },
     autoAttackSpec: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 10, range: 190, cooldownFrames: 45 },
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
-    individualTrait: 'Fierce',
   });
   const target = createDummyTarget();
   const actor = createDummyActor();
 
-  // Tick through to first hit
   let allEvents = [];
   b.tick({ target, actor });
   for (let i = 1; i < 20; i++) {
@@ -192,19 +203,16 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
     if (r.damageToApply) break;
   }
 
-  // Count BladeTraitActivated events in first hit batch
   let traitCount1 = 0;
   for (const ev of allEvents) {
     if (ev.type === CombatEventType.BladeTraitActivated) traitCount1++;
   }
   assert.strictEqual(traitCount1, 1, 'first attack cycle should emit BladeTraitActivated exactly once');
 
-  // Tick through to Idle then start second attack
   for (let i = 0; i < 100; i++) {
     b.tick({ target, actor });
     if (b.state === 'Idle') break;
   }
-  // Start second attack
   b.tick({ target, actor });
   let allEvents2 = [];
   for (let i = 1; i < 20; i++) {
@@ -223,14 +231,16 @@ const defaultSpec = { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, da
 // Test 8: Loyal trait 不改变伤害，不触发事件
 {
   const b = new BladeRuntime({
-    bladeInstanceId: 'b1',
-    bladeId: 'BrownBearBlade',
-    role: 'Tank',
-    element: 'Neutral',
-    damageBonus: 0,
+    resolvedBlade: {
+      bladeInstanceId: 'b1',
+      bladeId: 'BrownBearBlade',
+      role: 'Tank',
+      element: 'Neutral',
+      damageBonus: 0,
+      hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
+      individualTrait: 'Loyal',
+    },
     autoAttackSpec: defaultSpec,
-    hiddenProfile: { hpMultiplier: 1, damageMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, skillBudget: 0 },
-    individualTrait: 'Loyal',
   });
   const target = createDummyTarget();
   const actor = createDummyActor();

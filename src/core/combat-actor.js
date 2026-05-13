@@ -568,18 +568,8 @@ export class CombatActor {
     const autoAttackSpec = bladeSpec.autoAttackSpec ?? def?.autoAttack ?? null;
 
     const runtime = new BladeRuntime({
-      bladeInstanceId: bladeSpec.bladeInstanceId,
-      bladeId: bladeSpec.bladeId,
-      role: bladeSpec.role,
-      element: bladeSpec.element ?? 'Neutral',
-      damageBonus: bladeSpec.damageBonus ?? 0,
+      resolvedBlade: bladeSpec,
       autoAttackSpec,
-      hiddenProfile: bladeSpec.hiddenProfile ?? null,
-      individualTrait: bladeSpec.individualTrait ?? null,
-      species: bladeSpec.species ?? null,
-      lineage: bladeSpec.lineage ?? null,
-      rarity: bladeSpec.rarity ?? null,
-      lifeSkills: bladeSpec.lifeSkills ?? null,
     });
     this.bladeRuntimes.push(runtime);
     this.emit(CombatEventType.BladeLinked, {
