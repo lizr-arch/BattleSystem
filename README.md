@@ -86,6 +86,14 @@ V5.1 实现最小 Backpack（背包）+ Blade（异刃）+ Nested Socket（嵌�
 
 不做：拖拽 UI、物品旋转、Blade 独立寻路、Blade 复杂 AI、Chain Attack / Full Burst / Fusion Combo。
 
+## 设计原型：Routine-Orb（套路挂球）
+
+后续 Single Driver MVP（单人驱动者最小可玩版本）的核心设计参考：
+
+- `docs/design/routine-orb-combat-prototype.md`
+
+该文档把挂球定义为“麻将式套路牌组合”：Skill（技能）命中会生成 Routine Tile（套路牌），三张同 Routine（武功套路）形成 Routine Orb（套路球），削球时结算 Element Damage（套路属性伤害）与 Debuff（负面状态）。
+
 ## V1 目标与边界
 
 这个仓库不是完整游戏项目，而是一个可重复验证战斗节奏的原型沙盒（浏览器可跑 + Node 可重复测试）：
@@ -218,3 +226,4 @@ See:
 - `docs/v4.3-player-defeat-polish-spec.md`
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
+- `docs/design/routine-orb-combat-prototype.md`
