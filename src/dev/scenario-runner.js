@@ -86,6 +86,10 @@ export function resetRuntimeAfterDefeat(label = '') {
   return { kind: 'resetRuntime', label: String(label || 'resetRuntimeAfterDefeat') };
 }
 
+export function resetRuntime(label = '') {
+  return { kind: 'resetRuntime', label: String(label || 'resetRuntime') };
+}
+
 export function assertSnapshot(predicate, label) {
   return { kind: 'assertSnapshot', predicate, label: String(label) };
 }

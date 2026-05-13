@@ -170,6 +170,16 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
 
+## V5.4.1：Bond State Persistence / Reset Semantics（完成）
+
+状态：完成。
+
+范围：Trust 跨 resetRuntime 保留、Mood 在 resetRuntime 后回到 50、Sync 在 resetRuntime 后清零。BladeRuntime.exportBondSnapshot()、CombatActor.commitBladeBondStates() 实现 Bond 状态同步。Victory 后 Trust 写回 resolvedLoadout.activeBlades。
+
+新增文件：`tests/bond-persistence.test.mjs`。新增 3 个 scenarios（bond-reset-keeps-trust、bond-reset-clears-sync、bond-reset-normalizes-mood）。新增 2 个 core API（exportBondSnapshot、commitBladeBondStates）。
+
+明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。
