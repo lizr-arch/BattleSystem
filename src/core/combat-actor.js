@@ -15,6 +15,7 @@ import { createToken } from './token.js';
 import { BladeRuntime } from './blade-runtime.js';
 import { resolveLoadout } from './loadout-resolver.js';
 import { getItemDefinition } from './backpack-items.js';
+import { applyTrustGain, applyMoodChange, computeBondModifiers, DEFAULT_BOND_CONFIG } from './bond.js';
 
 export class CombatActor {
   constructor({
@@ -464,6 +465,7 @@ export class CombatActor {
       this.battle.active = false;
       this.battle.result = 'Victory';
       this.emit(CombatEventType.BattleEnded, { result: this.battle.result });
+      this._applyBondVictory();
     }
 
     return { before, after, applied: before - after, defeated: this.target.dead };
@@ -531,6 +533,7 @@ export class CombatActor {
       this.battle.active = false;
       this.battle.result = 'Defeat';
       this.emit(CombatEventType.BattleEnded, { result: this.battle.result });
+      this._applyBondDefeat();
     }
 
     return { before, after, applied: before - after, defeated: this.player.dead };
@@ -603,6 +606,45 @@ export class CombatActor {
       }
     }
   }
+  _applyBondVictory() {
+    if (!this.bladeRuntimes || this.bladeRuntimes.length === 0) return;
+    const config = DEFAULT_BOND_CONFIG;
+    for (const runtime of this.bladeRuntimes) {
+      if (!runtime._participated) continue;
+      const modifiers = computeBondModifiers(runtime, config);
+      const trustAmount = Math.round(config.trustOnVictory * modifiers.trustMultiplier) + modifiers.extraTrustOnVictory;
+      const trustResult = applyTrustGain(runtime.bondState, trustAmount);
+      this.emit(CombatEventType.BondTrustChanged, {
+        bladeId: runtime.bladeId,
+        before: trustResult.before,
+        after: trustResult.after,
+        beforeLevel: trustResult.beforeLevel,
+        afterLevel: trustResult.afterLevel,
+      });
+      const moodResult = applyMoodChange(runtime.bondState, config.moodOnVictory, 'victory');
+      this.emit(CombatEventType.BondMoodChanged, {
+        bladeId: runtime.bladeId,
+        before: moodResult.before,
+        after: moodResult.after,
+        reason: moodResult.reason,
+      });
+    }
+  }
+
+  _applyBondDefeat() {
+    if (!this.bladeRuntimes || this.bladeRuntimes.length === 0) return;
+    const config = DEFAULT_BOND_CONFIG;
+    for (const runtime of this.bladeRuntimes) {
+      const moodResult = applyMoodChange(runtime.bondState, config.moodOnDefeat, 'defeat');
+      this.emit(CombatEventType.BondMoodChanged, {
+        bladeId: runtime.bladeId,
+        before: moodResult.before,
+        after: moodResult.after,
+        reason: moodResult.reason,
+      });
+    }
+  }
+
   breakRoutineOrb() {
     if (!this.routineOrb) {
       this.emit(CombatEventType.RoutineOrbBreakFailed, { reason: 'no_orb' });

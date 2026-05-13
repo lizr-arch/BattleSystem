@@ -461,3 +461,48 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
 
 其余 blade 相关测试（`backpack-blade-scenario.test.mjs`、`beast-blade-archetype.test.mjs`）通过 LoadoutResolver/ScenarioRunner 间接使用 BladeRuntime，无需修改即可通过。
 
+## V5.4 Bond 测试
+
+### tests/bond-state.test.mjs
+
+- 测试目标：验证 BondState 创建、初始化、clamping、apply 函数、Trait 影响、BondConfig 配置。
+- 覆盖机制：Bond（V5.4）
+- 覆盖事件：间接（通过 BondState 方法返回事件数据，由外部 emit）
+- 测试数量：16
+- 关键断言：
+  - BondState.create() 初始化 trust=0/mood=50/sync=0/trustLevel=1。
+  - addTrust/clampTrust 不超过 0-999。
+  - addMood/clampMood 不超过 0-100。
+  - addSync/clampSync 不超过 0-100。
+  - trustLevel 按阈值计算（0/100/250/500/900 → Lv1-5）。
+  - Loyal trait 提供 1.5x trust 增益。
+  - Proud trait 提供 1.5x sync 增益 + 0.7x trust 增益。
+  - applyBladeHit、applyVictory、applyDefeat 正确。
+
+### tests/bond-runtime.test.mjs
+
+- 测试目标：验证 BladeRuntime 中 Bond 集成，hit 事件关联 bond 变化，trait 效果，_participated 标记。
+- 覆盖机制：Bond + BladeRuntime（V5.4）
+- 覆盖事件：BondTrustChanged、BondSyncChanged、BondSyncTriggered
+- 测试数量：10
+- 关键断言：
+  - BladeAttackHit 触发 BondTrustChanged 和 BondSyncChanged。
+  - Sync 累积到 >= 75 触发 BondSyncTriggered + sync 重置到 0。
+  - Loyal trait → bond addTrust 使用 1.5x 倍数。
+  - Proud trait → bond addSync 使用 1.5x 倍数、addTrust 使用 0.7x。
+  - BladeRuntime._participated 在首次命中后被设为 true。
+
+### tests/bond-scenario.test.mjs
+
+- 测试目标：端到端验证 6 个内置 scenarios：hit sync/trigger/victory/defeat/Loyal/Proud。
+- 覆盖机制：Bond + CombatActor 集成（V5.4）
+- 覆盖事件：BondTrustChanged、BondMoodChanged、BondSyncChanged、BondSyncTriggered
+- 测试数量：6 scenarios
+- 关键断言：
+  - bond-blade-hit-gains-sync：命中后 BondSyncChanged 存在。
+  - bond-sync-triggered：多次命中后 BondSyncTriggered 存在。
+  - bond-victory-gains-trust：Victory 后 Trust + Mood 增加。
+  - bond-defeat-lowers-mood：Defeat 后 Mood 降低但 Trust 不变。
+  - bond-loyal-trait：Loyal Blade Trust 增长更快。
+  - bond-proud-trait：Proud Blade Sync 增长更快但 Trust 增长更慢。
+

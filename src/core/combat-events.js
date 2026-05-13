@@ -192,6 +192,14 @@ export function formatCombatEvent(type, data = {}) {
       return `BladeSpeciesResolved blade=${data.bladeId ?? 'Unknown'} species=${data.species ?? '?'} lineage=${data.lineage ?? '?'} rarity=${data.rarity ?? '?'} trait=${data.individualTrait ?? '?'}`;
     case CombatEventType.BladeTraitActivated:
       return `BladeTraitActivated blade=${data.bladeId ?? 'Unknown'} trait=${data.trait ?? '?'} effect=${data.effect ?? '?'}`;
+    case CombatEventType.BondTrustChanged:
+      return `BondTrustChanged blade=${data.bladeId ?? '?'} ${data.before ?? 0}->${data.after ?? 0} Lv${data.beforeLevel ?? 1}->Lv${data.afterLevel ?? 1}`;
+    case CombatEventType.BondMoodChanged:
+      return `BondMoodChanged blade=${data.bladeId ?? '?'} ${data.before ?? 0}->${data.after ?? 0} reason=${data.reason ?? '?'}`;
+    case CombatEventType.BondSyncChanged:
+      return `BondSyncChanged blade=${data.bladeId ?? '?'} ${data.before ?? 0}->${data.after ?? 0} reason=${data.reason ?? '?'}`;
+    case CombatEventType.BondSyncTriggered:
+      return `BondSyncTriggered blade=${data.bladeId ?? '?'} threshold=${data.syncThreshold ?? '?'} overflow=${data.overflow ?? 0}`;
     default:
       return String(type);
   }

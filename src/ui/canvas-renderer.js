@@ -277,6 +277,9 @@ export class CanvasRenderer {
       if (br.cooldownLeft > 0) {
         this.text(String(br.cooldownLeft), bx + 12, by + 4, '#98a2b3', 10);
       }
+      if (br.bond?.sync > 0) {
+        this.text(`Sync ${br.bond.sync}`, bx, by + 16, '#c59cff', 9);
+      }
     }
 
     if (actor.paused) {

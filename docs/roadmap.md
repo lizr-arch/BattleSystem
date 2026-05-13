@@ -160,11 +160,15 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 不做：任何玩法变更。
 
-## V5.4：Bond System MVP（未来）
+## V5.4：Bond System MVP（完成）
 
-状态：未来。
+状态：完成。
 
-范围：Trust/Mood/Sync 三维度实现；战斗事件驱动羁绊提升；羁绊等级解锁 socket 或技能触发。
+范围：Trust/Mood/Sync 三维度实现；BladeAttackHit/Victory/Defeat 事件驱动羁绊变化；Sync 阈值触发 BondSyncTriggered；Loyal/Proud trait 对 Bond 有可测影响。
+
+新增文件：`src/core/bond.js`。新增 4 个 Bond 事件、6 个 scenarios、3 个测试文件。
+
+明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
 
 ## V5.5：Life Skill Hook（未来）
 
