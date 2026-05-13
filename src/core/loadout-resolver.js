@@ -114,6 +114,17 @@ export function resolveLoadout({
     activeBlades.push(resolved);
   }
 
+  if (errors.length > 0) {
+    return {
+      activeBlades: [],
+      errors,
+      event: {
+        type: CombatEventType.BackpackInvalid,
+        data: { errorCount: errors.length },
+      },
+    };
+  }
+
   return {
     activeBlades,
     errors,

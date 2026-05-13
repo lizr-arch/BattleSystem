@@ -52,7 +52,7 @@ V5 不继续扩 Chain Attack（连锁攻击阶段）、Full Burst（最终爆发
 
 只提交设计文档，不改玩法代码。
 
-### V5.1 Backpack Blade MVP（未来实现）
+### V5.1 Backpack Blade MVP（完成）
 
 - 9×9 背包数据结构。
 - BladeItem（异刃物品）占格。
@@ -61,6 +61,8 @@ V5 不继续扩 Chain Attack（连锁攻击阶段）、Full Burst（最终爆发
 - LoadoutResolver 输出 activeBlades（激活异刃）。
 - BladeRuntime 自动攻击。
 - BladeAttackHit 带 element（属性）并造成伤害。
+
+已实现，见 PR #17。
 
 ### V5.2 Blade Role Polish（未来）
 

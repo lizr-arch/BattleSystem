@@ -210,3 +210,5 @@ V5.1 不做：
 - 多背包页。
 - 背包商店/掉落。
 - 复杂背包邻接加成。
+
+> V5.1 已实现。核心文件: `src/core/backpack-grid.js`、`src/core/backpack-items.js`、`src/core/loadout-resolver.js`。

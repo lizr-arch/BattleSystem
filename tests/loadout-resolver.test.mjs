@@ -118,3 +118,37 @@ function makeGridWith(items) {
   assert.strictEqual(result.activeBlades[0].sockets[0].itemId, null);
   console.log('PASS: no core -> Neutral element, socket recorded as empty');
 }
+
+// Test 9: BadSocketModule 越界 -> BackpackInvalid + 0 activeBlades
+{
+  const defs = {
+    BadBlade: {
+      id: 'BadBlade',
+      type: 'Blade',
+      role: 'DPS',
+      width: 3,
+      height: 3,
+      autoAttack: { startupFrames: 18, activeFrames: 2, recoveryFrames: 28, damage: 24, range: 190, cooldownFrames: 45 },
+      internalEquipment: { slotModule: 'BadSocketModule' },
+    },
+    BadSocketModule: {
+      id: 'BadSocketModule',
+      type: 'BladeSlotModule',
+      generatedSockets: [
+        { socketId: 'bad', x: 2, y: 2, width: 2, height: 2, accepts: ['ElementCore'] },
+      ],
+    },
+  };
+  const grid = makeGridWith([
+    { instanceId: 'blade_001', itemId: 'BadBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 },
+  ]);
+  const result = resolveLoadout({
+    backpackGrid: grid,
+    itemDefinitions: defs,
+    socketAssignments: {},
+  });
+  assert.ok(result.errors.length > 0, 'should have socket OOB error');
+  assert.strictEqual(result.activeBlades.length, 0, 'activeBlades should be empty on socket OOB');
+  assert.strictEqual(result.event.type, CombatEventType.BackpackInvalid, 'should be BackpackInvalid');
+  console.log('PASS: BadSocketModule OOB produces BackpackInvalid + 0 active blades');
+}
