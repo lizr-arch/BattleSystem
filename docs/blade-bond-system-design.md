@@ -1,5 +1,11 @@
 # 异刃羁绊系统设计（Blade Bond System Design）
 
+**V5.4 实现状态**: Bond System MVP 已实现。Trust/Mood/Sync 三维度、BladeAttackHit/Victory/Defeat 事件挂钩、Loyal/Proud trait 影响已落地。详细实现见 `src/core/bond.js` 与 `src/core/blade-runtime.js`。
+
+注意：BondSkillUnlocked/BondSocketUnlocked/BondMilestoneReached/BondAssistActivated 仍未实现。
+
+**V5.4 明确不做**：送礼系统、喂食系统、羁绊剧情/事件、多异刃好感竞争、异刃离队、Life Skill gameplay。
+
 ## 1. 设计目标
 
 羁绊（Bond）不是简单的"好感度"系统。羁绊是异刃与 Driver 之间多层次的关系系统，拆分为三维度：

@@ -1173,7 +1173,64 @@
 - 相关机制：Beast Blade Archetype / IndividualTrait / BladeRuntime
 - 测试覆盖：`tests/beast-blade-runtime.test.mjs`
 
-## 事件总览更新
+## V5.4 Bond Events
 
-截至 V5.3，`CombatEventType` 共 87 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件。
+### BondTrustChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/bond.js`（BondState 方法，由 BladeRuntime/CombatActor 触发）
+- 触发条件：异刃命中（BladeAttackHit）后增加 Trust，或 Victory 后增加 Trust 时。
+- data 字段：
+  - `bladeId: string`
+  - `before: number`
+  - `after: number`
+  - `beforeLevel: number`
+  - `afterLevel: number`
+- 日志格式：`BondTrustChanged blade=X N->N LvN->LvN`
+- 相关机制：Bond（V5.4）
+- 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
+
+### BondMoodChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/bond.js`（BondState 方法，由 CombatActor 触发）
+- 触发条件：Victory 后增加 Mood，或 Defeat 后降低 Mood 时。
+- data 字段：
+  - `bladeId: string`
+  - `before: number`
+  - `after: number`
+  - `reason: string`
+- 日志格式：`BondMoodChanged blade=X N->N reason=X`
+- 相关机制：Bond（V5.4）
+- 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
+
+### BondSyncChanged
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/bond.js`（BondState 方法，由 BladeRuntime 触发）
+- 触发条件：异刃命中（BladeAttackHit）增加 Sync，或 BondSyncTriggered 后重置 Sync 时。
+- data 字段：
+  - `bladeId: string`
+  - `before: number`
+  - `after: number`
+  - `reason: string`
+- 日志格式：`BondSyncChanged blade=X N->N reason=X`
+- 相关机制：Bond（V5.4）
+- 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
+
+### BondSyncTriggered
+
+- 定义位置：`src/core/enums.js`
+- 发出位置：`src/core/bond.js`（BondState 方法，由 BladeRuntime 触发）
+- 触发条件：Sync 累积达到阈值（默认 75）时触发，并重置 Sync 到 0。
+- data 字段：
+  - `bladeId: string`
+  - `syncThreshold: number`
+  - `overflow: number`
+- 日志格式：`BondSyncTriggered blade=X threshold=N overflow=N`
+- 相关机制：Bond（V5.4）
+- 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
+- 备注：V5.4 MVP 中 Sync 达阈值后清零（sync=0）；overflow 仅作为事件数据记录，不保留到 bond.sync。后续版本可能改为保留溢出值。
+
+截至 V5.4，`CombatEventType` 共 91 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件；V5.4 新增 4 个 Bond 事件。
 
