@@ -200,11 +200,29 @@ breakRoutineOrb()
 
 ## EnemyStrike（敌人普通攻击，V4.2）
 
-V4.2 把“木桩目标”升级为“可主动攻击玩家的简单敌人”：
+V4.2 把"木桩目标"升级为"可主动攻击玩家的简单敌人"：
 
 - 敌人攻击按动作阶段运行：`Startup -> Active -> Recovery -> Finished`（沿用同一时间轴模型）。
 - 命中判定最小化：仅距离（`distance(player, target) <= range`）。
 - 控制门禁：Driver Combo 处于 `Topple/Launch` 时，敌人不能攻击；若正在攻击则中断并进入冷却。
+
+## Bond（羁绊，V5.4）
+
+Bond 是 Driver 与异刃之间的三维关系系统，通过战斗事件驱动变化。
+
+### 三维模型
+
+- **Trust（信任）**：长期积累的关系深度，0-999。5 级阈值：Lv1(0)/Lv2(100)/Lv3(250)/Lv4(500)/Lv5(900)。不下降。
+- **Mood（心情）**：短期波动，0-100。受 Victory/Defeat 事件驱动。
+- **Sync（战斗默契）**：即时配合度，0-100。受 BladeAttackHit 驱动。达到 75 阈值触发 BondSyncTriggered 并重置到 0。
+
+### 事件驱动规则
+
+- **BladeAttackHit**：命中时增加 Sync（+baseSyncGain）和 Trust（+baseTrustGain）。
+- **Sync >= 75 触发**：产出 `BondSyncTriggered`，Sync 重置到 0。
+- **Victory**：参与战斗的异刃增加 Trust（+victoryTrustGain）和 Mood（+victoryMoodGain）。
+- **Defeat**：所有异刃降低 Mood（-defeatMoodPenalty），Trust 不变。
+- **Trait 影响**：Loyal trait → Trust 增益 +50%；Proud trait → Sync 增益 +50% 但 Trust 增益 -30%。
 
 ## 默认参数
 

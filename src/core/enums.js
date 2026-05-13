@@ -139,4 +139,8 @@ export const CombatEventType = Object.freeze({
   DebuffExpired: 'DebuffExpired',
   BladeSpeciesResolved: 'BladeSpeciesResolved',
   BladeTraitActivated: 'BladeTraitActivated',
+  BondTrustChanged: 'BondTrustChanged',
+  BondMoodChanged: 'BondMoodChanged',
+  BondSyncChanged: 'BondSyncChanged',
+  BondSyncTriggered: 'BondSyncTriggered',
 });

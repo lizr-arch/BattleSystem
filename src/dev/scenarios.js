@@ -1210,6 +1210,206 @@ export const scenarios = Object.freeze({
       assertEvent(CombatEventType.BladeAttackHit, null, 'Assert BladeAttackHit occurred'),
     ],
   },
+
+  'bond-blade-hit-gains-sync': {
+    name: 'bond-blade-hit-gains-sync',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade hit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondSyncChanged, (e) => e.data?.reason === 'blade_hit' && e.data?.after > 0, 'BondSyncChanged with sync > 0'),
+      assertEvent(CombatEventType.BondTrustChanged, null, 'BondTrustChanged occurred'),
+    ],
+  },
+
+  'bond-sync-triggered': {
+    name: 'bond-sync-triggered',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.bladeRuntimes && actor.bladeRuntimes.length > 0) {
+        actor.bladeRuntimes[0].bondState.sync = 60;
+      }
+    },
+    steps: [
+      waitFrames(30, 'Wait for first blade hit (sync 60+15=75 triggers)'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondSyncTriggered, null, 'BondSyncTriggered occurred'),
+    ],
+  },
+
+  'bond-victory-gains-trust': {
+    name: 'bond-victory-gains-trust',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 10;
+      actor.target.maxHp = 10;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade hit that kills target'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Victory', 'BattleEnded Victory'),
+      assertEvent(CombatEventType.BondTrustChanged, (e) => e.data?.after > e.data?.before, 'BondTrustChanged with trust increase'),
+      assertEvent(CombatEventType.BondMoodChanged, (e) => e.data?.reason === 'victory' && e.data?.after > e.data?.before, 'BondMoodChanged reason=victory'),
+    ],
+  },
+
+  'bond-defeat-lowers-mood': {
+    name: 'bond-defeat-lowers-mood',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 1;
+      actor.player.maxHp = 1;
+      actor.player.dead = false;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.enemy) {
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.state = 'Idle';
+      }
+    },
+    steps: [
+      waitFrames(120, 'Wait for enemy to attack and kill player'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'BattleEnded Defeat'),
+      assertEvent(CombatEventType.BondMoodChanged, (e) => e.data?.reason === 'defeat' && e.data?.after < e.data?.before, 'BondMoodChanged reason=defeat mood decreased'),
+    ],
+  },
+
+  'bond-loyal-gains-more-trust': {
+    name: 'bond-loyal-gains-more-trust',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'loyal_1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      grid.place({ instanceId: 'normal_1', itemId: 'GuardianBlade', type: 'Blade', x: 3, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        const rt = actor.linkBlade(blade);
+      }
+      if (actor.bladeRuntimes && actor.bladeRuntimes.length > 0) {
+        const loyal = actor.bladeRuntimes.find((b) => b.bladeId === 'GreyWolfBlade');
+        if (loyal) loyal.resolvedBlade.individualTrait = 'Loyal';
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for both blades to hit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+    ],
+  },
+
+  'bond-proud-gains-more-sync-less-trust': {
+    name: 'bond-proud-gains-more-sync-less-trust',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'proud_1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.bladeRuntimes && actor.bladeRuntimes.length > 0) {
+        actor.bladeRuntimes[0].resolvedBlade.individualTrait = 'Proud';
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade hit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondSyncChanged, (e) => e.data?.after === 18, 'BondSyncChanged after=18 (Proud 15*1.2)'),
+    ],
+  },
 });
 
 export function getScenario(name) {

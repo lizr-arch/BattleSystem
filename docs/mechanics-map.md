@@ -373,6 +373,25 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
 - 未来扩展点：V3 可在 trace record 中增加 special/blade 状态摘要字段（来自 snapshot）。
 - 不应该做的事：让 trace recorder 直接访问 DOM 或把它变成“回放引擎”。
 
+## Bond（羁绊，V5.4）
+
+- 目的：为 Blade 与 Driver 之间建立三维关系系统（Trust/Mood/Sync），通过战斗事件驱动变化，并由个体特质（Loyal/Proud）产生可测影响。
+- 所属层：`src/core`
+- 主要文件：`src/core/bond.js`、`src/core/blade-runtime.js`、`src/core/combat-actor.js`
+- 输入：BladeAttackHit → +Sync +Trust；Victory → +Trust +Mood（参与 blades）；Defeat → -Mood
+- 输出：`snapshot.bladeRuntimes[].bond`（trust/trustLevel/mood/sync）；事件（BondTrustChanged/BondMoodChanged/BondSyncChanged/BondSyncTriggered）
+- 拥有状态：`BondState { trust, mood, sync }`（挂载在 BladeRuntime）
+- 发出事件：`BondTrustChanged`、`BondMoodChanged`、`BondSyncChanged`、`BondSyncTriggered`
+- 消费事件：`BladeAttackHit`（驱动 sync/trust 增长）、`BattleEnded`（驱动 victory/defeat bond 变化）
+- 关键不变量：
+  - Trust 0-999 分 5 级（0/100/250/500/900），只增不减。
+  - Mood 0-100，Victory 增加、Defeat 降低。
+  - Sync 0-100，命中累积 >= 75 触发 BondSyncTriggered 并重置到 0。
+  - Loyal trait：Trust 增益 +50%；Proud trait：Sync 增益 +50% 但 Trust 增益 -30%。
+- 测试覆盖：`tests/bond-state.test.mjs`、`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
+- 未来扩展点：BondSkillUnlocked/BondSocketUnlocked/BondMilestoneReached/BondAssistActivated（V5.4 明确不做）。
+- 不应该做的事：让 Bond 直接决定伤害或战斗规则（应通过行为与触发条件影响，而非纯数值加成）。
+
 ## Browser Debug UI
 
 - 目的：浏览器可视化验证壳：输入、画布渲染、事件日志面板、调参、Scenario 一键 Run、Debug 输入（Grant Ready/StepToRecovery/Cast）。

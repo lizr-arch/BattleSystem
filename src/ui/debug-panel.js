@@ -85,9 +85,14 @@ export class DebugPanel {
       scBeastElementCore: this.byId('scBeastElementCore'),
       scBeastLifeSkills: this.byId('scBeastLifeSkills'),
       scBeastFierceDamage: this.byId('scBeastFierceDamage'),
+      scBondHitSync: this.byId('scBondHitSync'),
+      scBondTrigger: this.byId('scBondTrigger'),
+      scBondVictory: this.byId('scBondVictory'),
+      scBondDefeat: this.byId('scBondDefeat'),
       blBackpackSize: this.byId('blBackpackSize'),
       blActiveBlades: this.byId('blActiveBlades'),
       blBeastInfo: this.byId('blBeastInfo'),
+      blBondInfo: this.byId('blBondInfo'),
       blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
       scFull: this.byId('scFull'),
@@ -184,6 +189,11 @@ export class DebugPanel {
     this.refs.scBeastElementCore.addEventListener('click', () => this.runScenario('beast-blade-element-still-from-core'));
     this.refs.scBeastLifeSkills.addEventListener('click', () => this.runScenario('beast-blade-life-skills-resolve'));
     this.refs.scBeastFierceDamage.addEventListener('click', () => this.runScenario('beast-blade-fierce-increases-damage'));
+
+    this.refs.scBondHitSync.addEventListener('click', () => this.runScenario('bond-blade-hit-gains-sync'));
+    this.refs.scBondTrigger.addEventListener('click', () => this.runScenario('bond-sync-triggered'));
+    this.refs.scBondVictory.addEventListener('click', () => this.runScenario('bond-victory-gains-trust'));
+    this.refs.scBondDefeat.addEventListener('click', () => this.runScenario('bond-defeat-lowers-mood'));
 
     this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
     this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
@@ -588,6 +598,14 @@ export class DebugPanel {
         return `${b.bladeId}: ${species}/${lineage}/${rarity} [${trait}] | ${hidden}`;
       });
       this.refs.blBeastInfo.textContent = lines.join('\n') || '-';
+    }
+
+    if (this.refs.blBondInfo) {
+      const lines = runtimes.map((rt) => {
+        const b = rt?.bond ?? {};
+        return `${rt?.bladeId ?? '?'}: Trust:${b.trust ?? 0} (Lv${b.trustLevel ?? 1}) | Mood:${b.mood ?? 50} | Sync:${b.sync ?? 0}`;
+      });
+      this.refs.blBondInfo.textContent = lines.join('\n') || '-';
     }
 
     if (this.refs.blActiveLifeSkills) {

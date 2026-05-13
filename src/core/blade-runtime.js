@@ -1,6 +1,7 @@
 import { CombatActionInstance, CombatActionSpec } from './action.js';
 import { ActionKind, ActionPhase, CombatEventType } from './enums.js';
 import { distance } from './math.js';
+import { createBondState, cloneBondState, computeBondModifiers, applyTrustGain, applySyncGain, DEFAULT_BOND_CONFIG } from './bond.js';
 
 const DEFAULT_HIDDEN_PROFILE = Object.freeze({
   hpMultiplier: 1,
@@ -42,6 +43,13 @@ export class BladeRuntime {
     this.action = null;
     this.cooldownLeft = 0;
     this._traitActivated = false;
+    this._participated = false;
+
+    if (resolvedBlade.bond) {
+      this.bondState = cloneBondState(resolvedBlade.bond);
+    } else {
+      this.bondState = createBondState();
+    }
     this._actionSpec = new CombatActionSpec({
       id: `BladeAuto_${resolvedBlade.bladeInstanceId}`,
       kind: ActionKind.AutoAttack,
@@ -135,6 +143,57 @@ export class BladeRuntime {
               damage: finalDamage,
             },
           });
+
+          this._participated = true;
+
+          const modifiers = computeBondModifiers(this, DEFAULT_BOND_CONFIG);
+          const config = DEFAULT_BOND_CONFIG;
+
+          const trustAmount = Math.round(config.trustOnBladeHit * modifiers.trustMultiplier);
+          const trustResult = applyTrustGain(this.bondState, trustAmount);
+          events.push({
+            type: CombatEventType.BondTrustChanged,
+            data: {
+              bladeId: rb.bladeId,
+              before: trustResult.before,
+              after: trustResult.after,
+              beforeLevel: trustResult.beforeLevel,
+              afterLevel: trustResult.afterLevel,
+            },
+          });
+
+          const syncAmount = Math.round(config.syncOnBladeHit * modifiers.syncMultiplier);
+          const { gainResult, triggeredResults } = applySyncGain(this.bondState, syncAmount, 'blade_hit', config);
+          events.push({
+            type: CombatEventType.BondSyncChanged,
+            data: {
+              bladeId: rb.bladeId,
+              before: gainResult.before,
+              after: gainResult.after,
+              reason: gainResult.reason,
+            },
+          });
+
+          for (const trig of triggeredResults) {
+            events.push({
+              type: CombatEventType.BondSyncTriggered,
+              data: {
+                bladeId: rb.bladeId,
+                syncThreshold: trig.threshold,
+                overflow: trig.overflow,
+              },
+            });
+            events.push({
+              type: CombatEventType.BondSyncChanged,
+              data: {
+                bladeId: rb.bladeId,
+                before: trig.before,
+                after: trig.after,
+                reason: 'sync_triggered',
+              },
+            });
+          }
+
           return {
             events,
             damageToApply: {
@@ -176,6 +235,7 @@ export class BladeRuntime {
 
   getSnapshot() {
     const rb = this.resolvedBlade;
+    const bs = this.bondState;
     return {
       bladeInstanceId: rb.bladeInstanceId,
       bladeId: rb.bladeId,
@@ -194,6 +254,12 @@ export class BladeRuntime {
       individualTrait: rb.individualTrait,
       hiddenProfile: rb.hiddenProfile ? { ...rb.hiddenProfile } : null,
       lifeSkills: rb.lifeSkills ? [...rb.lifeSkills] : null,
+      bond: {
+        trust: bs.trust,
+        trustLevel: bs.trustLevel,
+        mood: bs.mood,
+        sync: bs.sync,
+      },
     };
   }
 }
