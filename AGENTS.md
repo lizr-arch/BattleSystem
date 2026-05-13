@@ -529,7 +529,22 @@ V2 交付物：
   - `docs/v5.2-beast-blade-archetype-spec.md`
 - 明确不做：不写 gameplay code，不改 src/core / src/ui / tests，不实现兽型异刃/羁绊/生活技能代码。
 
-### 明确不做（当前版本边界：<= V5.2）
+### V5.3：Beast Blade Archetype MVP（完成）
+
+实现兽型异刃的最小原型：
+
+- Species/Lineage/Rarity/IndividualTrait/HiddenStatProfile 系统（`src/core/beast-blade.js`）
+- LifeSkills 数据模型（`src/core/life-skills.js`，不消费）
+- 4 种 Beast Blade 物品（GreyWolf/MoonWolf/BrownBear/BengalTiger）
+- Wolf/Bear/Tiger 三种物种表现差异（damageMultiplier/cooldownMultiplier 影响 BladeRuntime）
+- Fierce trait 伤害加成 + BladeTraitActivated 事件
+- 新增 2 个 CombatEventType（BladeSpeciesResolved/BladeTraitActivated）
+- 新增 3 个测试文件（archetype 17 + runtime 8 + scenario 6）+ 6 个 scenarios
+- Debug Panel 展示 species/lineage/rarity/trait/element/lifeSkills/hiddenProfile
+- Canvas 显示物种简写（Wolf/Bear/Tiger）
+- 明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
+
+### 明确不做（当前版本边界：<= V5.3）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

@@ -1040,6 +1040,176 @@ export const scenarios = Object.freeze({
       assertSnapshot((s) => (s.resolvedLoadout?.activeBlades?.length ?? 0) === 2, 'Assert activeBlades length=2'),
     ],
   },
+
+  'beast-blade-wolf-profile': {
+    name: 'beast-blade-wolf-profile',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertEvent(CombatEventType.BladeSpeciesResolved, (e) => e.data?.species === 'Wolf' && e.data?.lineage === 'GreyWolf', 'Assert species=Wolf lineage=GreyWolf'),
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.species === 'Wolf' && b?.individualTrait === 'Fierce' && (b?.hiddenProfile?.speedMultiplier ?? 0) > 1;
+      }, 'Assert Wolf species, Fierce trait, speedMultiplier>1'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeLifeSkills ?? []).some((sk) => sk.tag === 'Tracking'), 'Assert lifeSkills contains Tracking'),
+    ],
+  },
+
+  'beast-blade-bear-profile': {
+    name: 'beast-blade-bear-profile',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'bear_001', itemId: 'BrownBearBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.species === 'Bear' && b?.lineage === 'BrownBear' && (b?.hiddenProfile?.hpMultiplier ?? 0) >= 1.5;
+      }, 'Assert Bear species, high hpMultiplier'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeLifeSkills ?? []).some((sk) => sk.tag === 'Mining'), 'Assert lifeSkills contains Mining'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeLifeSkills ?? []).some((sk) => sk.tag === 'Carrying'), 'Assert lifeSkills contains Carrying'),
+    ],
+  },
+
+  'beast-blade-tiger-profile': {
+    name: 'beast-blade-tiger-profile',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'tiger_001', itemId: 'BengalTigerBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.species === 'Tiger' && (b?.hiddenProfile?.damageMultiplier ?? 0) >= 1.5;
+      }, 'Assert Tiger species, high damageMultiplier'),
+      assertSnapshot((s) => (s.resolvedLoadout?.activeLifeSkills ?? []).some((sk) => sk.tag === 'Hunting'), 'Assert lifeSkills contains Hunting'),
+    ],
+  },
+
+  'beast-blade-element-still-from-core': {
+    name: 'beast-blade-element-still-from-core',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      // No core — should be Neutral
+      const resolvedNoCore = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolvedNoCore;
+      if (resolvedNoCore.event) actor.emit(resolvedNoCore.event.type, resolvedNoCore.event.data);
+      for (const ev of (resolvedNoCore.events ?? [])) actor.emit(ev.type, ev.data);
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.species === 'Wolf' && b?.element === 'Neutral';
+      }, 'Assert Wolf species but element=Neutral (no core)'),
+    ],
+  },
+
+  'beast-blade-life-skills-resolve': {
+    name: 'beast-blade-life-skills-resolve',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      grid.place({ instanceId: 'moon_001', itemId: 'MoonWolfBlade', type: 'Blade', x: 0, y: 3, width: 3, height: 2 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => (s.resolvedLoadout?.activeBlades?.length ?? 0) === 2, 'Assert 2 active blades'),
+      assertSnapshot((s) => {
+        const skills = s.resolvedLoadout?.activeLifeSkills ?? [];
+        const tracking = skills.find((sk) => sk.tag === 'Tracking');
+        return tracking?.level === 3;
+      }, 'Assert Tracking merged to Lv3 (max of Lv2+Lv3)'),
+      assertSnapshot((s) => {
+        const skills = s.resolvedLoadout?.activeLifeSkills ?? [];
+        return skills.some((sk) => sk.tag === 'NightVision') && skills.some((sk) => sk.tag === 'TreasureSense');
+      }, 'Assert MoonWolf unique skills present'),
+    ],
+  },
+
+  'beast-blade-fierce-increases-damage': {
+    name: 'beast-blade-fierce-increases-damage',
+    maxFrames: 500,
+    prepare(actor) {
+      actor.resetRuntime();
+      setupActorForScenario(actor);
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for blade attack startup+active'),
+      assertEvent(CombatEventType.BladeTraitActivated, (e) => e.data?.trait === 'Fierce' && e.data?.effect === 'damage_multiplier', 'Assert BladeTraitActivated for Fierce'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'Assert BladeAttackHit occurred'),
+    ],
+  },
 });
 
 export function getScenario(name) {

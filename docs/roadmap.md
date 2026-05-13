@@ -134,11 +134,23 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：不写任何 gameplay code，不改 src/core / src/ui / tests，不实现兽型异刃/羁绊/生活技能代码。
 
-## V5.3：Beast Blade Archetype MVP（未来）
+## V5.3：Beast Blade Archetype MVP（完成）
 
-状态：未来。
+状态：完成。
 
 范围：Wolf/Bear/Tiger 三种物种各 1-2 品系；隐藏属性影响 BladeRuntime；个体特质影响简单触发；LifeSkills 出现在 resolvedLoadout；element 仍来自 ElementCore。
+
+交付物：
+
+- `src/core/beast-blade.js`：Species/Lineage/Rarity/IndividualTrait/HiddenStatProfile 定义与解析
+- `src/core/life-skills.js`：LifeSkillTag/LifeSkillEntry/mergeLifeSkills
+- 4 种 Beast Blade 物品（GreyWolf/MoonWolf/BrownBear/BengalTiger）
+- LoadoutResolver/BladeRuntime/combat-actor 扩展
+- 新增 BladeSpeciesResolved/BladeTraitActivated 事件
+- 3 个测试文件（archetype 17 + runtime 8 + scenario 6）+ 6 个 scenarios
+- Debug Panel/Canvas UI 扩展
+
+明确不做：Bond runtime / Life Skill gameplay / Chain Attack / Full Burst / Fusion Combo
 
 ## V5.4：Bond System MVP（未来）
 

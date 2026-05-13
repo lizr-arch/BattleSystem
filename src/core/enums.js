@@ -137,4 +137,6 @@ export const CombatEventType = Object.freeze({
   DebuffApplied: 'DebuffApplied',
   DebuffTickDamage: 'DebuffTickDamage',
   DebuffExpired: 'DebuffExpired',
+  BladeSpeciesResolved: 'BladeSpeciesResolved',
+  BladeTraitActivated: 'BladeTraitActivated',
 });
