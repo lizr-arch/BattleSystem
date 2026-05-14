@@ -282,6 +282,16 @@ export class CanvasRenderer {
       }
     }
 
+    const activeBladeIds = (snapshot.resolvedLoadout?.activeBlades ?? []).map((b) => b.itemId ?? b.bladeId);
+    const isDemo = activeBladeIds.includes('GreyWolfBlade') && activeBladeIds.includes('BrownBearBlade');
+    if (isDemo) {
+      ctx.font = '18px system-ui';
+      ctx.fillStyle = 'rgba(255, 200, 50, .55)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('DEMO', 12, 12);
+    }
+
     if (actor.paused) {
       ctx.fillStyle = 'rgba(0,0,0,.45)';
       ctx.fillRect(0, 0, rect.width, rect.height);

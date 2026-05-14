@@ -78,6 +78,7 @@ tools/
   - `src/dev/scenario-runner.js`：step DSL + runScenario 输出 proof/trace
   - `src/dev/trace-recorder.js`：抓取 snapshot 与本帧增量事件（用于 tail）
   - `src/dev/scenarios.js`：内置场景注册表（full/wrong-order/expire-*）
+  - `src/dev/demo-battle-preset.js`：一键预设战斗场景工厂（Training Brute + GreyWolf + BrownBear + FireCore + Bond Lv3），输出 `createDemoBattlePreset` / `resetDemoPreset` / 配置 spec 常量
 - 改动风险：中；可能影响验证结果与 debug 面板的 PASS/FAIL 可信度，但不应改变 core。
 - 后续扩展建议：
   - V3 新机制必须配套 scenarios 与 proof/trace 断言（把“手感验证”转为“可审计验证”）。

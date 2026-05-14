@@ -585,7 +585,21 @@ V2 交付物：
 
 明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo
 
-### 明确不做（当前版本边界：<= V5.5.2）
+### V5.6：Demo Battle Preset（完成）
+
+实现一键预设战斗场景系统：
+
+- 工厂模式 `createDemoBattlePreset({ createActor })` 创建 Training Brute + GreyWolf + BrownBear + FireCore + Bond Lv3 完整战斗预设
+- `resetDemoPreset(actor)` 支持重置战斗状态并保留异刃配置
+- 新增 `src/dev/demo-battle-preset.js`（纯逻辑工厂模块）
+- Scenario Runner 新增 `executeStep` 步骤类型（支持任意函数调用）
+- 4 个 Demo Scenario（create / fierce-follow-up / enemy-damages-player / reset-and-reuse）
+- 8 个 preset unit tests + scenario 集成测试
+- Debug Panel Demo HUD + Canvas DEMO 角标 + SandboxApp 生命周期集成
+
+明确不做：复杂可视化编辑器/背包拖拽 UI/socket UI/Chain Attack/Full Burst/Fusion Combo
+
+### 明确不做（当前版本边界：<= V5.6）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

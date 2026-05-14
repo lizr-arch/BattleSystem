@@ -3,6 +3,7 @@ import { CombatInputFrame } from '../core/combat-input.js';
 import { BrowserInput } from './browser-input.js';
 import { CanvasRenderer } from './canvas-renderer.js';
 import { DebugPanel } from './debug-panel.js';
+import { createDemoBattlePreset, resetDemoPreset } from '../dev/demo-battle-preset.js';
 
 export class SandboxApp {
   constructor({ windowObject = window, documentObject = document } = {}) {
@@ -15,6 +16,7 @@ export class SandboxApp {
     this.accumulator = 0;
     this.lastTimestamp = 0;
     this.fixedDeltaSeconds = 1 / 60;
+    this.isDemo = false;
 
     this.loop = this.loop.bind(this);
   }
@@ -50,6 +52,16 @@ export class SandboxApp {
         this.actor.paused = true;
         this.actor.breakRoutineOrb();
         this.renderOnce();
+      },
+      onDemoStart: () => {
+        this.loadDemoPreset();
+        this.renderOnce();
+      },
+      onDemoReset: () => {
+        if (this.isDemo) {
+          resetDemoPreset(this.actor);
+          this.renderOnce();
+        }
       },
     });
 
@@ -90,6 +102,36 @@ export class SandboxApp {
   reset() {
     this.actor.resetRuntime();
     this.debugPanel.applyTuning();
+  }
+
+  loadDemoPreset() {
+    this.actor.resetRuntime();
+    this.actor = createDemoBattlePreset({
+      createActor: ({ target, enemyStrike, playerHp, playerMaxHp, position, resolvedLoadout }) => {
+        const actor = createDefaultCombatActor();
+        actor.target = target;
+        actor.player.hp = playerHp;
+        actor.player.maxHp = playerMaxHp;
+        actor.x = position.x;
+        actor.y = position.y;
+        actor.resolvedLoadout = resolvedLoadout;
+        if (actor.enemy) {
+          actor.enemy.strike = enemyStrike;
+        }
+        actor.refreshBladeUnlocks?.();
+        return actor;
+      },
+    });
+    this.isDemo = true;
+    this.debugPanel.actor = this.actor;
+    this.debugPanel.isDemo = true;
+  }
+
+  resetDemo() {
+    if (this.isDemo) {
+      resetDemoPreset(this.actor);
+      this.renderOnce();
+    }
   }
 
   stepOneFrame() {

@@ -200,6 +200,14 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo。
 
+## V5.6：Demo Battle Preset（完成）
+
+状态：完成。
+
+范围：一键预设战斗场景系统。工厂模式 `createDemoBattlePreset({ createActor })` 创建 Training Brute 敌人 + GreyWolf + BrownBear 兽型异刃 + FireCore 槽位 + Bond Lv3 + 敌方打击。`resetDemoPreset(actor)` 支持重置战斗状态并保留异刃配置。4 个 Demo Scenario（create / fierce-follow-up / enemy-damages-player / reset-and-reuse）+ 8 个 unit tests + scenario 集成测试。Scenario Runner 新增 `executeStep` 步骤类型支持任意函数调用。Debug Panel Demo HUD + Canvas DEMO 角标 + SandboxApp 生命周期集成。
+
+新增/修改文件：`src/dev/demo-battle-preset.js`、`src/ui/sandbox-app.js`、`src/ui/debug-panel.js`、`src/ui/canvas-renderer.js`、`index.html`、`src/dev/scenario-runner.js`（新增 `executeStep`）、`src/dev/scenarios.js`、`tests/demo-battle-preset.test.mjs`、`tests/demo-battle-scenario.test.mjs`。
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。

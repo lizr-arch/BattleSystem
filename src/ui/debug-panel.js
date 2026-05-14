@@ -7,6 +7,7 @@ export class DebugPanel {
   constructor({ documentObject = document, actor }) {
     this.document = documentObject;
     this.actor = actor;
+    this.isDemo = false;
     this.refs = {
       frame: this.byId('frame'),
       state: this.byId('state'),
@@ -89,6 +90,10 @@ export class DebugPanel {
       scBondTrigger: this.byId('scBondTrigger'),
       scBondVictory: this.byId('scBondVictory'),
       scBondDefeat: this.byId('scBondDefeat'),
+      scDemoPresetCreate: this.byId('scDemoPresetCreate'),
+      scDemoFierceFollowUp: this.byId('scDemoFierceFollowUp'),
+      scDemoEnemyDamage: this.byId('scDemoEnemyDamage'),
+      scDemoReset: this.byId('scDemoReset'),
       blBackpackSize: this.byId('blBackpackSize'),
       blActiveBlades: this.byId('blActiveBlades'),
       blBeastInfo: this.byId('blBeastInfo'),
@@ -97,6 +102,11 @@ export class DebugPanel {
       blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
       blLastTraitPayoff: this.byId('blLastTraitPayoff'),
+      demoMode: this.byId('demoMode'),
+      demoEnemy: this.byId('demoEnemy'),
+      demoBlades: this.byId('demoBlades'),
+      demoStart: this.byId('demoStart'),
+      demoReset: this.byId('demoReset'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
       scExpireBreak: this.byId('scExpireBreak'),
@@ -151,6 +161,8 @@ export class DebugPanel {
     onMvpCastSkill2,
     onMvpCastSkill3,
     onMvpBreakOrb,
+    onDemoStart,
+    onDemoReset,
   }) {
     this.refs.pause.addEventListener('click', onPause);
     this.refs.step.addEventListener('click', onStep);
@@ -197,6 +209,11 @@ export class DebugPanel {
     this.refs.scBondVictory.addEventListener('click', () => this.runScenario('bond-victory-gains-trust'));
     this.refs.scBondDefeat.addEventListener('click', () => this.runScenario('bond-defeat-lowers-mood'));
 
+    this.refs.scDemoPresetCreate.addEventListener('click', () => this.runScenario('demo-preset-create'));
+    this.refs.scDemoFierceFollowUp.addEventListener('click', () => this.runScenario('demo-preset-fierce-follow-up'));
+    this.refs.scDemoEnemyDamage.addEventListener('click', () => this.runScenario('demo-preset-enemy-damages-player'));
+    this.refs.scDemoReset.addEventListener('click', () => this.runScenario('demo-preset-reset'));
+
     this.refs.epRunEnemyHit.addEventListener('click', () => this.runScenario('enemy-attack-hits-player'));
     this.refs.epRunEnemyWhiff.addEventListener('click', () => this.runScenario('enemy-attack-whiffs-when-player-out-of-range'));
     this.refs.epRunPlayerDefeat.addEventListener('click', () => this.runScenario('enemy-can-defeat-player'));
@@ -221,6 +238,8 @@ export class DebugPanel {
     if (onMvpCastSkill2) this.refs.mvpCastSkill2.addEventListener('click', onMvpCastSkill2);
     if (onMvpCastSkill3) this.refs.mvpCastSkill3.addEventListener('click', onMvpCastSkill3);
     if (onMvpBreakOrb) this.refs.mvpBreakOrb.addEventListener('click', onMvpBreakOrb);
+    if (onDemoStart) this.refs.demoStart.addEventListener('click', onDemoStart);
+    if (onDemoReset) this.refs.demoReset.addEventListener('click', onDemoReset);
   }
 
   applyTuning() {
@@ -569,6 +588,7 @@ export class DebugPanel {
     this.renderSingleDriverMvp(s);
     this.renderEnemyPlayerPanel(s);
     this.renderBackpackBlade(s);
+    this.renderDemoPanel(s);
   }
 
   renderBackpackBlade(s) {
@@ -633,6 +653,24 @@ export class DebugPanel {
 
     if (this.refs.blLastTraitPayoff) {
       this.refs.blLastTraitPayoff.textContent = this.findLastEventLine(s.eventLogText, (msg) => msg.startsWith('TraitPayoffActivated'));
+    }
+  }
+
+  renderDemoPanel(s) {
+    const isDemo = this.isDemo;
+    if (this.refs.demoMode) {
+      this.refs.demoMode.textContent = isDemo ? 'ON' : 'OFF';
+    }
+    if (this.refs.demoEnemy) {
+      this.refs.demoEnemy.textContent = isDemo && s.target ? s.target.id ?? s.target.name ?? 'TrainingBrute' : '-';
+    }
+    if (this.refs.demoBlades) {
+      if (isDemo && s.resolvedLoadout?.activeBlades) {
+        const names = s.resolvedLoadout.activeBlades.map((b) => b.bladeId ?? b.itemId ?? '?').join(', ');
+        this.refs.demoBlades.textContent = `${s.resolvedLoadout.activeBlades.length} blades: ${names}`;
+      } else {
+        this.refs.demoBlades.textContent = '-';
+      }
     }
   }
 }
