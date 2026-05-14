@@ -90,6 +90,10 @@ export function resetRuntime(label = '') {
   return { kind: 'resetRuntime', label: String(label || 'resetRuntime') };
 }
 
+export function executeStep(fn, label) {
+  return { kind: 'execute', fn, label: String(label || 'execute') };
+}
+
 export function assertSnapshot(predicate, label) {
   return { kind: 'assertSnapshot', predicate, label: String(label) };
 }
@@ -303,6 +307,13 @@ export function runScenario({
 
     if (kind === 'resetRuntime') {
       actor.resetRuntime();
+      recorder.record(actor, { note: label });
+      passStep(label, {});
+      continue;
+    }
+
+    if (kind === 'execute') {
+      step.fn({ actor, events: allEvents() });
       recorder.record(actor, { note: label });
       passStep(label, {});
       continue;

@@ -1,9 +1,10 @@
 import { BladeComboElement, BladeComboStage, CombatEventType, DriverComboEffect, DriverComboStage } from '../core/enums.js';
 import { EnemyStrikeSpec } from '../core/enemy-strike.js';
-import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, grantEnemyCooldownReady, grantSpecialReady, resetRuntime, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
+import { assertEvent, assertSnapshot, breakRoutineOrb, castArt, castSpecial, executeStep, grantEnemyCooldownReady, grantSpecialReady, resetRuntime, resetRuntimeAfterDefeat, setPlayerPosition, tickEnemyUntil, waitEnemyPhase, waitFrames, waitUntil } from './scenario-runner.js';
 import { createBackpackGrid } from '../core/backpack-grid.js';
 import { resolveLoadout } from '../core/loadout-resolver.js';
 import { CombatInputFrame } from '../core/combat-input.js';
+import { createDemoBattlePreset, resetDemoPreset, TRAINING_BRUTE_SPEC, DEMO_PLAYER_SPEC } from './demo-battle-preset.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -1823,7 +1824,203 @@ export const scenarios = Object.freeze({
       }, 'No TraitPayoff DamageApplied'),
     ],
   },
+
+  'demo-preset-create': {
+    name: 'demo-preset-create',
+    maxFrames: 60,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = TRAINING_BRUTE_SPEC.hp;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(5, 'Wait for setup'),
+      assertSnapshot((snap) => snap.player?.hp === DEMO_PLAYER_SPEC.hp && snap.player?.maxHp === DEMO_PLAYER_SPEC.maxHp, 'Player HP correct'),
+      assertSnapshot((snap) => snap.target?.hp === TRAINING_BRUTE_SPEC.hp, 'Target HP correct'),
+      assertSnapshot((snap) => (snap.resolvedLoadout?.activeBlades ?? []).length >= 2, 'At least 2 active blades'),
+      assertSnapshot((snap) => {
+        const blades = snap.resolvedLoadout?.activeBlades ?? [];
+        return blades.some((b) => (b.itemId ?? b.bladeId) === 'GreyWolfBlade') && blades.some((b) => (b.itemId ?? b.bladeId) === 'BrownBearBlade');
+      }, 'GreyWolf + BrownBear both active'),
+      assertSnapshot((snap) => {
+        const blades = snap.resolvedLoadout?.activeBlades ?? [];
+        return blades.every((b) => (b.bond?.trustLevel ?? 0) >= 3);
+      }, 'All blades have trustLevel >= 3'),
+    ],
+  },
+
+  'demo-preset-fierce-follow-up': {
+    name: 'demo-preset-fierce-follow-up',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 120;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.x = actor.target.x - 100;
+      actor.y = actor.target.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(65, 'Wait for first BladeAttackHit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.TraitPayoffActivated, (e) => e.data?.payoffId === 'FierceFollowUp', 'TraitPayoffActivated FierceFollowUp'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'TraitPayoff' && e.data?.sourceId === 'FierceFollowUp', 'DamageApplied from FierceFollowUp'),
+    ],
+  },
+
+  'demo-preset-enemy-damages-player': {
+    name: 'demo-preset-enemy-damages-player',
+    maxFrames: 1500,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = TRAINING_BRUTE_SPEC.hp;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.x = TRAINING_BRUTE_SPEC.x - 100;
+      actor.y = TRAINING_BRUTE_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+    },
+    steps: [
+      waitFrames(120, 'Wait for enemy strike to land'),
+      assertEvent(CombatEventType.EnemyAttackHit, null, 'EnemyAttackHit occurred'),
+      assertEvent(CombatEventType.PlayerDamageApplied, null, 'PlayerDamageApplied occurred'),
+    ],
+  },
+
+  'demo-preset-reset': {
+    name: 'demo-preset-reset',
+    maxFrames: 300,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 1;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = 1;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(5, 'Initial state with low HP'),
+      assertSnapshot((snap) => snap.player?.hp === 1, 'Player HP is 1 before reset'),
+      assertSnapshot((snap) => snap.target?.hp === 1, 'Target HP is 1 before reset'),
+      executeStep(({ actor: a }) => {
+        resetDemoPreset(a);
+      }, 'resetDemoPreset'),
+      waitFrames(5, 'After reset'),
+      assertSnapshot((snap) => snap.player?.hp === DEMO_PLAYER_SPEC.hp && snap.player?.maxHp === DEMO_PLAYER_SPEC.maxHp, 'Player HP restored after reset'),
+      assertSnapshot((snap) => snap.target?.hp === TRAINING_BRUTE_SPEC.hp && snap.target?.maxHp === TRAINING_BRUTE_SPEC.maxHp, 'Target HP restored after reset'),
+      assertSnapshot((snap) => (snap.resolvedLoadout?.activeBlades ?? []).length >= 2, 'Blades still active after reset'),
+      assertEvent(CombatEventType.Reset, null, 'Reset event emitted'),
+    ],
+  },
 });
+
+function createDemoBackpack() {
+  const grid = createBackpackGrid({ width: 9, height: 9 });
+  grid.place({ itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3, instanceId: 'demo_greywolf' });
+  grid.place({ itemId: 'BrownBearBlade', type: 'Blade', x: 3, y: 0, width: 3, height: 3, instanceId: 'demo_brownbear' });
+  return grid;
+}
+
+function getDemoSocketAssignments() {
+  return { 'demo_greywolf:socket_1': 'FireCore' };
+}
+
+function applyDemoBondToScenario(activeBlades) {
+  for (const blade of activeBlades) {
+    blade.bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+    blade.unlocks = { combatSlots: ['BondCombatSlot1'] };
+  }
+}
 
 export function getScenario(name) {
   const key = String(name);
