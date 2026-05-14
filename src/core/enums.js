@@ -143,4 +143,5 @@ export const CombatEventType = Object.freeze({
   BondMoodChanged: 'BondMoodChanged',
   BondSyncChanged: 'BondSyncChanged',
   BondSyncTriggered: 'BondSyncTriggered',
+  TraitPayoffActivated: 'TraitPayoffActivated',
 });

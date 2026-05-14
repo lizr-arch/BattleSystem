@@ -1670,6 +1670,159 @@ export const scenarios = Object.freeze({
       }, 'Assert unlock survives defeat'),
     ],
   },
+
+  'trait-fierce-followup-damage': {
+    name: 'trait-fierce-followup-damage',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'fw1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+      }
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(55, 'Wait for first BladeAttackHit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.TraitPayoffActivated, (e) => e.data?.payoffId === 'FierceFollowUp', 'TraitPayoffActivated FierceFollowUp'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'TraitPayoff' && e.data?.sourceId === 'FierceFollowUp', 'DamageApplied source=TraitPayoff sourceId=FierceFollowUp'),
+    ],
+  },
+
+  'trait-loyal-guard-reduces-player-damage': {
+    name: 'trait-loyal-guard-reduces-player-damage',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 200;
+      actor.player.maxHp = 200;
+      actor.player.dead = false;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'loyal1', itemId: 'BrownBearBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+      }
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.enemy) {
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.state = 'Idle';
+      }
+    },
+    steps: [
+      waitFrames(120, 'Wait for enemy attack to hit player'),
+      assertEvent(CombatEventType.EnemyAttackHit, null, 'EnemyAttackHit occurred'),
+      assertEvent(CombatEventType.TraitPayoffActivated, (e) => e.data?.payoffId === 'LoyalGuard', 'TraitPayoffActivated LoyalGuard'),
+    ],
+  },
+
+  'trait-proud-sync-strike-on-sync-trigger': {
+    name: 'trait-proud-sync-strike-on-sync-trigger',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'proud1', itemId: 'MoonWolfBlade', type: 'Blade', x: 0, y: 0, width: 3, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+      }
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.bladeRuntimes && actor.bladeRuntimes.length > 0) {
+        actor.bladeRuntimes[0].bondState.sync = 70;
+      }
+    },
+    steps: [
+      waitFrames(65, 'Wait for blade hit that triggers sync (70+18=88 >= 75)'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertEvent(CombatEventType.BondSyncTriggered, null, 'BondSyncTriggered occurred'),
+      assertEvent(CombatEventType.TraitPayoffActivated, (e) => e.data?.payoffId === 'ProudSyncStrike', 'TraitPayoffActivated ProudSyncStrike'),
+      assertEvent(CombatEventType.DamageApplied, (e) => e.data?.source === 'TraitPayoff' && e.data?.sourceId === 'ProudSyncStrike', 'DamageApplied source=TraitPayoff sourceId=ProudSyncStrike'),
+    ],
+  },
+
+  'trait-payoff-requires-combat-slot': {
+    name: 'trait-payoff-requires-combat-slot',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(65, 'Wait for blade hit'),
+      assertEvent(CombatEventType.BladeAttackHit, null, 'BladeAttackHit occurred'),
+      assertSnapshot((_, ctx) => {
+        const evs = ctx.events ?? [];
+        return !evs.some((e) => String(e.type) === String(CombatEventType.TraitPayoffActivated));
+      }, 'No TraitPayoffActivated when no combat slot'),
+      assertSnapshot((_, ctx) => {
+        const evs = ctx.events ?? [];
+        return !evs.some((e) => String(e.type) === String(CombatEventType.DamageApplied) && e.data?.source === 'TraitPayoff');
+      }, 'No TraitPayoff DamageApplied'),
+    ],
+  },
 });
 
 export function getScenario(name) {

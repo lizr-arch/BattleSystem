@@ -44,6 +44,18 @@ Arts 命中（映射为套路技能）
 Burn tick 可击杀 => BattleEnded(Victory)
 ```
 
+V5.5.2 额外闭环（Trait Combat Payoff MVP）:
+
+```text
+BondCombatSlot1 解锁（trustLevel >= 3）
+  ↓
+BladeAttackHit / EnemyAttackHit / BondSyncTriggered
+  ↓
+消费 trait + combat slot → FierceFollowUp / LoyalGuard / ProudSyncStrike
+  ↓
+TraitPayoffActivated 事件 + DamageApplied 统一通路
+```
+
 术语（中英对照，后续文档与事件命名统一口径）：
 
 - Routine：套路
@@ -559,7 +571,21 @@ V2 交付物：
 
 明确不做：送礼/喂食/羁绊剧情/多异刃好感竞争/异刃离队/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
 
-### 明确不做（当前版本边界：<= V5.4）
+### V5.5.2：Trait Combat Payoff MVP（完成）
+
+实现个体特质战斗兑现最小原型：
+
+- Fierce（凶暴）+ BondCombatSlot1：BladeAttackHit 后追加 FierceFollowUp（额外 15% 伤害）
+- Loyal（忠诚）+ BondCombatSlot1：EnemyAttackHit 前降低玩家所受伤害 15%
+- Proud（孤傲）+ BondCombatSlot1：BondSyncTriggered 后追加 ProudSyncStrike（额外 10% 伤害）
+- 新增 `src/core/trait-combat-payoff.js`（纯函数模块）
+- 新增 CombatEventType `TraitPayoffActivated`
+- 新增 2 个测试文件 + 4 个 scenarios
+- DebugPanel 显示 "Last Trait Payoff"
+
+明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo
+
+### 明确不做（当前版本边界：<= V5.5.2）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

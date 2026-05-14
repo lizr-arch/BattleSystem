@@ -412,6 +412,28 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
 - 未来扩展点：future trust levels 4/5 可解锁更多 combatSlot（如 `BondCombatSlot2`/`BondCombatSlot3`）；当前只定义 Lv3 解锁一个槽位，避免范围膨胀。
 - 不应该做的事：让 UI 直接计算 unlock 条件；或让 unlock 自动改变伤害/行为（当前仅作为状态标记，不消费）。
 
+## Trait Combat Payoff（特质战斗兑现，V5.5.2）
+
+- 目的：让拥有 BondCombatSlot1（trustLevel >= 3）的 Blade 根据 individualTrait 在战斗中产生确定性、可观察的 payoff 效果。
+- 所属层：`src/core`
+- 主要文件：`src/core/trait-combat-payoff.js`
+- 输入：BladeRuntime 的 individualTrait + unlocks（or resolvedBlade.unlocks）+ 触发上下文（blade_hit / sync_triggered / incomingDamage）
+- 输出：结构化 payoff 结果（payoffId + damage），或 LoyalGuard 减免后伤害
+- 拥有状态：无（纯函数）
+- 发出事件：`TraitPayoffActivated`
+- 消费事件：由 BladeRuntime.tick() 与 CombatActor.applyDamageToPlayer() 消费 trait-combat-payoff 函数结果
+- 关键不变量：
+  - 所有 trait payoff 必须有 BondCombatSlot1。
+  - FierceFollowUp = bladeHitDamage × 0.15。
+  - LoyalGuard = incomingDamage × 0.85（只影响 enemy source）。
+  - ProudSyncStrike = bladeHitDamage × 0.10（仅在 BondSyncTriggered 时）。
+  - 多个 Loyal Blade 只应用一次减伤。
+  - payoff 伤害通过 applyDamageToTarget 统一通路。
+  - 确定性，不用概率。
+- 测试覆盖：`tests/trait-combat-payoff.test.mjs`、`tests/trait-combat-payoff-scenario.test.mjs`
+- 未来扩展点：未来 trust level 4/5 解锁更多 combat slot 后，可扩展 payoff 效果（如 Fierce 双倍追击、Loyal 护主+反伤等）。
+- 不应该做的事：引入概率触发、引入新战斗资源/按钮、绕过统一 damage 通路。
+
 ## Browser Debug UI
 
 - 目的：浏览器可视化验证壳：输入、画布渲染、事件日志面板、调参、Scenario 一键 Run、Debug 输入（Grant Ready/StepToRecovery/Cast）。
