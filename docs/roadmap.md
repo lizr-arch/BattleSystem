@@ -180,6 +180,16 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
 
+## V5.5.1：Trust Unlock Combat Slot MVP（完成）
+
+状态：完成。
+
+范围：Trust Lv3 解锁 `BondCombatSlot1`（数据层 slot，不消费）。`src/core/combat-unlocks.js` + `resolveCombatUnlocks()` + LoadoutResolver/CombatActor/BladeRuntime 集成 + DebugPanel 展示。
+
+新增文件：`src/core/combat-unlocks.js`、`tests/combat-unlocks.test.mjs`、`tests/trust-unlock-scenario.test.mjs`。新增 4 个 scenarios。
+
+明确不做：技能系统、Socket UI、Trait upgrade、Element 交互、Life Skill gameplay、Chain Attack、Full Burst、Fusion Combo。
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。

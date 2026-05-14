@@ -392,6 +392,26 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
 - 未来扩展点：BondSkillUnlocked/BondSocketUnlocked/BondMilestoneReached/BondAssistActivated（V5.4 明确不做）。
 - 不应该做的事：让 Bond 直接决定伤害或战斗规则（应通过行为与触发条件影响，而非纯数值加成）。
 
+## Combat Unlocks（信任解锁，V5.5.1）
+
+- 目的：基于 Bond trustLevel 动态解锁 combatSlot，在不消费 slot 的情况下提供可观察的解锁状态。
+- 所属层：`src/core`
+- 主要文件：`src/core/combat-unlocks.js`
+- 输入：Bond trustLevel
+- 输出：`resolvedBlade.unlocks`、`BladeRuntime.getSnapshot().unlocks`
+- 拥有状态：无（纯函数，`resolveCombatUnlocks(bond)`）
+- 发出事件：无（当前不产生专项事件）
+- 消费事件：无
+- 关键不变量：
+  - trustLevel >= 3 → combatSlots = `['BondCombatSlot1']`。
+  - trustLevel < 3 → combatSlots 为空。
+  - null bond 视为 trustLevel=0，无解锁。
+  - unlock 在 resetRuntime 后保留（基于持久化的 bond trustLevel 重新计算）。
+  - unlock 在 Defeat 后保留（trustLevel 不下降）。
+- 测试覆盖：`tests/combat-unlocks.test.mjs`、`tests/trust-unlock-scenario.test.mjs`
+- 未来扩展点：future trust levels 4/5 可解锁更多 combatSlot（如 `BondCombatSlot2`/`BondCombatSlot3`）；当前只定义 Lv3 解锁一个槽位，避免范围膨胀。
+- 不应该做的事：让 UI 直接计算 unlock 条件；或让 unlock 自动改变伤害/行为（当前仅作为状态标记，不消费）。
+
 ## Browser Debug UI
 
 - 目的：浏览器可视化验证壳：输入、画布渲染、事件日志面板、调参、Scenario 一键 Run、Debug 输入（Grant Ready/StepToRecovery/Cast）。

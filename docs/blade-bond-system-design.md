@@ -22,6 +22,19 @@ V5.4.1 明确了 Bond 三维度在 resetRuntime 时的行为：
 
 V5.4.1 不做：送礼/喂食/羁绊剧情/多异刃好感竞争/异刃离队/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo。
 
+## Trust Unlock Combat Slot（V5.5.1）
+
+V5.5.1 实现 Trust Lv3 解锁 `BondCombatSlot1`：
+
+- Trust Lv1/Lv2：`resolvedBlade.unlocks.combatSlots = []`
+- Trust Lv3+：`resolvedBlade.unlocks.combatSlots = ['BondCombatSlot1']`
+
+实现文件：`src/core/combat-unlocks.js`。
+
+解锁不消费（不装备技能、不改变伤害），仅作为后续技能/槽位系统的数据入口。DebugPanel 可在 Backpack/Blades 区块查看 Unlocks。
+
+V5.5.1 不做：技能系统、Socket UI、Trait upgrade、Element 交互、Chain Attack、Full Burst、Fusion Combo。
+
 ## 1. 设计目标
 
 羁绊（Bond）不是简单的"好感度"系统。羁绊是异刃与 Driver 之间多层次的关系系统，拆分为三维度：
