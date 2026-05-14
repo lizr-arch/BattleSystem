@@ -96,6 +96,7 @@ export class DebugPanel {
       blUnlocks: this.byId('blUnlocks'),
       blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
+      blLastTraitPayoff: this.byId('blLastTraitPayoff'),
       scFull: this.byId('scFull'),
       scWrong: this.byId('scWrong'),
       scExpireBreak: this.byId('scExpireBreak'),
@@ -628,6 +629,10 @@ export class DebugPanel {
 
     if (this.refs.blLastBladeEvent) {
       this.refs.blLastBladeEvent.textContent = this.findLastEventLine(s.eventLogText, (msg) => msg.startsWith('Blade'));
+    }
+
+    if (this.refs.blLastTraitPayoff) {
+      this.refs.blLastTraitPayoff.textContent = this.findLastEventLine(s.eventLogText, (msg) => msg.startsWith('TraitPayoffActivated'));
     }
   }
 }

@@ -2,6 +2,7 @@ import { CombatActionInstance, CombatActionSpec } from './action.js';
 import { ActionKind, ActionPhase, CombatEventType } from './enums.js';
 import { distance } from './math.js';
 import { createBondState, cloneBondState, computeBondModifiers, applyTrustGain, applySyncGain, DEFAULT_BOND_CONFIG } from './bond.js';
+import { hasCombatSlot } from './trait-combat-payoff.js';
 
 const DEFAULT_HIDDEN_PROFILE = Object.freeze({
   hpMultiplier: 1,
@@ -89,7 +90,7 @@ export class BladeRuntime {
         });
         this.state = 'Idle';
       }
-      return { events, damageToApply: null };
+      return { events, damageToApply: null, extraDamageToApply: [] };
     }
 
     if (this.state === 'Idle' && inRange && this.cooldownLeft === 0) {
@@ -194,6 +195,46 @@ export class BladeRuntime {
             });
           }
 
+          const extraDamageToApply = [];
+
+          if (hasCombatSlot(this, 'BondCombatSlot1') && rb.individualTrait === 'Fierce') {
+            const followUpDamage = Math.round(finalDamage * 0.15);
+            events.push({
+              type: CombatEventType.TraitPayoffActivated,
+              data: {
+                bladeId: rb.bladeId,
+                trait: 'Fierce',
+                payoffId: 'FierceFollowUp',
+                amount: followUpDamage,
+              },
+            });
+            extraDamageToApply.push({
+              amount: followUpDamage,
+              source: 'TraitPayoff',
+              sourceId: 'FierceFollowUp',
+              bladeId: rb.bladeId,
+            });
+          }
+
+          if (hasCombatSlot(this, 'BondCombatSlot1') && rb.individualTrait === 'Proud' && triggeredResults.length > 0) {
+            const syncStrikeDamage = Math.round(finalDamage * 0.10);
+            events.push({
+              type: CombatEventType.TraitPayoffActivated,
+              data: {
+                bladeId: rb.bladeId,
+                trait: 'Proud',
+                payoffId: 'ProudSyncStrike',
+                amount: syncStrikeDamage,
+              },
+            });
+            extraDamageToApply.push({
+              amount: syncStrikeDamage,
+              source: 'TraitPayoff',
+              sourceId: 'ProudSyncStrike',
+              bladeId: rb.bladeId,
+            });
+          }
+
           return {
             events,
             damageToApply: {
@@ -201,6 +242,7 @@ export class BladeRuntime {
               source: 'Blade',
               sourceId: rb.bladeId,
             },
+            extraDamageToApply,
           };
         } else {
           events.push({
@@ -230,7 +272,7 @@ export class BladeRuntime {
       }
     }
 
-    return { events, damageToApply: null };
+    return { events, damageToApply: null, extraDamageToApply: [] };
   }
 
   exportBondSnapshot({ resetBattleTransient = false } = {}) {

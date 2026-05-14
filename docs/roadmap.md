@@ -190,6 +190,16 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：技能系统、Socket UI、Trait upgrade、Element 交互、Life Skill gameplay、Chain Attack、Full Burst、Fusion Combo。
 
+## V5.5.2：Trait Combat Payoff MVP（完成）
+
+状态：完成。
+
+范围：个体特质战斗兑现最小原型。Fierce（凶暴）+ BondCombatSlot1 → BladeAttackHit 后追加 FierceFollowUp（额外 15% 伤害）。Loyal（忠诚）+ BondCombatSlot1 → EnemyAttackHit 前降低玩家所受伤害 15%。Proud（孤傲）+ BondCombatSlot1 → BondSyncTriggered 后追加 ProudSyncStrike（额外 10% 伤害）。
+
+新增文件：`src/core/trait-combat-payoff.js`、新增 CombatEventType `TraitPayoffActivated`、2 个测试文件 + 4 个 scenarios。DebugPanel 显示 "Last Trait Payoff"。
+
+明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo。
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。

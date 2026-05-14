@@ -200,6 +200,12 @@ export function formatCombatEvent(type, data = {}) {
       return `BondSyncChanged blade=${data.bladeId ?? '?'} ${data.before ?? 0}->${data.after ?? 0} reason=${data.reason ?? '?'}`;
     case CombatEventType.BondSyncTriggered:
       return `BondSyncTriggered blade=${data.bladeId ?? '?'} threshold=${data.syncThreshold ?? '?'} overflow=${data.overflow ?? 0}`;
+    case CombatEventType.TraitPayoffActivated: {
+      if (data.payoffId === 'LoyalGuard') {
+        return `TraitPayoffActivated trait=${data.trait ?? '?'} payoff=${data.payoffId ?? '?'} ${data.beforeAmount ?? '?'}->${data.afterAmount ?? '?'}`;
+      }
+      return `TraitPayoffActivated trait=${data.trait ?? '?'} payoff=${data.payoffId ?? '?'} amount=${data.amount ?? 0}`;
+    }
     default:
       return String(type);
   }

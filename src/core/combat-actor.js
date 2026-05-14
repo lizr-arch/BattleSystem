@@ -17,6 +17,7 @@ import { resolveLoadout } from './loadout-resolver.js';
 import { getItemDefinition } from './backpack-items.js';
 import { applyTrustGain, applyMoodChange, computeBondModifiers, DEFAULT_BOND_CONFIG } from './bond.js';
 import { resolveCombatUnlocks } from './combat-unlocks.js';
+import { resolveLoyalGuard } from './trait-combat-payoff.js';
 
 export class CombatActor {
   constructor({
@@ -627,6 +628,15 @@ export class CombatActor {
           sourceId: result.damageToApply.sourceId,
         });
       }
+      if (result.extraDamageToApply) {
+        for (const extra of result.extraDamageToApply) {
+          if (this.battle?.active === false || this.target?.dead) break;
+          this.applyDamageToTarget(extra.amount, {
+            source: extra.source ?? 'TraitPayoff',
+            sourceId: extra.sourceId ?? '?',
+          });
+        }
+      }
     }
   }
   _applyBondVictory() {
@@ -869,7 +879,11 @@ export class CombatActor {
           const damage = strike.damage ?? strike.actionSpec.damage ?? 0;
           this.emit(CombatEventType.EnemyAttackHit, { attackId: strike.id, damage, enemyId: enemy.id, targetId: this.id });
           this.lastEnemyOutcome = { kind: 'hit', frame: this.frame };
-          this.applyDamageToPlayer(damage, { source: 'EnemyStrike', sourceId: strike.id, enemyId: enemy.id });
+          const guardResult = resolveLoyalGuard({ bladeRuntimes: this.bladeRuntimes, incomingDamage: damage });
+          for (const ev of (guardResult.events ?? [])) {
+            this.emit(ev.type, ev.data);
+          }
+          this.applyDamageToPlayer(guardResult.finalDamage, { source: 'EnemyStrike', sourceId: strike.id, enemyId: enemy.id });
         }
       }
 

@@ -1232,7 +1232,29 @@
 - 测试覆盖：`tests/bond-runtime.test.mjs`、`tests/bond-scenario.test.mjs`
 - 备注：V5.4 MVP 中 Sync 达阈值后清零（sync=0）；overflow 仅作为事件数据记录，不保留到 bond.sync。后续版本可能改为保留溢出值。
 
+### TraitPayoffActivated
+
+- 定义位置：`src/core/enums.js`（V5.5.2 新增）
+- 发出位置：`src/core/blade-runtime.js`（FierceFollowUp / ProudSyncStrike）和 `src/core/combat-actor.js`（LoyalGuard）
+- 触发条件：Blade 拥有 BondCombatSlot1 且 individualTrait 匹配如下之一：
+  - Fierce + BladeAttackHit → `payoffId=FierceFollowUp`
+  - Loyal + EnemyAttackHit → `payoffId=LoyalGuard`
+  - Proud + BondSyncTriggered → `payoffId=ProudSyncStrike`
+- data 字段：
+  - `bladeId: string`
+  - `trait: 'Fierce' | 'Loyal' | 'Proud'`
+  - `payoffId: 'FierceFollowUp' | 'LoyalGuard' | 'ProudSyncStrike'`
+  - 对于 FierceFollowUp / ProudSyncStrike：`amount: number`
+  - 对于 LoyalGuard：`beforeAmount: number` / `afterAmount: number` / `reducedAmount: number`
+- 日志格式：
+  - `TraitPayoffActivated trait=Fierce payoff=FierceFollowUp amount=N`
+  - `TraitPayoffActivated trait=Loyal payoff=LoyalGuard N->M`
+  - `TraitPayoffActivated trait=Proud payoff=ProudSyncStrike amount=N`
+- 相关机制：Trait Combat Payoff（V5.5.2）、Combat Unlocks（V5.5.1）、Bond（V5.4）
+- 测试覆盖：`tests/trait-combat-payoff.test.mjs`、`tests/trait-combat-payoff-scenario.test.mjs`
+- 备注：V5.5.2 中所有 trait payoff 仅在有 BondCombatSlot1 时触发；无槽位时保持 V5.5.1 之前行为不变。
+
 ## 事件总览更新
 
-截至 V5.4，`CombatEventType` 共 91 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件；V5.4 新增 4 个 Bond 事件。
+截至 V5.5.2，`CombatEventType` 共 92 个事件值。V5.1 新增 11 个 Blade/Backpack 事件；V5.3 新增 2 个 Beast Blade 事件；V5.4 新增 4 个 Bond 事件；V5.5.2 新增 1 个 TraitPayoffActivated 事件。
 

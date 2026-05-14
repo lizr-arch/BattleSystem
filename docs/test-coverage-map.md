@@ -549,3 +549,32 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
   - trust-unlock-survives-reset：resetRuntime 后 unlock 保留。
   - trust-unlock-survives-defeat：Defeat 后 unlock 保留，trustLevel 不下降。
 
+### tests/trait-combat-payoff.test.mjs
+
+- 测试目标：验证 `hasCombatSlot`、`resolveTraitCombatPayoff`、`resolveLoyalGuard` 纯函数行为。
+- 覆盖机制：Trait Combat Payoff（V5.5.2）
+- 覆盖事件：`TraitPayoffActivated`（事件格式验证）
+- 测试数量：15
+- 关键断言：
+  - hasCombatSlot() 正确识别/拒绝 BondCombatSlot1。
+  - Fierce + slot → FierceFollowUp（damage = baseAmount × 0.15）。
+  - Fierce 无 slot → null。
+  - Proud + slot + sync_triggered → ProudSyncStrike（damage = baseAmount × 0.10）。
+  - Proud 无 slot → null。
+  - LoyalGuard 减伤：100 → 85。
+  - Loyal 无 slot → 不减伤。
+  - 多个 Loyal Blade 不叠加。
+  - TraitPayoffActivated 格式化正确。
+
+### tests/trait-combat-payoff-scenario.test.mjs
+
+- 测试目标：端到端验证 4 个内置 scenarios：trait-fierce-followup-damage、trait-loyal-guard-reduces-player-damage、trait-proud-sync-strike-on-sync-trigger、trait-payoff-requires-combat-slot。
+- 覆盖机制：Trait Combat Payoff + BladeRuntime + CombatActor 集成（V5.5.2）
+- 覆盖事件：`TraitPayoffActivated`、`DamageApplied`（TraitPayoff source）、`BladeAttackHit`、`EnemyAttackHit`
+- 测试数量：4 scenarios
+- 关键断言：
+  - trait-fierce-followup-damage：Fierce + BondCombatSlot1 产生 FierceFollowUp。
+  - trait-loyal-guard-reduces-player-damage：Loyal + BondCombatSlot1 降低 enemy 伤害。
+  - trait-proud-sync-strike-on-sync-trigger：Proud + BondCombatSlot1 + SyncTriggered 产生 ProudSyncStrike。
+  - trait-payoff-requires-combat-slot：无 BondCombatSlot1 不触发任何 payoff。
+

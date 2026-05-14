@@ -276,3 +276,37 @@ Bond 是 Driver 与异刃之间的三维关系系统，通过战斗事件驱动�
 Trust Lv3 解锁 `BondCombatSlot1`。解锁发生在 LoadoutResolver 解析时和 CombatActor bond 变更后。BladeRuntime snapshot 输出 unlocks。不消费 slot（不装备技能、不改变伤害）。
 
 文件：`src/core/combat-unlocks.js`
+
+## Trait Combat Payoff（特质战斗兑现，V5.5.2）
+
+Trait Combat Payoff 是 V5.5.2 的"个体特质战斗兑现"闭环：拥有 BondCombatSlot1（trustLevel >= 3）的 Blade 根据 individualTrait 在战斗中产生确定性 payoff。
+
+### FierceFollowUp（凶暴追击）
+
+- 触发：BladeAttackHit 命中后
+- 条件：individualTrait === 'Fierce'，且拥有 BondCombatSlot1
+- 效果：额外造成 bladeHitDamage × 0.15 的追击伤害
+- 不改变 V5.3 的 Fierce 基础伤害 ×1.1
+
+### LoyalGuard（忠诚守护）
+
+- 触发：EnemyAttackHit 命中玩家前（applyDamageToPlayer 调用链路中）
+- 条件：存在 individualTrait === 'Loyal' 且拥有 BondCombatSlot1 的 active Blade
+- 效果：玩家受到的 enemy source 伤害降低 15%（finalDamage = Math.round(incomingDamage × 0.85)）
+- 多个 Loyal Blade 同时存在时只应用一次，不叠加
+
+### ProudSyncStrike（孤傲共鸣击）
+
+- 触发：BondSyncTriggered 触发后
+- 条件：individualTrait === 'Proud'，且拥有 BondCombatSlot1
+- 效果：额外造成 bladeHitDamage × 0.10 的默契打击伤害
+- 不改变 V5.4 的 Sync overflow 语义（Sync 达阈值清零，overflow 仅记录）
+
+### 通用规则
+
+- 所有 trait payoff 仅在 Blade 拥有 BondCombatSlot1 时触发；无槽位时保持 V5.5.1 之前行为不变
+- payoff 通过统一 `applyDamageToTarget` 通路应用，确保 `DamageApplied / TargetHpChanged` 链路完整
+- 所有 payoff 产出 `TraitPayoffActivated` 事件
+- 确定性，不使用概率
+
+文件：`src/core/trait-combat-payoff.js`

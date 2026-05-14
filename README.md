@@ -126,6 +126,19 @@ V5.4 实现羁绊三维（Trust / Mood / Sync）的最小原型，让 Blade 与 
   - Debug Panel 显示 Trust/TrustLevel/Mood/Sync；Canvas 显示 Trust 等级标记
 - 明确不做：送礼/喂食/羁绊剧情/Life Skill gameplay/采集/狩猎/挖矿/Chain Attack/Full Burst/Fusion Combo
 
+## V5.5.2 Trait Combat Payoff MVP（已实现）
+
+V5.5.2 实现个体特质战斗兑现最小原型，让 Fierce/Loyal/Proud trait 通过 BondCombatSlot1 产生实际战斗 payoff：
+
+- 新增 `src/core/trait-combat-payoff.js`：纯函数模块，FierceFollowUp/LoyalGuard/ProudSyncStrike 三种 payoff
+- Fierce（凶暴）+ BondCombatSlot1：BladeAttackHit 后追加 FierceFollowUp（额外 15% 伤害）
+- Loyal（忠诚）+ BondCombatSlot1：EnemyAttackHit 前降低玩家所受伤害 15%
+- Proud（孤傲）+ BondCombatSlot1：BondSyncTriggered 后追加 ProudSyncStrike（额外 10% 伤害）
+- 新增事件：TraitPayoffActivated
+- 可观察性：新增 2 个测试文件 + 4 个 scenarios
+  - Debug Panel 显示 "Last Trait Payoff"
+- 明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo
+
 =======
 ## 设计原型：Routine-Orb（套路挂球）
 
