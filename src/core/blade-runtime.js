@@ -278,6 +278,7 @@ export class BladeRuntime {
         mood: bs.mood,
         sync: bs.sync,
       },
+      unlocks: rb.unlocks ? { combatSlots: [...rb.unlocks.combatSlots], traitBoosts: [...rb.unlocks.traitBoosts] } : { combatSlots: [], traitBoosts: [] },
     };
   }
 }

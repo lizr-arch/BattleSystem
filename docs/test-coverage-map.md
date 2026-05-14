@@ -523,3 +523,29 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
   - V5.4 6 个 bond scenarios 不回归。
   - 3 个新 scenarios（bond-reset-keeps-trust、bond-reset-clears-sync、bond-reset-normalizes-mood）通过 scenario runner。
 
+## V5.5.1 Trust Unlock 测试
+
+### tests/combat-unlocks.test.mjs
+
+- 测试目标：验证 `resolveCombatUnlocks()` 函数的解锁规则。
+- 覆盖机制：Combat Unlocks（V5.5.1）
+- 覆盖事件：无（纯函数 + 数据结构测试）
+- 测试数量：7
+- 关键断言：
+  - null bond / trustLevel=1 / trustLevel=2 → combatSlots 为空。
+  - trustLevel=3 / trustLevel=5 → combatSlots = `['BondCombatSlot1']`。
+  - resolvedBlade 始终包含 `unlocks` 字段。
+  - BladeRuntime.getSnapshot() 包含 `unlocks`。
+
+### tests/trust-unlock-scenario.test.mjs
+
+- 测试目标：端到端验证 4 个内置 scenarios：trust-lv1-no-combat-slot、trust-lv3-unlocks-combat-slot、trust-unlock-survives-reset、trust-unlock-survives-defeat。
+- 覆盖机制：Combat Unlocks + CombatActor 集成（V5.5.1）
+- 覆盖事件：间接（BattleEnded 等）
+- 测试数量：4 scenarios
+- 关键断言：
+  - trust-lv1-no-combat-slot：Lv1 无解锁。
+  - trust-lv3-unlocks-combat-slot：Lv3 解锁 BondCombatSlot1。
+  - trust-unlock-survives-reset：resetRuntime 后 unlock 保留。
+  - trust-unlock-survives-defeat：Defeat 后 unlock 保留，trustLevel 不下降。
+

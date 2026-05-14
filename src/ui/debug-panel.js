@@ -93,6 +93,7 @@ export class DebugPanel {
       blActiveBlades: this.byId('blActiveBlades'),
       blBeastInfo: this.byId('blBeastInfo'),
       blBondInfo: this.byId('blBondInfo'),
+      blUnlocks: this.byId('blUnlocks'),
       blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
       scFull: this.byId('scFull'),
@@ -602,7 +603,16 @@ export class DebugPanel {
 
     if (this.refs.blBondInfo) {
       const lines = runtimes.map((rt) => {
-        const b = rt?.bond ?? {};
+        const b = rt?.bond ?? {}
+    if (this.refs.blUnlocks) {
+      const lines = runtimes.map((rt) => {
+        const u = rt?.unlocks ?? {};
+        const slots = u.combatSlots?.length ? u.combatSlots.join(', ') : '-';
+        return `${rt?.bladeId ?? '?'}: ${slots}`;
+      });
+      this.refs.blUnlocks.textContent = lines.join('\n') || '-';
+    }
+;
         return `${rt?.bladeId ?? '?'}: Trust:${b.trust ?? 0} (Lv${b.trustLevel ?? 1}) | Mood:${b.mood ?? 50} | Sync:${b.sync ?? 0}`;
       });
       this.refs.blBondInfo.textContent = lines.join('\n') || '-';

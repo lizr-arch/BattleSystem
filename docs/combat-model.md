@@ -270,3 +270,9 @@ Bond 是 Driver 与异刃之间的三维关系系统，通过战斗事件驱动�
 - Routine Skill trait 参与结算（当前 trait 模型仅预留接口，不影响伤害结算）。
 
 这些后续都可以挂在当前 `ActionHit` / `DriverCombo*` 等事件链路之后。
+
+## Combat Unlocks（V5.5.1）
+
+Trust Lv3 解锁 `BondCombatSlot1`。解锁发生在 LoadoutResolver 解析时和 CombatActor bond 变更后。BladeRuntime snapshot 输出 unlocks。不消费 slot（不装备技能、不改变伤害）。
+
+文件：`src/core/combat-unlocks.js`

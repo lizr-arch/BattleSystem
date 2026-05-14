@@ -3,6 +3,7 @@ import { getItemDefinition } from './backpack-items.js';
 import { CombatEventType } from './enums.js';
 import { resolveBeastBladeProfile } from './beast-blade.js';
 import { mergeLifeSkills } from './life-skills.js';
+import { resolveCombatUnlocks } from './combat-unlocks.js';
 
 export function resolveLoadout({
   backpackGrid,
@@ -119,6 +120,9 @@ export function resolveLoadout({
         }
       }
     }
+
+    resolved.bond = definition.bond ?? null;
+    resolved.unlocks = resolveCombatUnlocks({ bond: resolved.bond });
 
     if (definition.species && definition.lineage && definition.rarity) {
       resolved.hiddenProfile = resolveBeastBladeProfile({

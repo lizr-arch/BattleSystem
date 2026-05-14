@@ -1,6 +1,6 @@
 # 异刃羁绊系统设计（Blade Bond System Design）
 
-**V5.4.1 实现状态**: Bond System MVP 已实现。Trust/Mood/Sync 三维度、BladeAttackHit/Victory/Defeat 事件挂钩、Loyal/Proud trait 影响已落地。V5.4.1 新增 Bond 生命周期语义：Trust 跨 resetRuntime 保留、Mood 在 resetRuntime 后回到 50、Sync 在 resetRuntime 后清零。详细实现见 `src/core/bond.js` 与 `src/core/blade-runtime.js`。
+**V5.4.1 实现状态**: Bond System MVP 已实现。V5.5.1 新增 Trust Unlock Combat Slot：Trust Lv3 解锁 `BondCombatSlot1`（数据层，不消费）。Trust/Mood/Sync 三维度、BladeAttackHit/Victory/Defeat 事件挂钩、Loyal/Proud trait 影响已落地。V5.4.1 新增 Bond 生命周期语义：Trust 跨 resetRuntime 保留、Mood 在 resetRuntime 后回到 50、Sync 在 resetRuntime 后清零。详细实现见 `src/core/bond.js` 与 `src/core/blade-runtime.js`。
 
 注意：BondSkillUnlocked/BondSocketUnlocked/BondMilestoneReached/BondAssistActivated 仍未实现。
 

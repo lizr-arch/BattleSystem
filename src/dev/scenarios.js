@@ -1134,7 +1134,7 @@ export const scenarios = Object.freeze({
       actor.autoAttackRange = 0;
       const grid = createBackpackGrid({ width: 9, height: 9 });
       grid.place({ instanceId: 'wolf_001', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
-      // No core — should be Neutral
+      // No core �?should be Neutral
       const resolvedNoCore = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
       actor.resolvedLoadout = resolvedNoCore;
       if (resolvedNoCore.event) actor.emit(resolvedNoCore.event.type, resolvedNoCore.event.data);
@@ -1513,6 +1513,164 @@ export const scenarios = Object.freeze({
       assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.mood ?? 50) < 50, 'Assert mood < 50 after defeat'),
       resetRuntime('Reset runtime'),
       assertSnapshot((s) => (s.bladeRuntimes?.[0]?.bond?.mood ?? -1) === 50, 'Assert mood === 50 after reset'),
+    ],
+  },
+
+  'trust-lv1-no-combat-slot': {
+    name: 'trust-lv1-no-combat-slot',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.length === 0;
+      }, 'Assert combatSlots empty at trust Lv1'),
+    ],
+  },
+
+  'trust-lv3-unlocks-combat-slot': {
+    name: 'trust-lv3-unlocks-combat-slot',
+    maxFrames: 200,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
+      }
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert BondCombatSlot1 unlocked at trust Lv3'),
+    ],
+  },
+
+  'trust-unlock-survives-reset': {
+    name: 'trust-unlock-survives-reset',
+    maxFrames: 600,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
+      }
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert unlock present before reset'),
+      resetRuntime('Reset runtime'),
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert unlock survives reset'),
+      assertSnapshot((s) => {
+        const rt = s.bladeRuntimes?.[0];
+        return rt?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert bladeRuntime snapshot has unlock after reset'),
+    ],
+  },
+
+  'trust-unlock-survives-defeat': {
+    name: 'trust-unlock-survives-defeat',
+    maxFrames: 800,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      actor.player.hp = 1;
+      actor.player.maxHp = 1;
+      actor.player.dead = false;
+      setupActorForScenario(actor);
+      const grid = createBackpackGrid({ width: 9, height: 9 });
+      grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+      if (resolved.activeBlades.length > 0) {
+        resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
+      }
+      actor.resolvedLoadout = resolved;
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+      if (actor.enemy) {
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.state = 'Idle';
+      }
+    },
+    steps: [
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert unlock present before defeat'),
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait Defeat'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
+      assertSnapshot((s) => {
+        const b = s.resolvedLoadout?.activeBlades?.[0];
+        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert unlock survives defeat'),
     ],
   },
 });

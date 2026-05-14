@@ -16,6 +16,7 @@ import { BladeRuntime } from './blade-runtime.js';
 import { resolveLoadout } from './loadout-resolver.js';
 import { getItemDefinition } from './backpack-items.js';
 import { applyTrustGain, applyMoodChange, computeBondModifiers, DEFAULT_BOND_CONFIG } from './bond.js';
+import { resolveCombatUnlocks } from './combat-unlocks.js';
 
 export class CombatActor {
   constructor({
@@ -388,6 +389,7 @@ export class CombatActor {
     this.paused = false;
     this.commitBladeBondStates({ resetBattleTransient: true });
     this.bladeRuntimes = [];
+    this.refreshBladeUnlocks();
     if (this.resolvedLoadout?.activeBlades?.length) {
       for (const blade of this.resolvedLoadout.activeBlades) {
         this.linkBlade(blade);
@@ -576,6 +578,14 @@ export class CombatActor {
       const snapshot = runtime.exportBondSnapshot({ resetBattleTransient });
       blade.bond = blade.bond ?? {};
       Object.assign(blade.bond, snapshot);
+    }
+    this.refreshBladeUnlocks();
+  }
+
+  refreshBladeUnlocks() {
+    const blades = this.resolvedLoadout?.activeBlades ?? [];
+    for (const blade of blades) {
+      blade.unlocks = resolveCombatUnlocks({ bond: blade.bond ?? null });
     }
   }
 
