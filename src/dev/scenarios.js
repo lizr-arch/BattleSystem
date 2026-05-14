@@ -1565,9 +1565,9 @@ export const scenarios = Object.freeze({
       const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
       if (resolved.activeBlades.length > 0) {
         resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
-        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
       }
       actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
       if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
       for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
       for (const blade of resolved.activeBlades) {
@@ -1577,8 +1577,8 @@ export const scenarios = Object.freeze({
     steps: [
       assertSnapshot((s) => {
         const b = s.resolvedLoadout?.activeBlades?.[0];
-        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
-      }, 'Assert BondCombatSlot1 unlocked at trust Lv3'),
+        return b?.bond?.trustLevel === 3 && b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert trustLevel=3 derives BondCombatSlot1 via refresh'),
     ],
   },
 
@@ -1600,25 +1600,22 @@ export const scenarios = Object.freeze({
       const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
       if (resolved.activeBlades.length > 0) {
         resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
-        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
       }
       actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
       if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
       for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
-      for (const blade of resolved.activeBlades) {
-        actor.linkBlade(blade);
-      }
     },
     steps: [
       assertSnapshot((s) => {
         const b = s.resolvedLoadout?.activeBlades?.[0];
         return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
-      }, 'Assert unlock present before reset'),
+      }, 'Assert unlock derived from trustLevel=3 before reset'),
       resetRuntime('Reset runtime'),
       assertSnapshot((s) => {
         const b = s.resolvedLoadout?.activeBlades?.[0];
-        return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
-      }, 'Assert unlock survives reset'),
+        return b?.bond?.trustLevel === 3 && b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
+      }, 'Assert unlock survives reset (derived from bond)'),
       assertSnapshot((s) => {
         const rt = s.bladeRuntimes?.[0];
         return rt?.unlocks?.combatSlots?.includes('BondCombatSlot1');
@@ -1647,9 +1644,9 @@ export const scenarios = Object.freeze({
       const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
       if (resolved.activeBlades.length > 0) {
         resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
-        resolved.activeBlades[0].unlocks = { combatSlots: ['BondCombatSlot1'], traitBoosts: [] };
       }
       actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
       if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
       for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
       for (const blade of resolved.activeBlades) {
@@ -1664,7 +1661,7 @@ export const scenarios = Object.freeze({
       assertSnapshot((s) => {
         const b = s.resolvedLoadout?.activeBlades?.[0];
         return b?.unlocks?.combatSlots?.includes('BondCombatSlot1');
-      }, 'Assert unlock present before defeat'),
+      }, 'Assert unlock derived from trustLevel=3 before defeat'),
       waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat'), 'Wait Defeat'),
       assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
       assertSnapshot((s) => {

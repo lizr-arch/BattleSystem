@@ -76,4 +76,27 @@ import { BladeRuntime } from '../src/core/blade-runtime.js';
   console.log('PASS: BladeRuntime snapshot includes unlocks');
 }
 
+// Test 8: refreshBladeUnlocks derives unlock from bond trustLevel=3
+{
+  const { createDefaultCombatActor } = await import('../src/data/default-combat-config.js');
+  const actor = createDefaultCombatActor();
+  actor.resetRuntime();
+  actor.autoAttackRange = 0;
+  actor.target.hp = 999999;
+  actor.target.maxHp = 999999;
+  actor.target.dead = false;
+  actor.eventLog.clear();
+  const grid = createBackpackGrid({ width: 9, height: 9 });
+  grid.place({ instanceId: 'b1', itemId: 'GreyWolfBlade', type: 'Blade', x: 0, y: 0, width: 2, height: 3 });
+  const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments: {} });
+  assert.ok(resolved.activeBlades.length > 0, 'should have active blade');
+  resolved.activeBlades[0].bond = { trust: 250, trustLevel: 3, mood: 50, sync: 0 };
+  actor.resolvedLoadout = resolved;
+  actor.refreshBladeUnlocks();
+  const blade = actor.resolvedLoadout.activeBlades[0];
+  assert.ok(blade.unlocks, 'unlocks should exist after refresh');
+  assert.ok(blade.unlocks.combatSlots.includes('BondCombatSlot1'), 'refreshBladeUnlocks must derive BondCombatSlot1 from trustLevel=3');
+  console.log('PASS: refreshBladeUnlocks derives unlock from bond trustLevel=3');
+}
+
 console.log('combat unlocks tests passed');

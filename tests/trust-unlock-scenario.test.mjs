@@ -37,7 +37,8 @@ function run(name) {
   assert.equal(result.passed, true, 'trust-lv3-unlocks-combat-slot should pass');
   const blade = actor.resolvedLoadout?.activeBlades?.[0];
   assert.ok(blade, 'activeBlade should exist');
-  assert.ok(blade.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'BondCombatSlot1 should be unlocked');
+  assert.strictEqual(blade.bond?.trustLevel, 3, 'bond trustLevel must be 3');
+  assert.ok(blade.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'BondCombatSlot1 must be derived from trustLevel=3 via refresh');
   console.log('PASS scenario: trust-lv3-unlocks-combat-slot');
 }
 
@@ -46,7 +47,8 @@ function run(name) {
   const { actor, result } = run('trust-unlock-survives-reset');
   assert.equal(result.passed, true, 'trust-unlock-survives-reset should pass');
   const blade = actor.resolvedLoadout?.activeBlades?.[0];
-  assert.ok(blade?.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'unlock should survive reset');
+  assert.strictEqual(blade?.bond?.trustLevel, 3, 'trustLevel must survive reset');
+  assert.ok(blade?.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'unlock must survive reset (derived from bond)');
   console.log('PASS scenario: trust-unlock-survives-reset');
 }
 
@@ -58,8 +60,8 @@ function run(name) {
   const defEvent = events.find((e) => String(e.type) === String(CombatEventType.BattleEnded) && e.data?.result === 'Defeat');
   assert.ok(defEvent, 'Defeat should have occurred');
   const blade = actor.resolvedLoadout?.activeBlades?.[0];
-  assert.ok(blade?.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'unlock should survive defeat');
   assert.ok(blade?.bond?.trustLevel >= 3, 'trustLevel should remain >= 3 after defeat');
+  assert.ok(blade?.unlocks?.combatSlots?.includes('BondCombatSlot1'), 'unlock must survive defeat (derived from bond)');
   console.log('PASS scenario: trust-unlock-survives-defeat');
 }
 
