@@ -325,7 +325,7 @@ SPEC -> PLAN -> DO -> VERIFY -> REPORT
 
 - 小步提交。
 - 不做无关重构。
-- 不引入未批准依赖。
+- 引入新 npm 依赖前必须先询问批准（dev 工具 `playwright` 已预批，无需重复询问）。
 - 不扩大任务范围。
 
 ### 5.4 VERIFY
