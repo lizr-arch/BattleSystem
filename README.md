@@ -139,6 +139,21 @@ V5.5.2 实现个体特质战斗兑现最小原型，让 Fierce/Loyal/Proud trait
   - Debug Panel 显示 "Last Trait Payoff"
 - 明确不做：完整技能系统/技能装备 UI/socket UI/Life Skill gameplay/Chain Attack/Full Burst/Fusion Combo
 
+## V6.1：Demo Battle Tuning + Dual-Layer HUD（已实现）
+
+V6.1 实现 Demo 战斗调优与双层 HUD 系统 — 玩家可理解 + 开发可诊断的 Demo 战斗：
+
+- 新增 `src/core/demo-hud-model.js`：纯逻辑模块，从 snapshot 生成结构化 HUD 数据（Player HUD + Developer Diagnostics）
+- Player HUD：HP bar / arts charge / driver combo / special gauge / blade combo / routine orb / bond / traits / enemy / result
+- Developer Diagnostics：diagnostics.warnings 系统（6 条规则：hpLow / bladeNotAttacking / cooldownStalled / artsUnused / specialUnused / bondLowSync）
+- Dual-Layer HUD UI：左侧 Player HUD（玩家视角信息）+ 右侧 Dev Diagnostics（开发诊断面板）
+- Canvas 覆盖增强：HP 条、Arts 充能条、Driver Combo 指示器、Bond Trust 标记、Enemy HP 与状态
+- 可观察性：新增 2 个测试文件（demo-hud-model 13 tests + demo-tuning-scenario 6 scenarios）
+  - Node：`npm test` PASS
+  - Browser：Debug 面板展示 dual-layer HUD 与 diagnostics warnings
+- 数值保持不变，无新战斗机制
+- 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI
+
 =======
 ## 设计原型：Routine-Orb（套路挂球）
 

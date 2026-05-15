@@ -75,7 +75,7 @@ export class CanvasRenderer {
     const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
     {
       const anchor = point(this.canvas, target.x, target.y - target.radius - 18);
-      const w = 180;
+      const w = 200;
       const h = 10;
       const x = anchor.x - w / 2;
       const y = anchor.y - h / 2;
@@ -89,7 +89,7 @@ export class CanvasRenderer {
       ctx.fillStyle = '#0d1017';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${hp | 0}/${maxHp | 0}`, anchor.x, anchor.y);
+      ctx.fillText(`HP ${hp | 0}/${maxHp | 0}`, anchor.x, anchor.y);
     }
 
     const playerHp = Math.max(0, Number(actor.player?.hp ?? 0));
@@ -97,7 +97,7 @@ export class CanvasRenderer {
     const playerHpRatio = playerMaxHp > 0 ? Math.max(0, Math.min(1, playerHp / playerMaxHp)) : 0;
     {
       const anchor = point(this.canvas, actor.position.x, actor.position.y - actor.radius - 40);
-      const w = 160;
+      const w = 180;
       const h = 10;
       const x = anchor.x - w / 2;
       const y = anchor.y - h / 2;
@@ -112,7 +112,7 @@ export class CanvasRenderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const deadSuffix = actor.player?.dead ? ' DEAD' : '';
-      ctx.fillText(`${playerHp | 0}/${playerMaxHp | 0}${deadSuffix}`, anchor.x, anchor.y);
+      ctx.fillText(`HP ${playerHp | 0}/${playerMaxHp | 0}${deadSuffix}`, anchor.x, anchor.y);
     }
 
     const driverStage = actor.driverCombo?.stage ?? DriverComboStage.None;
@@ -165,6 +165,7 @@ export class CanvasRenderer {
     }
     if (actor.battle?.result === 'Victory') {
       this.text('VICTORY', 600, 120, '#7fd88d', 42);
+      this.text('Press R to Reset', 600, 172, '#9aa3b2', 16);
     }
     if (actor.battle?.result === 'Defeat') {
       this.text('DEFEAT', 600, 120, '#ff4d6d', 42);
@@ -261,6 +262,29 @@ export class CanvasRenderer {
           : '#ff9dff';
       const size = fx.kind === 'smash' ? 28 : 22;
       this.text(fx.text, fx.x, fx.y, color, size);
+    }
+
+    const logText2 = typeof actor.eventLogText === 'string' ? actor.eventLogText : '';
+    if (logText2) {
+      const tlines = logText2.split('\n');
+      let lastPayoff = null;
+      for (const line of tlines) {
+        const parsed = parseEventLine(line);
+        if (!parsed) continue;
+        if (parsed.message.startsWith('TraitPayoffActivated')) {
+          lastPayoff = parsed;
+        }
+      }
+      if (lastPayoff) {
+        const msg = lastPayoff.message;
+        const payoffName = msg.includes('FierceFollowUp') ? 'FierceFollowUp'
+          : msg.includes('LoyalGuard') ? 'LoyalGuard'
+          : msg.includes('ProudSyncStrike') ? 'ProudSyncStrike'
+          : null;
+        if (payoffName) {
+          this.text(payoffName, actor.position.x, actor.position.y - 70, '#ffb264', 14);
+        }
+      }
     }
 
     const bladeRuntimes = Array.isArray(actor.bladeRuntimes) ? actor.bladeRuntimes : [];

@@ -2,6 +2,7 @@ import { CombatInputFrame } from '../core/combat-input.js';
 import { ActionPhase, ActorState, CombatEventType } from '../core/enums.js';
 import { runScenario as runScenarioCore } from '../dev/scenario-runner.js';
 import { getScenario } from '../dev/scenarios.js';
+import { createDemoHudModel } from '../dev/demo-hud-model.js';
 
 export class DebugPanel {
   constructor({ documentObject = document, actor }) {
@@ -102,9 +103,20 @@ export class DebugPanel {
       blActiveLifeSkills: this.byId('blActiveLifeSkills'),
       blLastBladeEvent: this.byId('blLastBladeEvent'),
       blLastTraitPayoff: this.byId('blLastTraitPayoff'),
-      demoMode: this.byId('demoMode'),
-      demoEnemy: this.byId('demoEnemy'),
-      demoBlades: this.byId('demoBlades'),
+      demoGoal: this.byId('demoGoal'),
+      demoControls: this.byId('demoControls'),
+      demoPlayerHp: this.byId('demoPlayerHp'),
+      demoEnemyHp: this.byId('demoEnemyHp'),
+      demoBattleState: this.byId('demoBattleState'),
+      demoBladesInfo: this.byId('demoBladesInfo'),
+      demoLastPayoff: this.byId('demoLastPayoff'),
+      demoHint: this.byId('demoHint'),
+      demoDiagActorState: this.byId('demoDiagActorState'),
+      demoDiagActionPhase: this.byId('demoDiagActionPhase'),
+      demoDiagEnemyState: this.byId('demoDiagEnemyState'),
+      demoDiagInputBuffer: this.byId('demoDiagInputBuffer'),
+      demoDiagCancelWindow: this.byId('demoDiagCancelWindow'),
+      demoDiagWarnings: this.byId('demoDiagWarnings'),
       demoStart: this.byId('demoStart'),
       demoReset: this.byId('demoReset'),
       scFull: this.byId('scFull'),
@@ -658,19 +670,63 @@ export class DebugPanel {
 
   renderDemoPanel(s) {
     const isDemo = this.isDemo;
-    if (this.refs.demoMode) {
-      this.refs.demoMode.textContent = isDemo ? 'ON' : 'OFF';
+    if (!isDemo) {
+      this.clearDemoPanel();
+      return;
     }
-    if (this.refs.demoEnemy) {
-      this.refs.demoEnemy.textContent = isDemo && s.target ? s.target.id ?? s.target.name ?? 'TrainingBrute' : '-';
+
+    const model = createDemoHudModel(s);
+
+    if (this.refs.demoGoal) this.refs.demoGoal.textContent = model.battle.goalText || '-';
+    if (this.refs.demoControls) this.refs.demoControls.textContent = model.controls.join(' | ') || '-';
+    if (this.refs.demoPlayerHp) this.refs.demoPlayerHp.textContent = model.player.hpText || '-';
+    if (this.refs.demoEnemyHp) this.refs.demoEnemyHp.textContent = model.enemy.hpText || '-';
+    if (this.refs.demoBattleState) this.refs.demoBattleState.textContent = model.battle.stateText || '-';
+    if (this.refs.demoBladesInfo) {
+      const names = model.blades.map((b) => `${b.bladeId}: ${b.species}/${b.element}/${b.trait} Trust${b.trustLevel} [${b.unlocksText}]`).join('\n');
+      this.refs.demoBladesInfo.textContent = names || '-';
     }
-    if (this.refs.demoBlades) {
-      if (isDemo && s.resolvedLoadout?.activeBlades) {
-        const names = s.resolvedLoadout.activeBlades.map((b) => b.bladeId ?? b.itemId ?? '?').join(', ');
-        this.refs.demoBlades.textContent = `${s.resolvedLoadout.activeBlades.length} blades: ${names}`;
+    if (this.refs.demoLastPayoff) this.refs.demoLastPayoff.textContent = model.recent.payoffText || '-';
+    if (this.refs.demoHint) this.refs.demoHint.textContent = model.recent.hintText || '-';
+
+    const diag = model.diagnostics;
+    if (this.refs.demoDiagActorState) this.refs.demoDiagActorState.textContent = diag.actorState || '-';
+    if (this.refs.demoDiagActionPhase) this.refs.demoDiagActionPhase.textContent = diag.actionPhase || '-';
+    if (this.refs.demoDiagEnemyState) this.refs.demoDiagEnemyState.textContent = diag.enemyState || '-';
+    if (this.refs.demoDiagInputBuffer) this.refs.demoDiagInputBuffer.textContent = diag.inputBufferText || '-';
+    if (this.refs.demoDiagCancelWindow) this.refs.demoDiagCancelWindow.textContent = diag.cancelWindowText || '-';
+    if (this.refs.demoDiagWarnings) {
+      if (diag.warnings.length > 0) {
+        this.refs.demoDiagWarnings.textContent = diag.warnings.join('\n');
+        this.refs.demoDiagWarnings.style.color = '#ff7b7b';
+        this.refs.demoDiagWarnings.style.fontWeight = 'bold';
       } else {
-        this.refs.demoBlades.textContent = '-';
+        this.refs.demoDiagWarnings.textContent = '(none)';
+        this.refs.demoDiagWarnings.style.color = '#7fd88d';
+        this.refs.demoDiagWarnings.style.fontWeight = 'normal';
       }
+    }
+  }
+
+  clearDemoPanel() {
+    const refs = this.refs;
+    if (refs.demoGoal) refs.demoGoal.textContent = '-';
+    if (refs.demoControls) refs.demoControls.textContent = '-';
+    if (refs.demoPlayerHp) refs.demoPlayerHp.textContent = '-';
+    if (refs.demoEnemyHp) refs.demoEnemyHp.textContent = '-';
+    if (refs.demoBattleState) refs.demoBattleState.textContent = '-';
+    if (refs.demoBladesInfo) refs.demoBladesInfo.textContent = '-';
+    if (refs.demoLastPayoff) refs.demoLastPayoff.textContent = '-';
+    if (refs.demoHint) refs.demoHint.textContent = '-';
+    if (refs.demoDiagActorState) refs.demoDiagActorState.textContent = '-';
+    if (refs.demoDiagActionPhase) refs.demoDiagActionPhase.textContent = '-';
+    if (refs.demoDiagEnemyState) refs.demoDiagEnemyState.textContent = '-';
+    if (refs.demoDiagInputBuffer) refs.demoDiagInputBuffer.textContent = '-';
+    if (refs.demoDiagCancelWindow) refs.demoDiagCancelWindow.textContent = '-';
+    if (refs.demoDiagWarnings) {
+      refs.demoDiagWarnings.textContent = '-';
+      refs.demoDiagWarnings.style.color = '';
+      refs.demoDiagWarnings.style.fontWeight = '';
     }
   }
 }

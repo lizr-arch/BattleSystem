@@ -578,3 +578,36 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
   - trait-proud-sync-strike-on-sync-trigger：Proud + BondCombatSlot1 + SyncTriggered 产生 ProudSyncStrike。
   - trait-payoff-requires-combat-slot：无 BondCombatSlot1 不触发任何 payoff。
 
+## V6.1 Demo HUD Model 测试
+
+### tests/demo-hud-model.test.mjs
+
+- 测试目标：验证 `createDemoHudModel()` 纯函数的 Player HUD 与 Developer Diagnostics 输出结构正确。
+- 覆盖机制：Demo HUD Model（V6.1）
+- 覆盖事件：无（纯函数测试，通过 snapshot 间接验证）
+- 测试数量：13（13 passed）
+- 关键断言：
+  - 正常 demo preset snapshot 产生 playerHud 所有字段、diagnostics.warnings 为空。
+  - HP ≤ 30% 触发 hpLow warning。
+  - Blade Idle + cooldown=0 + 在范围内触发 bladeNotAttacking warning。
+  - Blade cooldown 超过 180f 触发 cooldownStalled warning。
+  - Art ready 超过 120f 触发 artsUnused warning。
+  - Special readyLevel ≥ 1 超过 300f 触发 specialUnused warning。
+  - Sync < 20 且 trustLevel ≥ 3 触发 bondLowSync warning。
+  - 无异常 snapshot 不产生 warning（正常 demo preset 零 warning）。
+
+### tests/demo-tuning-scenario.test.mjs
+
+- 测试目标：端到端验证 6 个内置 demo tuning scenarios。
+- 覆盖机制：Demo HUD Model + CombatActor 集成（V6.1）
+- 覆盖事件：间接（通过 snapshot 与 diagnostics.warnings 断言）
+- 测试数量：6 scenarios（6 passed）
+- 关键断言：
+  - normal-demo-has-zero-warnings：正常 demo preset 运行后 diagnostics.warnings 为空。
+  - hp-low-warning：玩家 HP 降到 30% 以下触发 hpLow warning。
+  - blade-not-attacking-warning：异刃停止攻击触发 bladeNotAttacking warning。
+  - cooldown-stalled-warning：异刃冷却过长触发 cooldownStalled warning。
+  - arts-unused-warning：Art ready 长时间未使用触发 artsUnused warning。
+  - bond-low-sync-warning：低 Sync + 高 Trust 触发 bondLowSync warning。
+- 所有 warning rules 已验证；正常 demo preset 零 warning；异常 snapshot 产生正确 warning。
+

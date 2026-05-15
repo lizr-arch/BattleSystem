@@ -451,3 +451,28 @@ V4.0 在保持 V1~V3 既有闭环可运行的前提下，引入 “Single Driver
 - 未来扩展点：V3 新机制 UI 展示应基于 snapshot 字段与事件，而不是直接访问 core 内部实现。
 - 不应该做的事：把 Special/Blade Combo 写死到 UI；或让 UI 特判推进/失败条件。
 
+## Demo HUD Model（V6.1）
+
+- 目的：从 `getSnapshot()` 生成结构化 HUD 数据，分离 Player HUD（玩家可理解）与 Developer Diagnostics（开发可诊断），并提供 diagnostics.warnings 系统。
+- 所属层：`src/core`
+- 主要文件：`src/core/demo-hud-model.js`（`createDemoHudModel(snapshot)`）
+- 输入：`CombatActor.getSnapshot()`
+- 输出：`{ playerHud, diagnostics }` 结构化对象
+- 拥有状态：无（纯函数）
+- 发出事件：无（不产生 CombatEvent）
+- 消费事件：通过 snapshot 间接读取战斗状态
+- 关键不变量：
+  - 纯函数，零战斗机制影响：不改变伤害、充能、状态机、事件日志。
+  - 数值保持不变。
+  - 不依赖 DOM/Canvas。
+- diagnostics.warnings 6 条规则：
+  - `hpLow`：玩家 HP ≤ 30%
+  - `bladeNotAttacking`：异刃 Idle + cooldown=0 + 敌人在范围内
+  - `cooldownStalled`：异刃冷却超过 180f
+  - `artsUnused`：任意 Art ready 超过 120f
+  - `specialUnused`：special readyLevel ≥ 1 超过 300f
+  - `bondLowSync`：sync < 20 且 trustLevel ≥ 3
+- 测试覆盖：`tests/demo-hud-model.test.mjs`（13 tests）、`tests/demo-tuning-scenario.test.mjs`（6 scenarios）
+- 未来扩展点：可增加更多 diagnostics 规则；当前不暴露给玩家，仅面向开发者。
+- 不应该做的事：在 demo-hud-model.js 中修改战斗规则或数值；不要让 diagnostics 影响 gameplay。
+
