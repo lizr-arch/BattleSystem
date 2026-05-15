@@ -1,4 +1,4 @@
-# V4.2 Test Coverage Map
+# V6.2 Test Coverage Map
 
 本文档盘点 `tests/*.mjs` 的覆盖范围，用于回答：
 
@@ -611,3 +611,26 @@ V5.3.1 为纯结构性重构：将 `BladeRuntime` 构造函数的 11 个扁平�
   - bond-low-sync-warning：低 Sync + 高 Trust 触发 bondLowSync warning。
 - 所有 warning rules 已验证；正常 demo preset 零 warning；异常 snapshot 产生正确 warning。
 
+
+## V6.2 Playable MVP Release Candidate
+
+V6.2 不新增战斗机制或测试文件，仅新增文档资产与 npm scripts。
+
+### 文档资产
+
+- `docs/playable-demo-guide.md`：玩家操作指南（纯文档，无测试覆盖需求）
+- `docs/v6.2-playable-demo-release-checklist.md`：开发者发布验收清单（纯文档，无测试覆盖需求）
+
+### Smoke Scripts
+
+三个可选浏览器烟雾测试脚本（不进入 `npm test`）：
+
+| Script | File | Coverage |
+| --- | --- | --- |
+| `smoke:demo-static` | `tools/smoke-demo-ui.mjs` | 静态 DOM 检查（#demoGoal, #demoPlayerHp, #demoEnemyHp, #demoBattleState, #demoBladesInfo, #demoDiagWarnings） |
+| `smoke:demo-r-key` | `tools/smoke-demo-r-key.mjs` | Playwright: R 键重置行为 |
+| `smoke:demo-ui` | `tools/smoke-demo-ui-playwright.mjs` | Playwright: 浏览器 UI 完整交互 |
+
+### 测试覆盖不变
+
+V6.2 不修改任何 `src/core/*.js` 或 `tests/*.mjs` 文件，现有 38 个测试文件覆盖矩阵完全不变。

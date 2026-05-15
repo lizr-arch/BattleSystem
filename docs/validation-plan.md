@@ -1,4 +1,4 @@
-# 验证计划（V1-V5.4）
+# 验证计划（V1-V6.2）
 
 本文件定义浏览器战斗沙盒的手动验证用例，以及对应的 Node 可重复测试范围。
 
@@ -6,8 +6,8 @@
 
 在保持“浏览器可跑 + Node 可重复测试”的前提下，把战斗闭环、Driver Combo（控制链）、V3 的 Special/Blade/Token、V4.0 的 Single Driver Routine-Orb MVP（单驾驶员·套路球最小闭环）、V4.2 的 Enemy Attack MVP（敌人最小攻击闭环），以及 V4.3 的 Player Defeat Polish（玩家失败打磨）验证清楚，并保证行为可解释、可复现。
 
-明确边界：在 <= V5.4 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
-如进入后续 V4.x，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
+明确边界：在 <= V6.2 范围内，本仓库不实现 Chain Attack / Full Burst / Fusion 等 payoff 机制，也不实现 token 的 cash-out/兑现机制；Orbs 仅实现 “Routine Orb（套路球）” 的最小闭环，不覆盖复杂属性球系统与连锁兑现；敌人仅实现单敌人、单攻击（EnemyStrike）的最小攻击闭环，不实现追击/寻路/行为树/仇恨系统。
+如进入后续 V6.x，只允许先以 Readiness Review + 拆分计划形式进入（见 `docs/v4-readiness-review.md`），再逐步落最小原型与可观察性资产。
 
 核心闭环（V1）：
 
@@ -271,6 +271,8 @@ V5.4 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 - Enemy Attack MVP：EnemyAttack 时序/命中/打空/冷却/被控与 PlayerDefeated（tests + scenarios）。
 - Player Defeat Polish：Defeat 后停止、Defeat 后输入被忽略、Reset 后恢复、finalSnapshot 保留真实 Defeat 状态。
 - Backpack Blade MVP：backpack-grid/loadout-resolver/blade-runtime 测试（4 个新测试文件 + 6 个内置 scenarios）。
+- V6.2 烟雾脚本：三个可选浏览器烟雾测试脚本（`npm run smoke:demo-static` / `npm run smoke:demo-r-key` / `npm run smoke:demo-ui`），不进入 `npm test`。
+
 
 ## 浏览器手动验收（V5.1 Backpack / Blades）
 
@@ -282,7 +284,7 @@ V5.4 验收以“口径一致 + 可追溯 + 一键可复现”为主：
 6. 点击 "Run Multiple Blades Limit" → Scenario Result 显示 PASS。
 7. Canvas 上在 Player 周围显示橙色 BladeRuntime 标记（element 名称 + cooldown 数字）。
 
-## 非目标（当前阶段不做：<= V5.1）
+## 非目标（当前阶段不做：<= V6.2）
 
 - 生产级最终动画与复杂表现管线。
 - 复杂敌人 AI（追击/寻路/行为树/多敌人/队友 AI/完整 Aggro 仇恨系统）。
@@ -358,3 +360,29 @@ V6.1 不新增战斗机制，仅新增 Demo HUD 可观察性层。验证重点�
 - 无 Life Skill gameplay。
 - 无 formal backpack UI。
 - 数值保持不变。
+
+## V6.2 验证（Playable MVP Release Candidate）
+
+V6.2 不新增战斗机制，验证重点在文档完整性、npm scripts 可用性与 smoke 脚本通过。
+
+### Smoke 脚本验证
+
+三个可选浏览器烟雾测试脚本，不进入 `npm test`：
+
+```bash
+npm run smoke:demo-static   # 静态检查 index.html 与 debug-panel.js DOM 元素
+npm run smoke:demo-r-key    # Playwright: 验证 R 键重置行为
+npm run smoke:demo-ui       # Playwright: 验证浏览器 UI 交互
+```
+
+### 发布验收清单
+
+完整验收流程参见 `docs/v6.2-playable-demo-release-checklist.md`。
+
+### V6.2 边界
+
+- 无新战斗机制：不改变伤害、充能、状态机、事件日志。
+- 无 Chain Attack / Full Burst / Fusion Combo。
+- 无 Life Skill gameplay。
+- 数值保持不变。
+- Smoke 脚本不进入 `npm test`。

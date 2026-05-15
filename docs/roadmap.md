@@ -226,6 +226,21 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI
 
+## V6.2：Playable MVP Release Candidate（完成）
+
+状态：完成。
+
+范围：将当前 Demo Battle 收口为"可分享、可试玩、可验收"的 MVP Release Candidate。不新增战斗机制，仅补充文档、npm scripts 与发布验收清单。
+
+交付物：
+
+- `docs/playable-demo-guide.md`（玩家操作指南）
+- `docs/v6.2-playable-demo-release-checklist.md`（开发者发布验收清单）
+- `package.json` 新增 `smoke:demo-static` / `smoke:demo-r-key` / `smoke:demo-ui` npm scripts
+- 文档同步更新（README / AGENTS / docs/roadmap / docs/validation-plan / docs/test-coverage-map）
+
+明确不做：不新增战斗机制、不新增玩法扩展、不实现 Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay。
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。
