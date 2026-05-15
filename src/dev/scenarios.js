@@ -5,6 +5,7 @@ import { createBackpackGrid } from '../core/backpack-grid.js';
 import { resolveLoadout } from '../core/loadout-resolver.js';
 import { CombatInputFrame } from '../core/combat-input.js';
 import { createDemoBattlePreset, resetDemoPreset, TRAINING_BRUTE_SPEC, DEMO_PLAYER_SPEC } from './demo-battle-preset.js';
+import { createDemoHudModel } from './demo-hud-model.js';
 
 function setupActorForScenario(actor) {
   actor.x = actor.target.x - 100;
@@ -2002,6 +2003,290 @@ export const scenarios = Object.freeze({
       assertEvent(CombatEventType.Reset, null, 'Reset event emitted'),
     ],
   },
+  'demo-hud-model-stable': {
+    name: 'demo-hud-model-stable',
+    maxFrames: 30,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = TRAINING_BRUTE_SPEC.hp;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      executeStep(({ actor: a }) => {
+        const model = createDemoHudModel(a.getSnapshot());
+        if (!model.isDemo) throw new Error('expected isDemo true');
+        const requiredKeys = ['isDemo', 'player', 'enemy', 'battle', 'controls', 'blades', 'recent', 'diagnostics'];
+        for (const key of requiredKeys) {
+          if (!(key in model)) throw new Error('missing key: ' + key);
+        }
+      }, 'Check HUD model structure is stable'),
+    ],
+  },
+
+  'demo-player-facing-hud-ready': {
+    name: 'demo-player-facing-hud-ready',
+    maxFrames: 30,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = TRAINING_BRUTE_SPEC.hp;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      executeStep(({ actor: a }) => {
+        const model = createDemoHudModel(a.getSnapshot());
+        if (!model.battle.goalText || model.battle.goalText === 'No active goal') throw new Error('expected non-empty goalText');
+        if (!model.controls || model.controls.length === 0) throw new Error('expected controls entries');
+        if (!model.player.hpText) throw new Error('expected player hpText');
+        if (!model.enemy.hpText) throw new Error('expected enemy hpText');
+        if (!model.blades || model.blades.length === 0) throw new Error('expected blades entries');
+        if (!model.recent.hintText) throw new Error('expected hintText');
+      }, 'Check player-facing HUD fields ready'),
+    ],
+  },
+
+  'demo-dev-diagnostics-no-warnings': {
+    name: 'demo-dev-diagnostics-no-warnings',
+    maxFrames: 30,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.id = TRAINING_BRUTE_SPEC.id;
+      actor.target.hp = TRAINING_BRUTE_SPEC.hp;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      executeStep(({ actor: a }) => {
+        const model = createDemoHudModel(a.getSnapshot());
+        if (!Array.isArray(model.diagnostics.warnings)) throw new Error('expected warnings array');
+        if (model.diagnostics.warnings.length !== 0) throw new Error('expected 0 warnings, got ' + model.diagnostics.warnings.length + ': ' + model.diagnostics.warnings.join(', '));
+      }, 'Check diagnostics.warnings is empty'),
+    ],
+  },
+
+  'demo-tuned-player-can-win': {
+    name: 'demo-tuned-player-can-win',
+    maxFrames: 1200,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 120;
+      actor.player.hp = DEMO_PLAYER_SPEC.hp;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = 30;
+      actor.target.maxHp = 30;
+      actor.target.dead = false;
+      actor.target.x = 200;
+      actor.target.y = 200;
+      actor.x = actor.target.x - 100;
+      actor.y = actor.target.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.TargetDefeated), 'Wait TargetDefeated'),
+      assertEvent(CombatEventType.TargetDefeated, null, 'Assert TargetDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Victory', 'Assert BattleEnded Victory'),
+      assertSnapshot((s) => s.battle?.result === 'Victory' && s.target?.dead === true, 'Assert Victory and target dead'),
+    ],
+  },
+
+  'demo-tuned-player-can-lose': {
+    name: 'demo-tuned-player-can-lose',
+    maxFrames: 1500,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 10;
+      actor.player.maxHp = 10;
+      actor.player.dead = false;
+      actor.target.hp = 999999;
+      actor.target.maxHp = 999999;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.x = TRAINING_BRUTE_SPEC.x - 100;
+      actor.y = TRAINING_BRUTE_SPEC.y;
+      if (actor.battle) {
+        actor.battle.active = true;
+        actor.battle.result = null;
+      }
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+        actor.enemy.cooldownLeft = 0;
+        actor.enemy.action = null;
+      }
+    },
+    steps: [
+      waitUntil((s, ctx) => hasEvent(ctx.events, CombatEventType.PlayerDefeated), 'Wait PlayerDefeated'),
+      assertEvent(CombatEventType.PlayerDefeated, null, 'Assert PlayerDefeated'),
+      assertEvent(CombatEventType.BattleEnded, (e) => e.data?.result === 'Defeat', 'Assert BattleEnded Defeat'),
+      assertSnapshot((s) => s.battle?.result === 'Defeat' && s.player?.dead === true, 'Assert Defeat and player dead'),
+    ],
+  },
+
+  'demo-r-key-reset-keeps-demo': {
+    name: 'demo-r-key-reset-keeps-demo',
+    maxFrames: 300,
+    prepare(actor) {
+      actor.resetRuntime();
+      actor.eventLog.clear();
+      actor.autoAttackRange = 0;
+      actor.player.hp = 1;
+      actor.player.maxHp = DEMO_PLAYER_SPEC.maxHp;
+      actor.player.dead = false;
+      actor.target.hp = 1;
+      actor.target.maxHp = TRAINING_BRUTE_SPEC.maxHp;
+      actor.target.dead = false;
+      actor.target.x = TRAINING_BRUTE_SPEC.x;
+      actor.target.y = TRAINING_BRUTE_SPEC.y;
+      actor.target.radius = TRAINING_BRUTE_SPEC.radius;
+      actor.x = DEMO_PLAYER_SPEC.x;
+      actor.y = DEMO_PLAYER_SPEC.y;
+      if (actor.enemy) {
+        actor.enemy.strike = new EnemyStrikeSpec(TRAINING_BRUTE_SPEC.strike);
+      }
+      const grid = createDemoBackpack();
+      const socketAssignments = getDemoSocketAssignments();
+      const resolved = resolveLoadout({ backpackGrid: grid, socketAssignments });
+      applyDemoBondToScenario(resolved.activeBlades);
+      actor.resolvedLoadout = resolved;
+      actor.refreshBladeUnlocks();
+      if (resolved.event) actor.emit(resolved.event.type, resolved.event.data);
+      for (const ev of (resolved.events ?? [])) actor.emit(ev.type, ev.data);
+      for (const blade of resolved.activeBlades) {
+        actor.linkBlade(blade);
+      }
+    },
+    steps: [
+      waitFrames(5, 'Initial state with low HP'),
+      assertSnapshot((snap) => snap.player?.hp === 1, 'Player HP is 1 before reset'),
+      assertSnapshot((snap) => snap.target?.hp === 1, 'Target HP is 1 before reset'),
+      executeStep(({ actor: a }) => {
+        resetDemoPreset(a);
+      }, 'resetDemoPreset'),
+      waitFrames(5, 'After reset'),
+      assertSnapshot((snap) => snap.player?.hp === DEMO_PLAYER_SPEC.hp && snap.player?.maxHp === DEMO_PLAYER_SPEC.maxHp, 'Player HP restored after reset'),
+      assertSnapshot((snap) => snap.target?.hp === TRAINING_BRUTE_SPEC.hp && snap.target?.maxHp === TRAINING_BRUTE_SPEC.maxHp, 'Target HP restored after reset'),
+      assertSnapshot((snap) => (snap.resolvedLoadout?.activeBlades ?? []).length >= 2, 'Blades still active after reset'),
+      assertSnapshot((snap) => {
+        const blades = snap.resolvedLoadout?.activeBlades ?? [];
+        return blades.every((b) => (b.bond?.trustLevel ?? 0) >= 3);
+      }, 'Trust level still >= 3 after reset'),
+      assertSnapshot((snap) => {
+        const runtimes = snap.bladeRuntimes ?? [];
+        return runtimes.length >= 2;
+      }, 'bladeRuntimes still active'),
+      assertEvent(CombatEventType.Reset, null, 'Reset event emitted'),
+    ],
+  },
+
 });
 
 function createDemoBackpack() {

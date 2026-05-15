@@ -599,7 +599,17 @@ V2 交付物：
 
 明确不做：复杂可视化编辑器/背包拖拽 UI/socket UI/Chain Attack/Full Burst/Fusion Combo
 
-### 明确不做（当前版本边界：<= V5.6）
+### V6.1：Demo Battle Tuning + Dual-Layer HUD（完成）
+
+实现 Demo 战斗调优与双层 HUD 系统：
+
+- 双层 HUD（Player HUD + Developer Diagnostics）、diagnostics.warnings、6 个 demo tuning scenarios、数值保持不变
+- 新增 `src/core/demo-hud-model.js`（纯逻辑模块，不依赖 DOM/Canvas）
+- 新增 2 个测试文件 + 6 个 scenarios
+- Debug Panel 展示 dual-layer HUD + diagnostics warnings
+- 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI
+
+### 明确不做（当前版本边界：<= V6.1）
 
 - Chain Attack / Full Burst / Fusion（当前不做；如未来进入 V4.x/V5.x，必须按 Readiness Review 拆分里程碑推进）。
 - 复杂属性球系统与连锁兑现（当前仅实现 Routine Orb 最小闭环）。

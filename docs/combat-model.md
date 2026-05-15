@@ -310,3 +310,32 @@ Trait Combat Payoff 是 V5.5.2 的"个体特质战斗兑现"闭环：拥有 Bond
 - 确定性，不使用概率
 
 文件：`src/core/trait-combat-payoff.js`
+
+## Demo HUD Model（V6.1）
+
+Demo HUD Model 是 V6.1 的"Demo 战斗可观察性"层，从 `getSnapshot()` 生成结构化 HUD 数据，用于驱动双层面板可视化。
+
+### 数据分层
+
+- **Player HUD（玩家可理解层）**：HP bar / arts charge / driver combo / special gauge / blade combo / routine orb / bond / traits / enemy / result — 面向玩家视角的战斗状态摘要。
+- **Developer Diagnostics（开发诊断层）**：diagnostics.warnings 系统，用于开发期问题排查，不暴露给玩家。
+
+### diagnostics.warnings（6 条规则）
+
+| 规则 ID | 触发条件 | 含义 |
+| --- | --- | --- |
+| hpLow | 玩家 HP ≤ 30% | 警告玩家血量危险 |
+| bladeNotAttacking | blade state = Idle 且 cooldown = 0 且敌人在范围内 | 异刃未在攻击 |
+| cooldownStalled | blade state = Cooldown 超过 180f | 异刃冷却异常 |
+| artsUnused | 任意 Art ready 超过 120f 未消费 | Art 资源滞留 |
+| specialUnused | special readyLevel ≥ 1 超过 300f 未消费 | Special 资源滞留 |
+| bondLowSync | sync < 20 且 trustLevel ≥ 3 | 羁绊默契不足 |
+
+### 原则
+
+- `createDemoHudModel(snapshot)` 是纯函数，不依赖 DOM/Canvas。
+- 零战斗机制影响：不改变伤害、充能、状态机、事件日志。
+- 数值保持不变。
+- 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI。
+
+文件：`src/core/demo-hud-model.js`

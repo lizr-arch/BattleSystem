@@ -328,3 +328,33 @@ V5.4 Bond 约束：
 - DebugPanel 应显示 Trust / TrustLevel / Mood / Sync。
 - V5.4 MVP 中 Sync 达阈值后清零（sync=0）。
 - overflow 只作为 `BondSyncTriggered` 事件数据记录，不保留到 `bond.sync`。
+
+## V6.1 验证（Demo Battle Tuning + Dual-Layer HUD）
+
+V6.1 不新增战斗机制，仅新增 Demo HUD 可观察性层。验证重点在 diagnostics.warnings 系统与 dual-layer 数据生成。
+
+### 自动化测试
+
+- `tests/demo-hud-model.test.mjs`（13 tests）：验证 `createDemoHudModel()` 纯函数。
+  - 正常 demo preset snapshot → playerHud 全字段存在、diagnostics.warnings 为空。
+  - 6 条 warning 规则逐一验证：hpLow / bladeNotAttacking / cooldownStalled / artsUnused / specialUnused / bondLowSync。
+  - 异常 snapshot 产生正确 warning；正常 snapshot 零 warning。
+- `tests/demo-tuning-scenario.test.mjs`（6 scenarios）：
+  - normal-demo-has-zero-warnings：正常 demo preset 无 warning。
+  - hp-low-warning / blade-not-attacking-warning / cooldown-stalled-warning / arts-unused-warning / bond-low-sync-warning：每条规则逐一验证。
+
+### 浏览器手动验收
+
+1. 打开 `index.html`，在 Debug 面板确认 dual-layer HUD 显示。
+2. Player HUD 区域显示：HP bar、Arts charge、Driver Combo、Special Gauge、Blade Combo、Routine Orb、Bond、Traits、Enemy、Result。
+3. Dev Diagnostics 区域显示 diagnostics.warnings 列表。
+4. 正常运行 demo preset 时 warnings 为空（零 warning）。
+5. 触发异常状态（如 HP 降低、异刃停止攻击等）产生对应 warning。
+
+### V6.1 边界
+
+- 无新战斗机制：不改变伤害、充能、状态机、事件日志。
+- 无 Chain Attack / Full Burst / Fusion Combo。
+- 无 Life Skill gameplay。
+- 无 formal backpack UI。
+- 数值保持不变。

@@ -208,6 +208,24 @@ Break（破防） -> Topple（倒地） -> Launch（浮空） -> Smash（猛击�
 
 新增/修改文件：`src/dev/demo-battle-preset.js`、`src/ui/sandbox-app.js`、`src/ui/debug-panel.js`、`src/ui/canvas-renderer.js`、`index.html`、`src/dev/scenario-runner.js`（新增 `executeStep`）、`src/dev/scenarios.js`、`tests/demo-battle-preset.test.mjs`、`tests/demo-battle-scenario.test.mjs`。
 
+## V6.1：Demo Battle Tuning + Dual-Layer HUD（完成）
+
+状态：完成。
+
+范围：Demo 战斗调优与双层 HUD 系统 — 玩家可理解 + 开发可诊断的 Demo 战斗。生成结构化 HUD 数据（Player HUD + Developer Diagnostics），提供 diagnostics.warnings 系统（6 条规则），支持 dual-layer 可视化展示。
+
+交付物：
+
+- `src/core/demo-hud-model.js`（纯逻辑模块，createDemoHudModel()）
+- diagnostics.warnings：6 条规则（hpLow / bladeNotAttacking / cooldownStalled / artsUnused / specialUnused / bondLowSync）
+- dual-layer HUD UI：Player HUD（玩家可理解信息）+ Dev Diagnostics（开发可诊断信息）
+- Canvas overlay 增强：HP 条、Arts 充能、Driver Combo 指示器、Bond Trust 标记、Enemy HP
+- 6 个 demo tuning scenarios
+- 2 个测试文件：`tests/demo-hud-model.test.mjs`（13 tests）、`tests/demo-tuning-scenario.test.mjs`（6 scenarios）
+- 数值保持不变
+
+明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI
+
 ## V5.5：Life Skill Hook（未来）
 
 状态：未来。
