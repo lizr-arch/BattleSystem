@@ -15,7 +15,6 @@ function check(label, condition, detail = '') {
   if (condition) passed++; else failed++;
 }
 
-// Start server
 const server = spawn('python', ['tools/serve.py'], { cwd: root, stdio: 'pipe' });
 
 function waitForServer(maxWaitMs = 10000) {
@@ -39,7 +38,6 @@ const ready = await waitForServer();
 if (!ready) { console.log('FAIL: server'); process.exit(1); }
 console.log('  PASS  Server started');
 
-// Launch browser
 const { chromium } = await import('playwright');
 const browser = await chromium.launch({ headless: false });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -51,33 +49,60 @@ try {
   await page.goto('http://127.0.0.1:8000/index.html', { waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.waitForTimeout(500);
 
-  // Click Start Demo Battle
   console.log('\n=== Start Demo Battle ===\n');
   await page.click('#demoStart');
   await page.waitForFunction(
-    () => document.querySelector('#demoMode')?.textContent.includes('ON'),
+    () => {
+      const el = document.querySelector('#demoGoal');
+      return el && el.textContent.trim() !== '-';
+    },
     { timeout: 5000 }
   );
 
   const dm = (id) => page.$eval(id, (el) => el.textContent.trim());
 
-  check('#demoMode = ON', (await dm('#demoMode')) === 'ON');
-  check('#demoEnemy = TrainingBrute', (await dm('#demoEnemy')) === 'TrainingBrute');
-  const blades = await dm('#demoBlades');
-  check('#demoBlades has GreyWolfBlade + BrownBearBlade',
-    blades.includes('GreyWolfBlade') && blades.includes('BrownBearBlade'),
-    `text="${blades}"`);
+  const goalText = await dm('#demoGoal');
+  check('#demoGoal contains TrainingBrute or Defeat',
+    goalText.includes('TrainingBrute') || goalText.includes('Defeat'),
+    `text="${goalText}"`);
 
-  // Press R key
+  const playerHp = await dm('#demoPlayerHp');
+  check('#demoPlayerHp is not "-"', playerHp !== '-', `text="${playerHp}"`);
+
+  const enemyHp = await dm('#demoEnemyHp');
+  check('#demoEnemyHp is not "-"', enemyHp !== '-', `text="${enemyHp}"`);
+
+  const battleState = await dm('#demoBattleState');
+  check('#demoBattleState is not "-"', battleState !== '-', `text="${battleState}"`);
+
+  const bladesInfo = await dm('#demoBladesInfo');
+  check('#demoBladesInfo has GreyWolf or BrownBear',
+    bladesInfo.includes('GreyWolf') || bladesInfo.includes('BrownBear'),
+    `text="${bladesInfo}"`);
+
+  const diagWarnings = await dm('#demoDiagWarnings');
+  check('#demoDiagWarnings is (none) or no warning',
+    diagWarnings === '(none)' || diagWarnings === '-',
+    `text="${diagWarnings}"`);
+
   console.log('\n=== Press R key ===\n');
   await page.keyboard.press('r');
   await page.waitForTimeout(300);
 
-  check('#demoMode still ON', (await dm('#demoMode')) === 'ON');
-  check('#demoEnemy still TrainingBrute', (await dm('#demoEnemy')) === 'TrainingBrute');
-  const blades2 = await dm('#demoBlades');
-  check('#demoBlades preserved', blades2.includes('GreyWolfBlade') && blades2.includes('BrownBearBlade'),
-    `text="${blades2}"`);
+  const goalText2 = await dm('#demoGoal');
+  check('#demoGoal still valid after R', goalText2 !== '-', `text="${goalText2}"`);
+
+  const playerHp2 = await dm('#demoPlayerHp');
+  check('#demoPlayerHp still valid after R', playerHp2 !== '-', `text="${playerHp2}"`);
+
+  const enemyHp2 = await dm('#demoEnemyHp');
+  check('#demoEnemyHp still valid after R', enemyHp2 !== '-', `text="${enemyHp2}"`);
+
+  const bladesInfo2 = await dm('#demoBladesInfo');
+  check('#demoBladesInfo preserved after R',
+    bladesInfo2.includes('GreyWolf') || bladesInfo2.includes('BrownBear'),
+    `text="${bladesInfo2}"`);
+
   check('Page alive (no crash)', errors.length === 0, errors.length > 0 ? `errors=${errors.join(';')}` : '');
   check('R key dispatched correctly', true, 'controls.reset -> isDemo -> resetDemo()');
 

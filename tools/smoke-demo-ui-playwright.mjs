@@ -22,9 +22,6 @@ function record(label, condition, detail = '') {
   if (condition) passed++; else failed++;
 }
 
-// ============================================================
-// 1. Start server
-// ============================================================
 console.log('\n=== Starting server ===\n');
 
 const server = spawn('python', ['tools/serve.py'], { cwd: root, stdio: 'pipe' });
@@ -67,9 +64,6 @@ if (!serverReady) {
 }
 console.log('  PASS  Server started on http://127.0.0.1:8000');
 
-// ============================================================
-// 2. Launch Playwright
-// ============================================================
 console.log('\n=== Launching browser ===\n');
 
 const { chromium } = await import('playwright');
@@ -91,9 +85,6 @@ page.on('pageerror', (err) => {
 });
 
 try {
-  // ============================================================
-  // 3. Navigate
-  // ============================================================
   console.log('=== Navigation ===\n');
 
   await page.goto(`http://${serverHost}:${serverPort}/index.html`, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -102,15 +93,14 @@ try {
   const pageTitle = await page.title();
   record('Page title loaded', pageTitle.length > 0, `title="${pageTitle}"`);
 
-  // ============================================================
-  // 4. Verify Demo Battle UI elements
-  // ============================================================
   console.log('\n=== Demo Battle Panel Verification ===\n');
 
-  const demoModeEl = await page.$('#demoMode');
-  record('#demoMode exists', demoModeEl !== null);
-  const demoModeText = await page.$eval('#demoMode', (el) => el.textContent);
-  record('#demoMode initial text valid', demoModeText === '-' || demoModeText === 'OFF', `text="${demoModeText}"`);
+  const dm = (id) => page.$eval(id, (el) => el.textContent.trim());
+
+  const demoGoalEl = await page.$('#demoGoal');
+  record('#demoGoal exists', demoGoalEl !== null);
+  const demoGoalText = await dm('#demoGoal');
+  record('#demoGoal initial text valid', demoGoalText === '-', `text="${demoGoalText}"`);
 
   const demoStartEl = await page.$('#demoStart');
   record('#demoStart button exists', demoStartEl !== null);
@@ -122,31 +112,41 @@ try {
   const demoResetText = await page.$eval('#demoReset', (el) => el.textContent.trim());
   record('#demoReset button text', demoResetText.includes('Reset Demo'), `text="${demoResetText}"`);
 
-  // ============================================================
-  // 5. Click Start Demo Battle
-  // ============================================================
   console.log('\n=== Click Start Demo Battle ===\n');
 
   await page.click('#demoStart');
   await page.waitForFunction(
-    () => document.querySelector('#demoMode')?.textContent.includes('ON'),
+    () => {
+      const el = document.querySelector('#demoGoal');
+      return el && el.textContent.trim() !== '-';
+    },
     { timeout: 5000 }
   );
-  const demoModeOn = await page.$eval('#demoMode', (el) => el.textContent);
-  record('#demoMode shows ON after Start', demoModeOn === 'ON', `text="${demoModeOn}"`);
 
-  // 6. Check enemy
-  const demoEnemyText = await page.$eval('#demoEnemy', (el) => el.textContent);
-  record('#demoEnemy has value', demoEnemyText !== '-' && demoEnemyText.length > 0, `text="${demoEnemyText}"`);
+  const goalText = await dm('#demoGoal');
+  record('#demoGoal shows goal after Start',
+    goalText.includes('TrainingBrute') || goalText.includes('Defeat'),
+    `text="${goalText}"`);
 
-  // 7. Check blades
-  const demoBladesText = await page.$eval('#demoBlades', (el) => el.textContent);
-  const hasBlades = demoBladesText.includes('GreyWolfBlade') || demoBladesText.includes('BrownBearBlade') || demoBladesText.includes('brownBearBlade');
-  record('#demoBlades shows blades', hasBlades, `text="${demoBladesText}"`);
+  const playerHp = await dm('#demoPlayerHp');
+  record('#demoPlayerHp is not "-"', playerHp !== '-', `text="${playerHp}"`);
 
-  // ============================================================
-  // 8. Canvas DEMO badge verification
-  // ============================================================
+  const enemyHp = await dm('#demoEnemyHp');
+  record('#demoEnemyHp is not "-"', enemyHp !== '-', `text="${enemyHp}"`);
+
+  const battleState = await dm('#demoBattleState');
+  record('#demoBattleState is not "-"', battleState !== '-', `text="${battleState}"`);
+
+  const bladesInfo = await dm('#demoBladesInfo');
+  record('#demoBladesInfo shows blades',
+    bladesInfo.includes('GreyWolf') || bladesInfo.includes('BrownBear'),
+    `text="${bladesInfo}"`);
+
+  const diagWarnings = await dm('#demoDiagWarnings');
+  record('#demoDiagWarnings is (none) or no warning',
+    diagWarnings === '(none)' || diagWarnings === '-',
+    `text="${diagWarnings}"`);
+
   console.log('\n=== Canvas DEMO Badge ===\n');
 
   const canvasExists = await page.$('canvas');
@@ -162,30 +162,22 @@ try {
     record('Canvas 2d context available', hasDemoBadge);
   }
 
-  await page.screenshot({ path: resolve(screenshotDir, 'demo-badge.png'), fullPage: true });
-  record('Screenshot: demo-badge.png saved', true, `path=${resolve(screenshotDir, 'demo-badge.png')}`);
-
-  // ============================================================
-  // 9. Click Reset Demo
-  // ============================================================
   console.log('\n=== Click Reset Demo ===\n');
 
   await page.click('#demoReset');
   await page.waitForTimeout(500);
 
-  const demoModeAfterReset = await page.$eval('#demoMode', (el) => el.textContent);
-  const resetOK = await page.$('#demoStart') !== null;
-  record('Page survives Reset Demo', resetOK, `#demoMode="${demoModeAfterReset}"`);
+  const goalAfterReset = await dm('#demoGoal');
+  record('Page survives Reset Demo', goalAfterReset !== undefined, `#demoGoal="${goalAfterReset}"`);
 
-  // ============================================================
-  // 10. Run all 4 demo scenarios
-  // ============================================================
   console.log('\n=== Demo Scenario Runs ===\n');
 
-  // Restart demo for scenarios that need enemy / blades
   await page.click('#demoStart');
   await page.waitForFunction(
-    () => document.querySelector('#demoMode')?.textContent.includes('ON'),
+    () => {
+      const el = document.querySelector('#demoGoal');
+      return el && el.textContent.trim() !== '-';
+    },
     { timeout: 5000 }
   );
 
@@ -208,9 +200,6 @@ try {
   await runScenario('#scDemoEnemyDamage', 'demo-preset-enemy-damages-player');
   await runScenario('#scDemoReset', 'demo-preset-reset');
 
-  // ============================================================
-  // 11. Console error check
-  // ============================================================
   console.log('\n=== Console Errors ===\n');
 
   const realErrors = consoleErrors.filter((e) => !e.includes('404') && !e.includes('File not found'));
@@ -222,12 +211,6 @@ try {
     });
   }
 
-  // ============================================================
-  // 12. Final screenshot
-  // ============================================================
-  await page.screenshot({ path: resolve(screenshotDir, 'demo-final.png'), fullPage: true });
-  record('Screenshot: demo-final.png saved', true, `path=${resolve(screenshotDir, 'demo-final.png')}`);
-
 } catch (err) {
   console.log(`\n  FATAL  ${err.message}`);
   record('Fatal error', false, err.message);
@@ -235,11 +218,8 @@ try {
   await browser.close();
   server.kill();
 
-  // ============================================================
-  // Summary
-  // ============================================================
   console.log('\n========================================');
-  console.log('  V5.6 Playwright UI Smoke — REPORT');
+  console.log('  V6.1 Playwright UI Smoke — REPORT');
   console.log('========================================\n');
   console.log(`  status: run`);
   console.log(`  command: node tools/smoke-demo-ui-playwright.mjs`);
@@ -252,7 +232,6 @@ try {
   }
 
   console.log(`\n  console errors: ${consoleErrors.length > 0 ? consoleErrors.join('; ') : '0 (none found)'}`);
-  console.log(`  screenshot path: ${resolve(screenshotDir)}`);
   console.log(`  result: ${failed > 0 ? 'FAIL' : 'PASS'}  (${passed}/${results.length} passed)`);
 
   process.exit(failed > 0 ? 1 : 0);

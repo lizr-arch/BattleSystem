@@ -675,7 +675,7 @@ export class DebugPanel {
       return;
     }
 
-    const model = createDemoHudModel(s);
+    const model = createDemoHudModel(s, { isDemo });
 
     if (this.refs.demoGoal) this.refs.demoGoal.textContent = model.battle.goalText || '-';
     if (this.refs.demoControls) this.refs.demoControls.textContent = model.controls.join(' | ') || '-';
