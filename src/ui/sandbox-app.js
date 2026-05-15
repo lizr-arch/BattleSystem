@@ -142,7 +142,10 @@ export class SandboxApp {
   loop(timestamp) {
     const controls = this.input.consumeControlShots();
     if (controls.pause) this.actor.paused = !this.actor.paused;
-    if (controls.reset) this.reset();
+    if (controls.reset) {
+      if (this.isDemo) this.resetDemo();
+      else this.reset();
+    }
     if (controls.step) this.stepOneFrame();
     if (controls.sp1) this.actor.castSpecial('FireLv1');
     if (controls.sp2) this.actor.castSpecial('WaterLv2');
