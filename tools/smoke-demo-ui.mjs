@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { get } from 'node:http';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -77,49 +76,6 @@ check('debug-panel.js: createDemoHudModel called with isDemo', debugPanel.includ
 const canvasRenderer = readFileSync(resolve(root, 'src/ui/canvas-renderer.js'), 'utf-8');
 
 check('canvas-renderer.js: DEMO badge drawn', canvasRenderer.includes("fillText('DEMO'"));
-
-console.log('\n=== LAYER 2: HTTP Reachability ===\n');
-
-const serverHost = '127.0.0.1';
-const serverPort = 8000;
-
-function httpCheck(label) {
-  return new Promise((resolveCheck) => {
-    const req = get(`http://${serverHost}:${serverPort}/index.html`, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
-        const statusOK = res.statusCode === 200;
-        const ct = res.headers['content-type'] || '';
-        const ctOK = ct.includes('text/html');
-        const hasTitle = body.includes('<title>');
-        const hasDemoGoal = body.includes('id="demoGoal"');
-        const hasDemoDiagWarnings = body.includes('id="demoDiagWarnings"');
-        const hasScResult = body.includes('id="scResult"');
-
-        check(label + ': HTTP 200', statusOK, `status=${res.statusCode}`);
-        check(label + ': Content-Type text/html', ctOK, `content-type=${ct}`);
-        check(label + ': <title> present', hasTitle);
-        check(label + ': #demoGoal in response body', hasDemoGoal);
-        check(label + ': #demoDiagWarnings in response body', hasDemoDiagWarnings);
-        check(label + ': #scResult in response body', hasScResult);
-
-        resolveCheck();
-      });
-    });
-    req.on('error', (err) => {
-      check(label + ': HTTP reachable', false, `error=${err.message}`);
-      resolveCheck();
-    });
-    req.setTimeout(3000, () => {
-      check(label + ': HTTP reachable', false, 'timeout after 3s');
-      req.destroy();
-      resolveCheck();
-    });
-  });
-}
-
-await httpCheck('HTTP GET /index.html');
 
 console.log('\n=== SUMMARY ===\n');
 

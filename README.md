@@ -1,4 +1,4 @@
-# BattleSystem
+﻿# BattleSystem
 
 浏览器优先的战斗系统验证沙盒，用来快速验证“异度之刃 2-like”的底层战斗闭环与最小 Combo 原型。
 
@@ -154,6 +154,15 @@ V6.1 实现 Demo 战斗调优与双层 HUD 系统 — 玩家可理解 + 开发�
 - 数值保持不变，无新战斗机制
 - 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / formal backpack UI
 
+
+## V6.2：Playable MVP Release Candidate（已实现）
+
+V6.2 将当前 Demo Battle 收口为"可分享、可试玩、可验收"的 MVP Release Candidate，不新增任何战斗机制。
+
+- 新增 `docs/playable-demo-guide.md`：面向玩家的操作指南
+- 新增 `docs/v6.2-playable-demo-release-checklist.md`：面向开发者的发布验收清单
+- 新增 `npm run smoke:demo-static` / `smoke:demo-r-key` / `smoke:demo-ui` 可选浏览器烟雾测试脚本
+- 明确不做：Chain Attack / Full Burst / Fusion Combo / Life Skill gameplay / 背包拖拽 UI / 完整技能系统
 =======
 ## 设计原型：Routine-Orb（套路挂球）
 
@@ -302,3 +311,5 @@ See:
 - `docs/v3-readiness-review.md`
 - `docs/v4-readiness-review.md`
 - `docs/design/routine-orb-combat-prototype.md`
+- `docs/playable-demo-guide.md`
+- `docs/v6.2-playable-demo-release-checklist.md`
